@@ -522,10 +522,7 @@ paths:
         ```
 
 
-        Displays the specified message to the message log.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:136`.'
+        Displays the specified message to the message log.'
       requestBody:
         required: true
         content:
@@ -562,10 +559,7 @@ paths:
         ```
 
 
-        Displays the specified message to the message log and stop the bot.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:137`.'
+        Displays the specified message to the message log and stop the bot.'
       requestBody:
         required: true
         content:
@@ -602,10 +596,7 @@ paths:
         ```
 
 
-        Displays the specified message to the message log and logs out.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:138`.'
+        Displays the specified message to the message log and logs out.'
       requestBody:
         required: true
         content:
@@ -642,10 +633,7 @@ paths:
         ```
 
 
-        Logs out and logs back in after the specified number of seconds.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:139`.'
+        Logs out and logs back in after the specified number of seconds.'
       requestBody:
         required: true
         content:
@@ -686,10 +674,7 @@ paths:
         ```
 
 
-        Start the script.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:140`.'
+        Start the script.'
       requestBody:
         required: true
         content:
@@ -730,10 +715,7 @@ paths:
         ```
 
 
-        Returns true if the string contains the specified part, ignoring the case.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:141`.'
+        Returns true if the string contains the specified part, ignoring the case.'
       requestBody:
         required: true
         content:
@@ -779,10 +761,7 @@ paths:
         ```
 
 
-        Returns playing a custom sound.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:142`.'
+        Returns playing a custom sound.'
       requestBody:
         required: true
         content:
@@ -819,10 +798,7 @@ paths:
         ```
 
 
-        Calls the specified function when the specified event occurs.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:143`.'
+        Calls the specified function when the specified event occurs.'
       requestBody:
         required: true
         content:
@@ -870,10 +846,7 @@ paths:
         ```
 
 
-        Returns the X-coordinate of the current cell.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:146`.'
+        Returns the X-coordinate of the current cell.'
       responses:
         '200':
           description: Lua return value.
@@ -902,10 +875,7 @@ paths:
         ```
 
 
-        Returns the Y-coordinate of the current cell.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:147`.'
+        Returns the Y-coordinate of the current cell.'
       responses:
         '200':
           description: Lua return value.
@@ -934,10 +904,7 @@ paths:
         ```
 
 
-        Returns current account name.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:148`.'
+        Returns current account name.'
       responses:
         '200':
           description: Lua return value.
@@ -966,10 +933,7 @@ paths:
         ```
 
 
-        Returns the name of the current map.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:149`.'
+        Returns the name of the current map.'
       responses:
         '200':
           description: Lua return value.
@@ -998,10 +962,7 @@ paths:
         ```
 
 
-        Returns Owned Entry of the pokedex
-
-
-        Source: `Bot/Scripting/LuaScript.cs:150`.'
+        Returns Owned Entry of the pokedex'
       responses:
         '200':
           description: Lua return value.
@@ -1030,10 +991,7 @@ paths:
         ```
 
 
-        Returns Seen Entry of the pokedex
-
-
-        Source: `Bot/Scripting/LuaScript.cs:151`.'
+        Returns Seen Entry of the pokedex'
       responses:
         '200':
           description: Lua return value.
@@ -1062,10 +1020,7 @@ paths:
         ```
 
 
-        Returns Evolved Entry of the pokedex
-
-
-        Source: `Bot/Scripting/LuaScript.cs:152`.'
+        Returns Evolved Entry of the pokedex'
       responses:
         '200':
           description: Lua return value.
@@ -1094,10 +1049,7 @@ paths:
         ```
 
 
-        Returns the amount of pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:153`.'
+        Returns the amount of pokémon in the team.'
       responses:
         '200':
           description: Lua return value.
@@ -1126,10 +1078,7 @@ paths:
         ```
 
 
-        Lua function `isGameScriptActive`.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:154`.'
+        Lua function `isGameScriptActive`.'
       responses:
         '200':
           description: Lua return value.
@@ -1158,10 +1107,7 @@ paths:
         ```
 
 
-        Returns current account''s membership status.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:155`.'
+        Returns current account''s membership status.'
       responses:
         '200':
           description: Lua return value.
@@ -1190,10 +1136,7 @@ paths:
         ```
 
 
-        Returns the ID of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:157`.'
+        Returns the ID of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -1235,10 +1178,7 @@ paths:
         ```
 
 
-        Returns the name of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:158`.'
+        Returns the name of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -1280,10 +1220,7 @@ paths:
         ```
 
 
-        Returns the current health of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:159`.'
+        Returns the current health of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -1325,10 +1262,7 @@ paths:
         ```
 
 
-        Returns the percentage of remaining health of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:160`.'
+        Returns the percentage of remaining health of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -1370,10 +1304,7 @@ paths:
         ```
 
 
-        Returns the maximum health of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:161`.'
+        Returns the maximum health of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -1415,10 +1346,7 @@ paths:
         ```
 
 
-        Returns the level of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:162`.'
+        Returns the level of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -1460,10 +1388,7 @@ paths:
         ```
 
 
-        Returns the experience total of a pokemon level.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:163`.'
+        Returns the experience total of a pokemon level.'
       requestBody:
         required: true
         content:
@@ -1505,10 +1430,7 @@ paths:
         ```
 
 
-        Returns the remaining experience of a pokemon before next level.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:164`.'
+        Returns the remaining experience of a pokemon before next level.'
       requestBody:
         required: true
         content:
@@ -1550,10 +1472,7 @@ paths:
         ```
 
 
-        Returns the status of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:165`.'
+        Returns the status of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -1595,10 +1514,7 @@ paths:
         ```
 
 
-        Returns the form of the specified pokémon in the team (0 if no form).
-
-
-        Source: `Bot/Scripting/LuaScript.cs:166`.'
+        Returns the form of the specified pokémon in the team (0 if no form).'
       requestBody:
         required: true
         content:
@@ -1640,10 +1556,7 @@ paths:
         ```
 
 
-        Returns the item held by the specified pokemon in the team, null if empty.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:167`.'
+        Returns the item held by the specified pokemon in the team, null if empty.'
       requestBody:
         required: true
         content:
@@ -1685,10 +1598,7 @@ paths:
         ```
 
 
-        PROCatchem unique ID of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:168`.'
+        PROCatchem unique ID of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -1730,10 +1640,7 @@ paths:
         ```
 
 
-        Returns the remaining power points of the specified move of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:169`.'
+        Returns the remaining power points of the specified move of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -1779,10 +1686,7 @@ paths:
         ```
 
 
-        Max move PP of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:170`.'
+        Max move PP of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -1828,10 +1732,7 @@ paths:
         ```
 
 
-        Returns the shyniness of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:171`.'
+        Returns the shyniness of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -1873,10 +1774,7 @@ paths:
         ```
 
 
-        Returns the move of the specified pokémon in the team at the specified index.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:172`.'
+        Returns the move of the specified pokémon in the team at the specified index.'
       requestBody:
         required: true
         content:
@@ -1922,10 +1820,7 @@ paths:
         ```
 
 
-        Returns the move accuracy of the specified pokémon in the team at the specified index.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:173`.'
+        Returns the move accuracy of the specified pokémon in the team at the specified index.'
       requestBody:
         required: true
         content:
@@ -1971,10 +1866,7 @@ paths:
         ```
 
 
-        Returns the move power of the specified pokémon in the team at the specified index.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:174`.'
+        Returns the move power of the specified pokémon in the team at the specified index.'
       requestBody:
         required: true
         content:
@@ -2020,10 +1912,7 @@ paths:
         ```
 
 
-        Returns the move type of the specified pokémon in the team at the specified index.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:175`.'
+        Returns the move type of the specified pokémon in the team at the specified index.'
       requestBody:
         required: true
         content:
@@ -2069,10 +1958,7 @@ paths:
         ```
 
 
-        Returns the move damage type of the specified pokémon in the team at the specified index.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:176`.'
+        Returns the move damage type of the specified pokémon in the team at the specified index.'
       requestBody:
         required: true
         content:
@@ -2118,10 +2004,7 @@ paths:
         ```
 
 
-        Returns true if the move of the specified pokémon in the team at the specified index can apply a status .
-
-
-        Source: `Bot/Scripting/LuaScript.cs:177`.'
+        Returns true if the move of the specified pokémon in the team at the specified index can apply a status .'
       requestBody:
         required: true
         content:
@@ -2167,10 +2050,7 @@ paths:
         ```
 
 
-        Nature of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:178`.'
+        Nature of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -2212,10 +2092,7 @@ paths:
         ```
 
 
-        Ability of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:179`.'
+        Ability of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -2257,10 +2134,7 @@ paths:
         ```
 
 
-        Returns the value for the specified stat of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:180`.'
+        Returns the value for the specified stat of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -2306,10 +2180,7 @@ paths:
         ```
 
 
-        Returns the effort value for the specified stat of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:181`.'
+        Returns the effort value for the specified stat of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -2355,10 +2226,7 @@ paths:
         ```
 
 
-        Returns the individual value for the specified stat of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:182`.'
+        Returns the individual value for the specified stat of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -2404,10 +2272,7 @@ paths:
         ```
 
 
-        Returns the happiness of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:183`.'
+        Returns the happiness of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -2449,10 +2314,7 @@ paths:
         ```
 
 
-        Returns the region of capture of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:184`.'
+        Returns the region of capture of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -2494,10 +2356,7 @@ paths:
         ```
 
 
-        Returns the original trainer of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:185`.'
+        Returns the original trainer of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -2539,10 +2398,7 @@ paths:
         ```
 
 
-        Returns the gender of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:186`.'
+        Returns the gender of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -2584,10 +2440,7 @@ paths:
         ```
 
 
-        Returns the type of the specified pokémon in the team as an array of length 2.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:187`.'
+        Returns the type of the specified pokémon in the team as an array of length 2.'
       requestBody:
         required: true
         content:
@@ -2631,10 +2484,7 @@ paths:
         ```
 
 
-        Returns the multiplier of the damage type between an attacking type and one or two defending types.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:188`.'
+        Returns the multiplier of the damage type between an attacking type and one or two defending types.'
       requestBody:
         required: true
         content:
@@ -2689,10 +2539,7 @@ paths:
         ```
 
 
-        Returns true if the specified pokémon has is alive and has an offensive attack available.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:189`.'
+        Returns true if the specified pokémon has is alive and has an offensive attack available.'
       requestBody:
         required: true
         content:
@@ -2734,10 +2581,7 @@ paths:
         ```
 
 
-        Returns the amount of usable pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:190`.'
+        Returns the amount of usable pokémon in the team.'
       responses:
         '200':
           description: Lua return value.
@@ -2766,10 +2610,7 @@ paths:
         ```
 
 
-        Returns true if the specified pokémon has a move with the specified name.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:191`.'
+        Returns true if the specified pokémon has a move with the specified name.'
       requestBody:
         required: true
         content:
@@ -2816,10 +2657,7 @@ paths:
         ```
 
 
-        API return an array of all NPCs that can be challenged on the current map. format : {"npcName" = {"x" = x, "y" = y}}
-
-
-        Source: `Bot/Scripting/LuaScript.cs:192`.'
+        API return an array of all NPCs that can be challenged on the current map. format : {"npcName" = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2852,10 +2690,7 @@ paths:
         ```
 
 
-        API return an array of all usable Dig Spots on the currrent map. format : {index = {"x" = x, "y" = y}}
-
-
-        Source: `Bot/Scripting/LuaScript.cs:193`.'
+        API return an array of all usable Dig Spots on the currrent map. format : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2888,10 +2723,7 @@ paths:
         ```
 
 
-        API return an array of all usable Headbutt trees on the currrent map. format : {index = {"x" = x, "y" = y}}
-
-
-        Source: `Bot/Scripting/LuaScript.cs:194`.'
+        API return an array of all usable Headbutt trees on the currrent map. format : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2925,10 +2757,7 @@ paths:
         ```
 
 
-        API return an array of all harvestable berry trees on the currrent map. format : {index = {"x" = x, "y" = y}}
-
-
-        Source: `Bot/Scripting/LuaScript.cs:195`.'
+        API return an array of all harvestable berry trees on the currrent map. format : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2961,10 +2790,7 @@ paths:
         ```
 
 
-        API return an array of all discoverable items on the currrent map. format : {index = {"x" = x, "y" = y}}
-
-
-        Source: `Bot/Scripting/LuaScript.cs:196`.'
+        API return an array of all discoverable items on the currrent map. format : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2997,10 +2823,7 @@ paths:
         ```
 
 
-        API return an array of all pokestops on the current map. format : {index = {"x" = x, "y" = y}}
-
-
-        Source: `Bot/Scripting/LuaScript.cs:197`.'
+        API return an array of all pokestops on the current map. format : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -3033,10 +2856,7 @@ paths:
         ```
 
 
-        API return an array of all Abandoned Pokemon on the current map. format : {index = {"x" = x, "y" = y}}
-
-
-        Source: `Bot/Scripting/LuaScript.cs:198`.'
+        API return an array of all Abandoned Pokemon on the current map. format : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -3069,10 +2889,7 @@ paths:
         ```
 
 
-        Returns npc data on current map, format : { { "x" = x , "y" = y, "type" = type }, {...}, ... }
-
-
-        Source: `Bot/Scripting/LuaScript.cs:199`.'
+        Returns npc data on current map, format : { { "x" = x , "y" = y, "type" = type }, {...}, ... }'
       responses:
         '200':
           description: Lua return value.
@@ -3112,10 +2929,7 @@ paths:
         ```
 
 
-        Lua function `getMapLinks`.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:200`.'
+        Lua function `getMapLinks`.'
       responses:
         '200':
           description: Lua return value.
@@ -3148,10 +2962,7 @@ paths:
         ```
 
 
-        The number of cells on the current map in the x direction.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:201`.'
+        The number of cells on the current map in the x direction.'
       responses:
         '200':
           description: Lua return value.
@@ -3180,10 +2991,7 @@ paths:
         ```
 
 
-        The number of cells on the current map in the y direction.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:202`.'
+        The number of cells on the current map in the y direction.'
       responses:
         '200':
           description: Lua return value.
@@ -3212,10 +3020,7 @@ paths:
         ```
 
 
-        Returns the cell type of the specified cell on the current map.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:203`.'
+        Returns the cell type of the specified cell on the current map.'
       requestBody:
         required: true
         content:
@@ -3261,10 +3066,7 @@ paths:
         ```
 
 
-        Returns true if the specified item is in the inventory.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:205`.'
+        Returns true if the specified item is in the inventory.'
       requestBody:
         required: true
         content:
@@ -3306,10 +3108,7 @@ paths:
         ```
 
 
-        Returns the quantity of the specified item in the inventory.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:206`.'
+        Returns the quantity of the specified item in the inventory.'
       requestBody:
         required: true
         content:
@@ -3351,10 +3150,7 @@ paths:
         ```
 
 
-        Returns true if the specified item is in the inventory.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:207`.'
+        Returns true if the specified item is in the inventory.'
       requestBody:
         required: true
         content:
@@ -3396,10 +3192,7 @@ paths:
         ```
 
 
-        Returns the quantity of the specified item in the inventory.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:208`.'
+        Returns the quantity of the specified item in the inventory.'
       requestBody:
         required: true
         content:
@@ -3441,10 +3234,7 @@ paths:
         ```
 
 
-        Returns true if the specified pokémon is present in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:210`.'
+        Returns true if the specified pokémon is present in the team.'
       requestBody:
         required: true
         content:
@@ -3486,10 +3276,7 @@ paths:
         ```
 
 
-        Returns true if the team is sorted by level in ascending order.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:211`.'
+        Returns true if the team is sorted by level in ascending order.'
       responses:
         '200':
           description: Lua return value.
@@ -3518,10 +3305,7 @@ paths:
         ```
 
 
-        Returns true if the team is sorted by level in descending order.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:212`.'
+        Returns true if the team is sorted by level in descending order.'
       responses:
         '200':
           description: Lua return value.
@@ -3550,10 +3334,7 @@ paths:
         ```
 
 
-        Returns true if the specified part of the team is sorted by level in ascending order.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:213`.'
+        Returns true if the specified part of the team is sorted by level in ascending order.'
       requestBody:
         required: true
         content:
@@ -3599,10 +3380,7 @@ paths:
         ```
 
 
-        Returns true if the specified part of the team the team is sorted by level in descending order.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:214`.'
+        Returns true if the specified part of the team the team is sorted by level in descending order.'
       requestBody:
         required: true
         content:
@@ -3648,10 +3426,7 @@ paths:
         ```
 
 
-        Returns true if there is a visible NPC with the specified name on the map.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:215`.'
+        Returns true if there is a visible NPC with the specified name on the map.'
       requestBody:
         required: true
         content:
@@ -3693,10 +3468,7 @@ paths:
         ```
 
 
-        Returns true if there is a visible NPC the specified coordinates.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:216`.'
+        Returns true if there is a visible NPC the specified coordinates.'
       requestBody:
         required: true
         content:
@@ -3742,10 +3514,7 @@ paths:
         ```
 
 
-        Returns true if there is a shop opened.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:217`.'
+        Returns true if there is a shop opened.'
       responses:
         '200':
           description: Lua return value.
@@ -3774,10 +3543,7 @@ paths:
         ```
 
 
-        Returns true if the player is relearning the move of a Pokemon from an NPC.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:218`.'
+        Returns true if the player is relearning the move of a Pokemon from an NPC.'
       responses:
         '200':
           description: Lua return value.
@@ -3806,10 +3572,7 @@ paths:
         ```
 
 
-        Returns the amount of money in the inventory.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:219`.'
+        Returns the amount of money in the inventory.'
       responses:
         '200':
           description: Lua return value.
@@ -3838,10 +3601,7 @@ paths:
         ```
 
 
-        Returns true if the player is riding a mount or the bicycle.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:220`.'
+        Returns true if the player is riding a mount or the bicycle.'
       responses:
         '200':
           description: Lua return value.
@@ -3870,10 +3630,7 @@ paths:
         ```
 
 
-        Returns true if the player is surfing
-
-
-        Source: `Bot/Scripting/LuaScript.cs:221`.'
+        Returns true if the player is surfing'
       responses:
         '200':
           description: Lua return value.
@@ -3902,10 +3659,7 @@ paths:
         ```
 
 
-        Check if the private message from normal users are blocked.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:222`.'
+        Check if the private message from normal users are blocked.'
       responses:
         '200':
           description: Lua return value.
@@ -3934,10 +3688,7 @@ paths:
         ```
 
 
-        Check if party inspections are turned on.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:223`.'
+        Check if party inspections are turned on.'
       responses:
         '200':
           description: Lua return value.
@@ -3966,10 +3717,7 @@ paths:
         ```
 
 
-        Returns true if the bot is checking for npc interactions.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:224`.'
+        Returns true if the bot is checking for npc interactions.'
       responses:
         '200':
           description: Lua return value.
@@ -3998,10 +3746,7 @@ paths:
         ```
 
 
-        Return the current in game hour and minute.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:225`.'
+        Return the current in game hour and minute.'
       responses:
         '200':
           description: Lua return values.
@@ -4040,10 +3785,7 @@ paths:
         ```
 
 
-        Return true if morning time.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:226`.'
+        Return true if morning time.'
       responses:
         '200':
           description: Lua return value.
@@ -4072,10 +3814,7 @@ paths:
         ```
 
 
-        Return true if noon time.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:227`.'
+        Return true if noon time.'
       responses:
         '200':
           description: Lua return value.
@@ -4104,10 +3843,7 @@ paths:
         ```
 
 
-        Return true if night time.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:228`.'
+        Return true if night time.'
       responses:
         '200':
           description: Lua return value.
@@ -4136,10 +3872,7 @@ paths:
         ```
 
 
-        Return true if the character is outside.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:229`.'
+        Return true if the character is outside.'
       responses:
         '200':
           description: Lua return value.
@@ -4168,10 +3901,7 @@ paths:
         ```
 
 
-        Return the state Auto Evolve
-
-
-        Source: `Bot/Scripting/LuaScript.cs:230`.'
+        Return the state Auto Evolve'
       responses:
         '200':
           description: Lua return value.
@@ -4200,10 +3930,7 @@ paths:
         ```
 
 
-        Sets the item that will be used to mount the player
-
-
-        Source: `Bot/Scripting/LuaScript.cs:231`.'
+        Sets the item that will be used to mount the player'
       requestBody:
         required: true
         content:
@@ -4245,10 +3972,7 @@ paths:
         ```
 
 
-        Sets the item that will be used when the player begins surfing
-
-
-        Source: `Bot/Scripting/LuaScript.cs:232`.'
+        Sets the item that will be used when the player begins surfing'
       requestBody:
         required: true
         content:
@@ -4290,10 +4014,7 @@ paths:
         ```
 
 
-        Is the currentPcBox refreshed yet?
-
-
-        Source: `Bot/Scripting/LuaScript.cs:234`.'
+        Is the currentPcBox refreshed yet?'
       responses:
         '200':
           description: Lua return value.
@@ -4322,10 +4043,7 @@ paths:
         ```
 
 
-        Get the active PC Box.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:235`.'
+        Get the active PC Box.'
       responses:
         '200':
           description: Lua return value.
@@ -4354,10 +4072,7 @@ paths:
         ```
 
 
-        Check if the PC is open. Moving close the PC, usePC() opens it.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:236`.'
+        Check if the PC is open. Moving close the PC, usePC() opens it.'
       responses:
         '200':
           description: Lua return value.
@@ -4386,10 +4101,7 @@ paths:
         ```
 
 
-        Current box size.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:238`.'
+        Current box size.'
       responses:
         '200':
           description: Lua return value.
@@ -4418,10 +4130,7 @@ paths:
         ```
 
 
-        Return the number of non-empty boxes in the PC
-
-
-        Source: `Bot/Scripting/LuaScript.cs:239`.'
+        Return the number of non-empty boxes in the PC'
       responses:
         '200':
           description: Lua return value.
@@ -4450,10 +4159,7 @@ paths:
         ```
 
 
-        Return the number of pokemon in the PC
-
-
-        Source: `Bot/Scripting/LuaScript.cs:240`.'
+        Return the number of pokemon in the PC'
       responses:
         '200':
           description: Lua return value.
@@ -4482,10 +4188,7 @@ paths:
         ```
 
 
-        Pokedex ID of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:242`.'
+        Pokedex ID of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -4531,10 +4234,7 @@ paths:
         ```
 
 
-        Name of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:243`.'
+        Name of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -4580,10 +4280,7 @@ paths:
         ```
 
 
-        Current HP of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:244`.'
+        Current HP of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -4629,10 +4326,7 @@ paths:
         ```
 
 
-        Returns the percentage of remaining health of the specified pokémon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:245`.'
+        Returns the percentage of remaining health of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -4678,10 +4372,7 @@ paths:
         ```
 
 
-        Max HP of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:246`.'
+        Max HP of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -4727,10 +4418,7 @@ paths:
         ```
 
 
-        Level of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:247`.'
+        Level of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -4776,10 +4464,7 @@ paths:
         ```
 
 
-        Total of experience cost of a level for the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:248`.'
+        Total of experience cost of a level for the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -4825,10 +4510,7 @@ paths:
         ```
 
 
-        Remaining experience before the next level of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:249`.'
+        Remaining experience before the next level of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -4874,10 +4556,7 @@ paths:
         ```
 
 
-        Status of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:250`.'
+        Status of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -4923,10 +4602,7 @@ paths:
         ```
 
 
-        Type of the pokemon of the current box matching the ID as an array of length 2.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:251`.'
+        Type of the pokemon of the current box matching the ID as an array of length 2.'
       requestBody:
         required: true
         content:
@@ -4974,10 +4650,7 @@ paths:
         ```
 
 
-        Returns the item held by the specified pokemon in the PC, null if empty.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:252`.'
+        Returns the item held by the specified pokemon in the PC, null if empty.'
       requestBody:
         required: true
         content:
@@ -5023,10 +4696,7 @@ paths:
         ```
 
 
-        PROCatchem custom unique ID of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:253`.'
+        PROCatchem custom unique ID of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -5072,10 +4742,7 @@ paths:
         ```
 
 
-        Current move PP of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:254`.'
+        Current move PP of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -5125,10 +4792,7 @@ paths:
         ```
 
 
-        Max move PP of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:255`.'
+        Max move PP of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -5178,10 +4842,7 @@ paths:
         ```
 
 
-        Shyniness of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:256`.'
+        Shyniness of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -5227,10 +4888,7 @@ paths:
         ```
 
 
-        Move of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:257`.'
+        Move of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -5280,10 +4938,7 @@ paths:
         ```
 
 
-        Returns the move accuracy of the specified pokémon in the box at the specified index.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:258`.'
+        Returns the move accuracy of the specified pokémon in the box at the specified index.'
       requestBody:
         required: true
         content:
@@ -5333,10 +4988,7 @@ paths:
         ```
 
 
-        Returns the move power of the specified pokémon in the box at the specified index.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:259`.'
+        Returns the move power of the specified pokémon in the box at the specified index.'
       requestBody:
         required: true
         content:
@@ -5386,10 +5038,7 @@ paths:
         ```
 
 
-        Returns the move type of the specified pokémon in the box at the specified index.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:260`.'
+        Returns the move type of the specified pokémon in the box at the specified index.'
       requestBody:
         required: true
         content:
@@ -5439,10 +5088,7 @@ paths:
         ```
 
 
-        Returns the move damage type of the specified pokémon in the box at the specified index.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:261`.'
+        Returns the move damage type of the specified pokémon in the box at the specified index.'
       requestBody:
         required: true
         content:
@@ -5492,10 +5138,7 @@ paths:
         ```
 
 
-        Returns true if the move of the specified pokémon in the box at the specified index can apply a status .
-
-
-        Source: `Bot/Scripting/LuaScript.cs:262`.'
+        Returns true if the move of the specified pokémon in the box at the specified index can apply a status .'
       requestBody:
         required: true
         content:
@@ -5545,10 +5188,7 @@ paths:
         ```
 
 
-        Nature of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:263`.'
+        Nature of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -5594,10 +5234,7 @@ paths:
         ```
 
 
-        Ability of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:264`.'
+        Ability of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -5643,10 +5280,7 @@ paths:
         ```
 
 
-        Returns the value for the specified stat of the specified pokémon in the PC.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:265`.'
+        Returns the value for the specified stat of the specified pokémon in the PC.'
       requestBody:
         required: true
         content:
@@ -5696,10 +5330,7 @@ paths:
         ```
 
 
-        Returns the effort value for the specified stat of the specified pokémon in the PC.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:266`.'
+        Returns the effort value for the specified stat of the specified pokémon in the PC.'
       requestBody:
         required: true
         content:
@@ -5749,10 +5380,7 @@ paths:
         ```
 
 
-        Returns the individual value for the specified stat of the specified pokémon in the PC.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:267`.'
+        Returns the individual value for the specified stat of the specified pokémon in the PC.'
       requestBody:
         required: true
         content:
@@ -5802,10 +5430,7 @@ paths:
         ```
 
 
-        Happiness of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:268`.'
+        Happiness of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -5851,10 +5476,7 @@ paths:
         ```
 
 
-        Region of capture of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:269`.'
+        Region of capture of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -5900,10 +5522,7 @@ paths:
         ```
 
 
-        Original trainer of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:270`.'
+        Original trainer of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -5949,10 +5568,7 @@ paths:
         ```
 
 
-        Gender of the pokemon of the current box matching the ID.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:271`.'
+        Gender of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -5998,10 +5614,7 @@ paths:
         ```
 
 
-        Form of the pokémon in the current box matching the ID. (0 if no form)
-
-
-        Source: `Bot/Scripting/LuaScript.cs:272`.'
+        Form of the pokémon in the current box matching the ID. (0 if no form)'
       requestBody:
         required: true
         content:
@@ -6047,10 +5660,7 @@ paths:
         ```
 
 
-        Returns the connected server
-
-
-        Source: `Bot/Scripting/LuaScript.cs:274`.'
+        Returns the connected server'
       responses:
         '200':
           description: Lua return value.
@@ -6079,10 +5689,7 @@ paths:
         ```
 
 
-        Returns true if the opponent pokémon is shiny.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:277`.'
+        Returns true if the opponent pokémon is shiny.'
       responses:
         '200':
           description: Lua return value.
@@ -6111,10 +5718,7 @@ paths:
         ```
 
 
-        Returns true if the opponent pokémon has already been caught and has a pokédex entry.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:278`.'
+        Returns true if the opponent pokémon has already been caught and has a pokédex entry.'
       responses:
         '200':
           description: Lua return value.
@@ -6143,10 +5747,7 @@ paths:
         ```
 
 
-        Returns true if the current battle is against a wild pokémon.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:279`.'
+        Returns true if the current battle is against a wild pokémon.'
       responses:
         '200':
           description: Lua return value.
@@ -6175,10 +5776,7 @@ paths:
         ```
 
 
-        Returns the index of the active team pokémon in the current battle.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:280`.'
+        Returns the index of the active team pokémon in the current battle.'
       responses:
         '200':
           description: Lua return value.
@@ -6207,10 +5805,7 @@ paths:
         ```
 
 
-        Returns the id of the opponent pokémon in the current battle.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:281`.'
+        Returns the id of the opponent pokémon in the current battle.'
       responses:
         '200':
           description: Lua return value.
@@ -6239,10 +5834,7 @@ paths:
         ```
 
 
-        Returns the name of the opponent pokémon in the current battle.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:282`.'
+        Returns the name of the opponent pokémon in the current battle.'
       responses:
         '200':
           description: Lua return value.
@@ -6271,10 +5863,7 @@ paths:
         ```
 
 
-        Returns the current health of the opponent pokémon in the current battle.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:283`.'
+        Returns the current health of the opponent pokémon in the current battle.'
       responses:
         '200':
           description: Lua return value.
@@ -6303,10 +5892,7 @@ paths:
         ```
 
 
-        Returns the maximum health of the opponent pokémon in the current battle.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:284`.'
+        Returns the maximum health of the opponent pokémon in the current battle.'
       responses:
         '200':
           description: Lua return value.
@@ -6335,10 +5921,7 @@ paths:
         ```
 
 
-        Returns the percentage of remaining health of the opponent pokémon in the current battle.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:285`.'
+        Returns the percentage of remaining health of the opponent pokémon in the current battle.'
       responses:
         '200':
           description: Lua return value.
@@ -6367,10 +5950,7 @@ paths:
         ```
 
 
-        Returns the level of the opponent pokémon in the current battle.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:286`.'
+        Returns the level of the opponent pokémon in the current battle.'
       responses:
         '200':
           description: Lua return value.
@@ -6399,10 +5979,7 @@ paths:
         ```
 
 
-        Returns the status of the opponent pokémon in the current battle.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:287`.'
+        Returns the status of the opponent pokémon in the current battle.'
       responses:
         '200':
           description: Lua return value.
@@ -6431,10 +6008,7 @@ paths:
         ```
 
 
-        Returns the form of the opponent pokémon in the current battle (0 if no form).
-
-
-        Source: `Bot/Scripting/LuaScript.cs:288`.'
+        Returns the form of the opponent pokémon in the current battle (0 if no form).'
       responses:
         '200':
           description: Lua return value.
@@ -6463,10 +6037,7 @@ paths:
         ```
 
 
-        Returns true if the opponent is only giving the specified effort value.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:289`.'
+        Returns true if the opponent is only giving the specified effort value.'
       requestBody:
         required: true
         content:
@@ -6508,10 +6079,7 @@ paths:
         ```
 
 
-        Returns the amount of a particular EV given by the opponent.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:290`.'
+        Returns the amount of a particular EV given by the opponent.'
       requestBody:
         required: true
         content:
@@ -6553,10 +6121,7 @@ paths:
         ```
 
 
-        Returns the type of the opponent pokémon in the current battle as an array of length 2.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:291`.'
+        Returns the type of the opponent pokémon in the current battle as an array of length 2.'
       responses:
         '200':
           description: Lua return value.
@@ -6587,10 +6152,7 @@ paths:
         ```
 
 
-        Moves to the specified coordinates.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:294`.'
+        Moves to the specified coordinates.'
       requestBody:
         required: true
         content:
@@ -6636,10 +6198,7 @@ paths:
         ```
 
 
-        Moves to the specified list coordinates.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:295`.'
+        Moves to the specified list coordinates.'
       requestBody:
         required: true
         content:
@@ -6685,10 +6244,7 @@ paths:
         ```
 
 
-        Moves to the nearest cell teleporting to the specified map.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:296`.'
+        Moves to the nearest cell teleporting to the specified map.'
       requestBody:
         required: true
         content:
@@ -6730,10 +6286,7 @@ paths:
         ```
 
 
-        Moves to a random accessible cell of the specified rectangle.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:297`.'
+        Moves to a random accessible cell of the specified rectangle.'
       requestBody:
         required: true
         content:
@@ -6784,10 +6337,7 @@ paths:
         ```
 
 
-        Move randomly avoiding water and links.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:299`.'
+        Move randomly avoiding water and links.'
       responses:
         '200':
           description: Lua return value.
@@ -6816,10 +6366,7 @@ paths:
         ```
 
 
-        Moves to the nearest grass patch then move randomly inside it.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:300`.'
+        Moves to the nearest grass patch then move randomly inside it.'
       responses:
         '200':
           description: Lua return value.
@@ -6848,10 +6395,7 @@ paths:
         ```
 
 
-        Moves to the nearest water area then move randomly inside it.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:301`.'
+        Moves to the nearest water area then move randomly inside it.'
       responses:
         '200':
           description: Lua return value.
@@ -6880,10 +6424,7 @@ paths:
         ```
 
 
-        Moves near the cell teleporting to the specified map.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:302`.'
+        Moves near the cell teleporting to the specified map.'
       requestBody:
         required: true
         content:
@@ -6925,10 +6466,7 @@ paths:
         ```
 
 
-        Moves then talk to NPC specified by its name.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:303`.'
+        Moves then talk to NPC specified by its name.'
       requestBody:
         required: true
         content:
@@ -6970,10 +6508,7 @@ paths:
         ```
 
 
-        Moves then talk to NPC located on the specified cell.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:304`.'
+        Moves then talk to NPC located on the specified cell.'
       requestBody:
         required: true
         content:
@@ -7019,10 +6554,7 @@ paths:
         ```
 
 
-        Moves to the Nurse Joy then talk to the cell below her.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:305`.'
+        Moves to the Nurse Joy then talk to the cell below her.'
       responses:
         '200':
           description: Lua return value.
@@ -7051,10 +6583,7 @@ paths:
         ```
 
 
-        Swaps the two pokémon specified by their position in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:306`.'
+        Swaps the two pokémon specified by their position in the team.'
       requestBody:
         required: true
         content:
@@ -7100,10 +6629,7 @@ paths:
         ```
 
 
-        Swaps the first pokémon with the specified name with the leader of the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:307`.'
+        Swaps the first pokémon with the specified name with the leader of the team.'
       requestBody:
         required: true
         content:
@@ -7145,10 +6671,7 @@ paths:
         ```
 
 
-        Sorts the pokémon in the team by level in ascending order, one pokémon at a time.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:308`.'
+        Sorts the pokémon in the team by level in ascending order, one pokémon at a time.'
       responses:
         '200':
           description: Lua return value.
@@ -7177,10 +6700,7 @@ paths:
         ```
 
 
-        Sorts the pokémon in the team by level in descending order, one pokémon at a time.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:309`.'
+        Sorts the pokémon in the team by level in descending order, one pokémon at a time.'
       responses:
         '200':
           description: Lua return value.
@@ -7209,10 +6729,7 @@ paths:
         ```
 
 
-        Sorts the specified part of the team by level in ascending order, one pokémon at a time.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:310`.'
+        Sorts the specified part of the team by level in ascending order, one pokémon at a time.'
       requestBody:
         required: true
         content:
@@ -7258,10 +6775,7 @@ paths:
         ```
 
 
-        Sorts the specified part of the team by level in descending order, one pokémon at a time.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:311`.'
+        Sorts the specified part of the team by level in descending order, one pokémon at a time.'
       requestBody:
         required: true
         content:
@@ -7307,10 +6821,7 @@ paths:
         ```
 
 
-        Buys the specified item from the opened shop.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:312`.'
+        Buys the specified item from the opened shop.'
       requestBody:
         required: true
         content:
@@ -7356,10 +6867,7 @@ paths:
         ```
 
 
-        Lua function `hasShopItem`.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:313`.'
+        Lua function `hasShopItem`.'
       requestBody:
         required: true
         content:
@@ -7401,10 +6909,7 @@ paths:
         ```
 
 
-        Relearn a move from the move relearner NPC.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:314`.'
+        Relearn a move from the move relearner NPC.'
       requestBody:
         required: true
         content:
@@ -7446,10 +6951,7 @@ paths:
         ```
 
 
-        Move to the PC and opens it, refreshing the first box.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:315`.'
+        Move to the PC and opens it, refreshing the first box.'
       responses:
         '200':
           description: Lua return value.
@@ -7478,10 +6980,7 @@ paths:
         ```
 
 
-        Open box from the PC.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:316`.'
+        Open box from the PC.'
       requestBody:
         required: true
         content:
@@ -7523,10 +7022,7 @@ paths:
         ```
 
 
-        Deposit a pokemon to the pc.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:317`.'
+        Deposit a pokemon to the pc.'
       requestBody:
         required: true
         content:
@@ -7568,10 +7064,7 @@ paths:
         ```
 
 
-        Withdraw a pokemon from a known box.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:318`.'
+        Withdraw a pokemon from a known box.'
       requestBody:
         required: true
         content:
@@ -7617,10 +7110,7 @@ paths:
         ```
 
 
-        Swap a pokemon from the team with a pokemon from the pc.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:319`.'
+        Swap a pokemon from the team with a pokemon from the pc.'
       requestBody:
         required: true
         content:
@@ -7670,10 +7160,7 @@ paths:
         ```
 
 
-        Give the specified item on the specified pokemon.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:320`.'
+        Give the specified item on the specified pokemon.'
       requestBody:
         required: true
         content:
@@ -7719,10 +7206,7 @@ paths:
         ```
 
 
-        Take the held item from the specified pokemon.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:321`.'
+        Take the held item from the specified pokemon.'
       requestBody:
         required: true
         content:
@@ -7764,10 +7248,7 @@ paths:
         ```
 
 
-        Releases the specified pokemon in the team.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:322`.'
+        Releases the specified pokemon in the team.'
       requestBody:
         required: true
         content:
@@ -7809,10 +7290,7 @@ paths:
         ```
 
 
-        Releases the specified pokemon in the PC.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:323`.'
+        Releases the specified pokemon in the PC.'
       requestBody:
         required: true
         content:
@@ -7858,10 +7336,7 @@ paths:
         ```
 
 
-        Enable private messages from users.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:324`.'
+        Enable private messages from users.'
       responses:
         '200':
           description: Lua return value.
@@ -7890,10 +7365,7 @@ paths:
         ```
 
 
-        Disable private messages from users.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:325`.'
+        Disable private messages from users.'
       responses:
         '200':
           description: Lua return value.
@@ -7922,10 +7394,7 @@ paths:
         ```
 
 
-        Enable party inspection from users.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:326`.'
+        Enable party inspection from users.'
       responses:
         '200':
           description: Lua return value.
@@ -7954,10 +7423,7 @@ paths:
         ```
 
 
-        Disable party inspection from users.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:327`.'
+        Disable party inspection from users.'
       responses:
         '200':
           description: Lua return value.
@@ -7986,10 +7452,7 @@ paths:
         ```
 
 
-        Enable auto evolve on Pkm Catchem client.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:328`.'
+        Enable auto evolve on Pkm Catchem client.'
       responses:
         '200':
           description: Lua return value.
@@ -8018,10 +7481,7 @@ paths:
         ```
 
 
-        Disable auto evolve on Pkm Catchem client.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:329`.'
+        Disable auto evolve on Pkm Catchem client.'
       responses:
         '200':
           description: Lua return value.
@@ -8050,10 +7510,7 @@ paths:
         ```
 
 
-        Enables npc interactions.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:330`.'
+        Enables npc interactions.'
       responses:
         '200':
           description: Lua return value.
@@ -8082,10 +7539,7 @@ paths:
         ```
 
 
-        Disables npc interactions.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:331`.'
+        Disables npc interactions.'
       responses:
         '200':
           description: Lua return value.
@@ -8114,10 +7568,7 @@ paths:
         ```
 
 
-        Check condition list cell
-
-
-        Source: `Bot/Scripting/LuaScript.cs:332`.'
+        Check condition list cell'
       requestBody:
         required: true
         content:
@@ -8159,10 +7610,7 @@ paths:
         ```
 
 
-        Adds the specified answer to the answer queue. It will be used in the next dialog.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:335`.'
+        Adds the specified answer to the answer queue. It will be used in the next dialog.'
       requestBody:
         required: true
         content:
@@ -8206,10 +7654,7 @@ paths:
         ```
 
 
-        Uses the specified item.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:338`.'
+        Uses the specified item.'
       requestBody:
         required: true
         content:
@@ -8251,10 +7696,7 @@ paths:
         ```
 
 
-        Uses the specified item on the specified pokémon.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:339`.'
+        Uses the specified item on the specified pokémon.'
       requestBody:
         required: true
         content:
@@ -8300,10 +7742,7 @@ paths:
         ```
 
 
-        Uses the most effective offensive move available.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:342`.'
+        Uses the most effective offensive move available.'
       responses:
         '200':
           description: Lua return value.
@@ -8332,10 +7771,7 @@ paths:
         ```
 
 
-        Uses the least effective offensive move available.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:343`.'
+        Uses the least effective offensive move available.'
       responses:
         '200':
           description: Lua return value.
@@ -8364,10 +7800,7 @@ paths:
         ```
 
 
-        Tries to escape from the current wild battle.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:344`.'
+        Tries to escape from the current wild battle.'
       responses:
         '200':
           description: Lua return value.
@@ -8396,10 +7829,7 @@ paths:
         ```
 
 
-        Sends the first usable pokemon different from the active one.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:345`.'
+        Sends the first usable pokemon different from the active one.'
       responses:
         '200':
           description: Lua return value.
@@ -8428,10 +7858,7 @@ paths:
         ```
 
 
-        Sends the first available pokemon different from the active one.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:346`.'
+        Sends the first available pokemon different from the active one.'
       responses:
         '200':
           description: Lua return value.
@@ -8460,10 +7887,7 @@ paths:
         ```
 
 
-        Sends the specified pokemon to battle.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:347`.'
+        Sends the specified pokemon to battle.'
       requestBody:
         required: true
         content:
@@ -8505,10 +7929,7 @@ paths:
         ```
 
 
-        Uses the specified move in the current battle if available.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:348`.'
+        Uses the specified move in the current battle if available.'
       requestBody:
         required: true
         content:
@@ -8550,10 +7971,7 @@ paths:
         ```
 
 
-        Uses the first available move or struggle if out of PP.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:349`.'
+        Uses the first available move or struggle if out of PP.'
       responses:
         '200':
           description: Lua return value.
@@ -8582,10 +8000,7 @@ paths:
         ```
 
 
-        Sets afk timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:350`.'
+        Sets afk timeout for BOT'
       requestBody:
         required: true
         content:
@@ -8627,10 +8042,7 @@ paths:
         ```
 
 
-        Forgets the specified move, if existing, in order to learn a new one.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:353`.'
+        Forgets the specified move, if existing, in order to learn a new one.'
       requestBody:
         required: true
         content:
@@ -8672,10 +8084,7 @@ paths:
         ```
 
 
-        Forgets the first move that is not one of the specified moves.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:354`.'
+        Forgets the first move that is not one of the specified moves.'
       requestBody:
         required: true
         content:
@@ -8726,10 +8135,7 @@ paths:
         ```
 
 
-        Sets the option at a particular index, or creates it if it doesn''t exist
-
-
-        Source: `Bot/Scripting/LuaScript.cs:357`.'
+        Sets the option at a particular index, or creates it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8770,10 +8176,7 @@ paths:
         ```
 
 
-        Gets the option at a particular index, or creates it if it doesn''t exist
-
-
-        Source: `Bot/Scripting/LuaScript.cs:358`.'
+        Gets the option at a particular index, or creates it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8815,10 +8218,7 @@ paths:
         ```
 
 
-        Sets the name of the option at a particular index, or creates it if it doesn''t exist
-
-
-        Source: `Bot/Scripting/LuaScript.cs:359`.'
+        Sets the name of the option at a particular index, or creates it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8859,10 +8259,7 @@ paths:
         ```
 
 
-        Sets the tooltip description of the option at a particular index, or creates it if it doesn''t exist
-
-
-        Source: `Bot/Scripting/LuaScript.cs:360`.'
+        Sets the tooltip description of the option at a particular index, or creates it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8903,10 +8300,7 @@ paths:
         ```
 
 
-        Removes the slider option at the specified index
-
-
-        Source: `Bot/Scripting/LuaScript.cs:361`.'
+        Removes the slider option at the specified index'
       requestBody:
         required: true
         content:
@@ -8943,10 +8337,7 @@ paths:
         ```
 
 
-        Sets the text of the TextOption at a particular index, or creates it if it doesn''t exist
-
-
-        Source: `Bot/Scripting/LuaScript.cs:364`.'
+        Sets the text of the TextOption at a particular index, or creates it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8987,10 +8378,7 @@ paths:
         ```
 
 
-        Returns the text content of the TextOption at a particular index, or an empty string if it doesn''t exist
-
-
-        Source: `Bot/Scripting/LuaScript.cs:365`.'
+        Returns the text content of the TextOption at a particular index, or an empty string if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -9032,10 +8420,7 @@ paths:
         ```
 
 
-        Sets the name of the TextOption at a particular index, or creates it if it doesn''t exist
-
-
-        Source: `Bot/Scripting/LuaScript.cs:366`.'
+        Sets the name of the TextOption at a particular index, or creates it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -9076,10 +8461,7 @@ paths:
         ```
 
 
-        Sets the tooltip description of the TextOption at a particular index, or creates it if it doesn''t exist
-
-
-        Source: `Bot/Scripting/LuaScript.cs:367`.'
+        Sets the tooltip description of the TextOption at a particular index, or creates it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -9120,10 +8502,7 @@ paths:
         ```
 
 
-        Removes the text option at the specified index
-
-
-        Source: `Bot/Scripting/LuaScript.cs:368`.'
+        Removes the text option at the specified index'
       requestBody:
         required: true
         content:
@@ -9160,10 +8539,7 @@ paths:
         ```
 
 
-        Writes a string to file overwrite is an optional parameter, and will append the line(s) if absent
-
-
-        Source: `Bot/Scripting/LuaScript.cs:371`.'
+        Writes a string to file overwrite is an optional parameter, and will append the line(s) if absent'
       requestBody:
         required: true
         content:
@@ -9210,10 +8586,7 @@ paths:
 
 
         Writes a string, a number, or a table of strings and/or numbers to file overwrite is an optional parameter, and will
-        append the line(s) if absent
-
-
-        Source: `Bot/Scripting/LuaScript.cs:372`.'
+        append the line(s) if absent'
       requestBody:
         required: true
         content:
@@ -9265,10 +8638,7 @@ paths:
         ```
 
 
-        Returns a table of every line in file
-
-
-        Source: `Bot/Scripting/LuaScript.cs:373`.'
+        Returns a table of every line in file'
       requestBody:
         required: true
         content:
@@ -9312,10 +8682,7 @@ paths:
         ```
 
 
-        Refresh PC Box
-
-
-        Source: `Bot/Scripting/LuaScript.cs:376`.'
+        Refresh PC Box'
       requestBody:
         required: true
         content:
@@ -9357,10 +8724,7 @@ paths:
         ```
 
 
-        Used to trade money With Parameters Username and Money
-
-
-        Source: `Bot/Scripting/LuaScript.cs:377`.'
+        Used to trade money With Parameters Username and Money'
       requestBody:
         required: true
         content:
@@ -9406,10 +8770,7 @@ paths:
         ```
 
 
-        Lua function `tradeAcceptMoney`.
-
-
-        Source: `Bot/Scripting/LuaScript.cs:378`.'
+        Lua function `tradeAcceptMoney`.'
       responses:
         '200':
           description: Lua return value.
@@ -9438,10 +8799,7 @@ paths:
         ```
 
 
-        Sets loading timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:381`.'
+        Sets loading timeout for BOT'
       requestBody:
         required: true
         content:
@@ -9483,10 +8841,7 @@ paths:
         ```
 
 
-        Sets loading timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:382`.'
+        Sets loading timeout for BOT'
       requestBody:
         required: true
         content:
@@ -9528,10 +8883,7 @@ paths:
         ```
 
 
-        Sets movement timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:383`.'
+        Sets movement timeout for BOT'
       requestBody:
         required: true
         content:
@@ -9573,10 +8925,7 @@ paths:
         ```
 
 
-        Sets dialog timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:384`.'
+        Sets dialog timeout for BOT'
       requestBody:
         required: true
         content:
@@ -9618,10 +8967,7 @@ paths:
         ```
 
 
-        Sets battle timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:385`.'
+        Sets battle timeout for BOT'
       requestBody:
         required: true
         content:
@@ -9663,10 +9009,7 @@ paths:
         ```
 
 
-        Sets mounting timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:386`.'
+        Sets mounting timeout for BOT'
       requestBody:
         required: true
         content:
@@ -9708,10 +9051,7 @@ paths:
         ```
 
 
-        Sets teleportation timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:387`.'
+        Sets teleportation timeout for BOT'
       requestBody:
         required: true
         content:
@@ -9753,10 +9093,7 @@ paths:
         ```
 
 
-        Sets swap timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:388`.'
+        Sets swap timeout for BOT'
       requestBody:
         required: true
         content:
@@ -9798,10 +9135,7 @@ paths:
         ```
 
 
-        Sets item-use timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:389`.'
+        Sets item-use timeout for BOT'
       requestBody:
         required: true
         content:
@@ -9843,10 +9177,7 @@ paths:
         ```
 
 
-        Sets fishing timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:390`.'
+        Sets fishing timeout for BOT'
       requestBody:
         required: true
         content:
@@ -9888,10 +9219,7 @@ paths:
         ```
 
 
-        Sets refreshing PC box timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:391`.'
+        Sets refreshing PC box timeout for BOT'
       requestBody:
         required: true
         content:
@@ -9933,10 +9261,7 @@ paths:
         ```
 
 
-        Sets move relearner timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:392`.'
+        Sets move relearner timeout for BOT'
       requestBody:
         required: true
         content:
@@ -9978,10 +9303,7 @@ paths:
         ```
 
 
-        Sets NPC battle timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:393`.'
+        Sets NPC battle timeout for BOT'
       requestBody:
         required: true
         content:
@@ -10023,10 +9345,7 @@ paths:
         ```
 
 
-        Sets afk timeout for BOT
-
-
-        Source: `Bot/Scripting/LuaScript.cs:394`.'
+        Sets afk timeout for BOT'
       requestBody:
         required: true
         content:
@@ -10068,10 +9387,7 @@ paths:
         ```
 
 
-        Close channel chat by name
-
-
-        Source: `Bot/Scripting/LuaScript.cs:398`.'
+        Close channel chat by name'
       requestBody:
         required: true
         content:
@@ -10113,10 +9429,7 @@ paths:
         ```
 
 
-        Use Surf
-
-
-        Source: `Bot/Scripting/LuaScript.cs:401`.'
+        Use Surf'
       responses:
         '200':
           description: Lua return value.

@@ -43,7 +43,7 @@ npx serve dist
 
 ## Updating the docs
 
-When Lua APIs change in `Bot/Scripting/LuaScript.cs`, update `openapi.yaml` and bump the version field in `package.json`.
+When the Lua script API changes, update `openapi.yaml` and bump the version field in `package.json`.
 
 ## Notes for script authors
 
