@@ -3,13 +3,7 @@ info:
   title: PROCatchem Lua Script API
   summary: Lua API reference for script authors.
   version: 1.0.15
-  description: "This documentation describes the Lua functions exposed by PROCatchem to user scripts.\n\nThe API is represented\
-    \ as OpenAPI pseudo-endpoints so it can be rendered with Redoc/Redocly and deployed as a static documentation site. These\
-    \ are not HTTP endpoints. Each operation describes one Lua global function or script callback.\n\nBasic script shape:\n\
-    \n```lua\nname = \"Example Script\"\nauthor = \"YourName\"\ndescription = \"Simple PROCatchem script.\"\n\nfunction onPathAction()\n\
-    \    if getMapName() == \"Viridian City\" then\n        moveToGrass()\n    end\nend\n\nfunction onBattleAction()\n   \
-    \ attack()\nend\n```\n\nAction rule: a script should execute at most one path or battle action per frame. Query/helper\
-    \ functions can be called freely.\n"
+  description: "This documentation describes the Lua functions exposed by PROCatchem to user scripts.\n\nThe API is represented as OpenAPI pseudo-endpoints so it can be rendered with Redoc/Redocly and deployed as a static documentation site. These are not HTTP endpoints. Each operation describes one Lua global function or script callback.\n\nBasic script shape:\n\n```lua\nname = \"Example Script\"\nauthor = \"YourName\"\ndescription = \"Simple PROCatchem script.\"\n\nfunction onPathAction()\n    if getMapName() == \"Viridian City\" then\n        moveToGrass()\n    end\nend\n\nfunction onBattleAction()\n    attack()\nend\n```\n\nAction rule: a script should execute at most one path or battle action per frame. Query/helper functions can be called freely.\n"
 servers:
 - url: lua://PROCatchem
   description: Pseudo server used only to render Lua function documentation.
@@ -87,7 +81,7 @@ paths:
       tags:
       - Script metadata
       operationId: name
-      summary: Script display name shown in the tool.
+      summary: name()
       description: '**Callback**
 
 
@@ -116,7 +110,7 @@ paths:
       tags:
       - Script metadata
       operationId: author
-      summary: Script author displayed in the tool.
+      summary: author()
       description: '**Callback**
 
 
@@ -145,7 +139,7 @@ paths:
       tags:
       - Script metadata
       operationId: description
-      summary: Short script description displayed in the tool.
+      summary: description()
       description: '**Callback**
 
 
@@ -174,7 +168,7 @@ paths:
       tags:
       - Lifecycle callbacks
       operationId: onStart
-      summary: Called when the script starts.
+      summary: onStart()
       description: '**Callback**
 
 
@@ -198,7 +192,7 @@ paths:
       tags:
       - Lifecycle callbacks
       operationId: onStop
-      summary: Called when the script stops.
+      summary: onStop()
       description: '**Callback**
 
 
@@ -222,7 +216,7 @@ paths:
       tags:
       - Lifecycle callbacks
       operationId: onPause
-      summary: Called when the script is paused.
+      summary: onPause()
       description: '**Callback**
 
 
@@ -246,7 +240,7 @@ paths:
       tags:
       - Lifecycle callbacks
       operationId: onResume
-      summary: Called when the script resumes.
+      summary: onResume()
       description: '**Callback**
 
 
@@ -270,7 +264,7 @@ paths:
       tags:
       - Lifecycle callbacks
       operationId: onPathAction
-      summary: Called repeatedly while the player is outside battle. Execute at most one path action per frame.
+      summary: onPathAction()
       description: '**Callback**
 
 
@@ -294,7 +288,7 @@ paths:
       tags:
       - Lifecycle callbacks
       operationId: onBattleAction
-      summary: Called repeatedly while the player is in battle. Execute at most one battle action per frame.
+      summary: onBattleAction()
       description: '**Callback**
 
 
@@ -318,7 +312,7 @@ paths:
       tags:
       - Lifecycle callbacks
       operationId: onDialogMessage
-      summary: Called when a dialog message is received.
+      summary: onDialogMessage()
       description: '**Callback**
 
 
@@ -355,7 +349,7 @@ paths:
       tags:
       - Lifecycle callbacks
       operationId: onBattleMessage
-      summary: Called when a battle message is received.
+      summary: onBattleMessage()
       description: '**Callback**
 
 
@@ -392,7 +386,7 @@ paths:
       tags:
       - Lifecycle callbacks
       operationId: onSystemMessage
-      summary: Called when a system message is received.
+      summary: onSystemMessage()
       description: '**Callback**
 
 
@@ -429,7 +423,7 @@ paths:
       tags:
       - Lifecycle callbacks
       operationId: onWarningMessage
-      summary: Called when a warning message is received; distance can be -1 when unavailable.
+      summary: onWarningMessage()
       description: '**Callback**
 
 
@@ -470,7 +464,7 @@ paths:
       tags:
       - Lifecycle callbacks
       operationId: onLearningMove
-      summary: Called when a Pokémon is learning a move.
+      summary: onLearningMove()
       description: '**Callback**
 
 
@@ -511,7 +505,7 @@ paths:
       tags:
       - Core utilities
       operationId: log
-      summary: Displays the specified message to the message log
+      summary: log()
       description: '**Lua global function**
 
 
@@ -548,7 +542,7 @@ paths:
       tags:
       - Core utilities
       operationId: fatal
-      summary: Displays the specified message to the message log and stop the bot
+      summary: fatal()
       description: '**Lua global function**
 
 
@@ -585,7 +579,7 @@ paths:
       tags:
       - Core utilities
       operationId: logout
-      summary: Displays the specified message to the message log and logs out
+      summary: logout()
       description: '**Lua global function**
 
 
@@ -622,7 +616,7 @@ paths:
       tags:
       - Core utilities
       operationId: relog
-      summary: Logs out and logs back in after the specified number of seconds
+      summary: relog()
       description: '**Lua global function**
 
 
@@ -663,7 +657,7 @@ paths:
       tags:
       - Core utilities
       operationId: restart
-      summary: Start the script
+      summary: restart()
       description: '**Lua global function**
 
 
@@ -704,7 +698,7 @@ paths:
       tags:
       - Core utilities
       operationId: stringContains
-      summary: Returns true if the string contains the specified part, ignoring the case
+      summary: stringContains()
       description: '**Lua global function**
 
 
@@ -750,7 +744,7 @@ paths:
       tags:
       - Core utilities
       operationId: playSound
-      summary: Returns playing a custom sound
+      summary: playSound()
       description: '**Lua global function**
 
 
@@ -787,7 +781,7 @@ paths:
       tags:
       - Core utilities
       operationId: registerHook
-      summary: Calls the specified function when the specified event occurs
+      summary: registerHook()
       description: '**Lua global function**
 
 
@@ -835,7 +829,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getPlayerX
-      summary: Returns the X-coordinate of the current cell
+      summary: getPlayerX()
       description: '**Lua global function**
 
 
@@ -864,7 +858,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getPlayerY
-      summary: Returns the Y-coordinate of the current cell
+      summary: getPlayerY()
       description: '**Lua global function**
 
 
@@ -893,7 +887,7 @@ paths:
       tags:
       - General state
       operationId: getAccountName
-      summary: Returns current account name
+      summary: getAccountName()
       description: '**Lua global function**
 
 
@@ -922,7 +916,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getMapName
-      summary: Returns the name of the current map
+      summary: getMapName()
       description: '**Lua global function**
 
 
@@ -951,7 +945,7 @@ paths:
       tags:
       - General state
       operationId: getPokedexOwned
-      summary: Returns Owned Entry of the pokedex
+      summary: getPokedexOwned()
       description: '**Lua global function**
 
 
@@ -980,7 +974,7 @@ paths:
       tags:
       - General state
       operationId: getPokedexSeen
-      summary: Returns Seen Entry of the pokedex
+      summary: getPokedexSeen()
       description: '**Lua global function**
 
 
@@ -1009,7 +1003,7 @@ paths:
       tags:
       - General state
       operationId: getPokedexEvolved
-      summary: Returns Evolved Entry of the pokedex
+      summary: getPokedexEvolved()
       description: '**Lua global function**
 
 
@@ -1038,7 +1032,7 @@ paths:
       tags:
       - General state
       operationId: getTeamSize
-      summary: Returns the amount of pokémon in the team
+      summary: getTeamSize()
       description: '**Lua global function**
 
 
@@ -1067,7 +1061,7 @@ paths:
       tags:
       - General state
       operationId: isGameScriptActive
-      summary: Lua function `isGameScriptActive`
+      summary: isGameScriptActive()
       description: '**Lua global function**
 
 
@@ -1096,7 +1090,7 @@ paths:
       tags:
       - General state
       operationId: isAccountMember
-      summary: Returns current account's membership status
+      summary: isAccountMember()
       description: '**Lua global function**
 
 
@@ -1125,7 +1119,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonId
-      summary: Returns the ID of the specified pokémon in the team
+      summary: getPokemonId()
       description: '**Lua global function**
 
 
@@ -1167,7 +1161,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonName
-      summary: Returns the name of the specified pokémon in the team
+      summary: getPokemonName()
       description: '**Lua global function**
 
 
@@ -1209,7 +1203,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonHealth
-      summary: Returns the current health of the specified pokémon in the team
+      summary: getPokemonHealth()
       description: '**Lua global function**
 
 
@@ -1251,7 +1245,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonHealthPercent
-      summary: Returns the percentage of remaining health of the specified pokémon in the team
+      summary: getPokemonHealthPercent()
       description: '**Lua global function**
 
 
@@ -1293,7 +1287,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonMaxHealth
-      summary: Returns the maximum health of the specified pokémon in the team
+      summary: getPokemonMaxHealth()
       description: '**Lua global function**
 
 
@@ -1335,7 +1329,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonLevel
-      summary: Returns the level of the specified pokémon in the team
+      summary: getPokemonLevel()
       description: '**Lua global function**
 
 
@@ -1377,7 +1371,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonTotalExperience
-      summary: Returns the experience total of a pokemon level
+      summary: getPokemonTotalExperience()
       description: '**Lua global function**
 
 
@@ -1419,7 +1413,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonRemainingExperience
-      summary: Returns the remaining experience of a pokemon before next level
+      summary: getPokemonRemainingExperience()
       description: '**Lua global function**
 
 
@@ -1461,7 +1455,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonStatus
-      summary: Returns the status of the specified pokémon in the team
+      summary: getPokemonStatus()
       description: '**Lua global function**
 
 
@@ -1503,7 +1497,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonForm
-      summary: Returns the form of the specified pokémon in the team (0 if no form)
+      summary: getPokemonForm()
       description: '**Lua global function**
 
 
@@ -1545,7 +1539,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonHeldItem
-      summary: Returns the item held by the specified pokemon in the team, null if empty
+      summary: getPokemonHeldItem()
       description: '**Lua global function**
 
 
@@ -1587,7 +1581,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonUniqueId
-      summary: PROCatchem unique ID of the pokemon of the current box matching the ID
+      summary: getPokemonUniqueId()
       description: '**Lua global function**
 
 
@@ -1629,7 +1623,7 @@ paths:
       tags:
       - General state
       operationId: getRemainingPowerPoints
-      summary: Returns the remaining power points of the specified move of the specified pokémon in the team
+      summary: getRemainingPowerPoints()
       description: '**Lua global function**
 
 
@@ -1675,7 +1669,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonMaxPowerPoints
-      summary: Max move PP of the pokemon of the current box matching the ID
+      summary: getPokemonMaxPowerPoints()
       description: '**Lua global function**
 
 
@@ -1721,7 +1715,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: isPokemonShiny
-      summary: Returns the shyniness of the specified pokémon in the team
+      summary: isPokemonShiny()
       description: '**Lua global function**
 
 
@@ -1763,7 +1757,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonMoveName
-      summary: Returns the move of the specified pokémon in the team at the specified index
+      summary: getPokemonMoveName()
       description: '**Lua global function**
 
 
@@ -1809,7 +1803,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonMoveAccuracy
-      summary: Returns the move accuracy of the specified pokémon in the team at the specified index
+      summary: getPokemonMoveAccuracy()
       description: '**Lua global function**
 
 
@@ -1855,7 +1849,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonMovePower
-      summary: Returns the move power of the specified pokémon in the team at the specified index
+      summary: getPokemonMovePower()
       description: '**Lua global function**
 
 
@@ -1901,7 +1895,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonMoveType
-      summary: Returns the move type of the specified pokémon in the team at the specified index
+      summary: getPokemonMoveType()
       description: '**Lua global function**
 
 
@@ -1947,7 +1941,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonMoveDamageType
-      summary: Returns the move damage type of the specified pokémon in the team at the specified index
+      summary: getPokemonMoveDamageType()
       description: '**Lua global function**
 
 
@@ -1993,7 +1987,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonMoveStatus
-      summary: 'Returns true if the move of the specified pokémon in the team at the specified index can apply a status '
+      summary: getPokemonMoveStatus()
       description: '**Lua global function**
 
 
@@ -2039,7 +2033,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonNature
-      summary: Nature of the pokemon of the current box matching the ID
+      summary: getPokemonNature()
       description: '**Lua global function**
 
 
@@ -2081,7 +2075,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonAbility
-      summary: Ability of the pokemon of the current box matching the ID
+      summary: getPokemonAbility()
       description: '**Lua global function**
 
 
@@ -2123,7 +2117,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonStat
-      summary: Returns the value for the specified stat of the specified pokémon in the team
+      summary: getPokemonStat()
       description: '**Lua global function**
 
 
@@ -2169,7 +2163,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonEffortValue
-      summary: Returns the effort value for the specified stat of the specified pokémon in the team
+      summary: getPokemonEffortValue()
       description: '**Lua global function**
 
 
@@ -2215,7 +2209,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonIndividualValue
-      summary: Returns the individual value for the specified stat of the specified pokémon in the team
+      summary: getPokemonIndividualValue()
       description: '**Lua global function**
 
 
@@ -2261,7 +2255,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonHappiness
-      summary: Returns the happiness of the specified pokémon in the team
+      summary: getPokemonHappiness()
       description: '**Lua global function**
 
 
@@ -2303,7 +2297,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonRegion
-      summary: Returns the region of capture of the specified pokémon in the team
+      summary: getPokemonRegion()
       description: '**Lua global function**
 
 
@@ -2345,7 +2339,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonOriginalTrainer
-      summary: Returns the original trainer of the specified pokémon in the team
+      summary: getPokemonOriginalTrainer()
       description: '**Lua global function**
 
 
@@ -2387,7 +2381,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonGender
-      summary: Returns the gender of the specified pokémon in the team
+      summary: getPokemonGender()
       description: '**Lua global function**
 
 
@@ -2429,7 +2423,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getPokemonType
-      summary: Returns the type of the specified pokémon in the team as an array of length 2
+      summary: getPokemonType()
       description: '**Lua global function**
 
 
@@ -2473,7 +2467,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getDamageMultiplier
-      summary: Returns the multiplier of the damage type between an attacking type and one or two defending types
+      summary: getDamageMultiplier()
       description: '**Lua global function**
 
 
@@ -2528,7 +2522,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: isPokemonUsable
-      summary: Returns true if the specified pokémon has is alive and has an offensive attack available
+      summary: isPokemonUsable()
       description: '**Lua global function**
 
 
@@ -2570,7 +2564,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: getUsablePokemonCount
-      summary: Returns the amount of usable pokémon in the team
+      summary: getUsablePokemonCount()
       description: '**Lua global function**
 
 
@@ -2599,7 +2593,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: hasMove
-      summary: Returns true if the specified pokémon has a move with the specified name
+      summary: hasMove()
       description: '**Lua global function**
 
 
@@ -2645,8 +2639,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getActiveBattlers
-      summary: 'API return an array of all NPCs that can be challenged on the current map. format : {"npcName" = {"x" = x,
-        "y" = y}}'
+      summary: getActiveBattlers()
       description: '**Lua global function**
 
 
@@ -2679,7 +2672,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getActiveDigSpots
-      summary: 'API return an array of all usable Dig Spots on the currrent map. format : {index = {"x" = x, "y" = y}}'
+      summary: getActiveDigSpots()
       description: '**Lua global function**
 
 
@@ -2712,7 +2705,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getActiveHeadbuttTrees
-      summary: 'API return an array of all usable Headbutt trees on the currrent map. format : {index = {"x" = x, "y" = y}}'
+      summary: getActiveHeadbuttTrees()
       description: '**Lua global function**
 
 
@@ -2745,8 +2738,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getActiveBerryTrees
-      summary: 'API return an array of all harvestable berry trees on the currrent map. format : {index = {"x" = x, "y" =
-        y}}'
+      summary: getActiveBerryTrees()
       description: '**Lua global function**
 
 
@@ -2779,7 +2771,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getDiscoverableItems
-      summary: 'API return an array of all discoverable items on the currrent map. format : {index = {"x" = x, "y" = y}}'
+      summary: getDiscoverableItems()
       description: '**Lua global function**
 
 
@@ -2812,7 +2804,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getDiscoverablePokestops
-      summary: 'API return an array of all pokestops on the current map. format : {index = {"x" = x, "y" = y}}'
+      summary: getDiscoverablePokestops()
       description: '**Lua global function**
 
 
@@ -2845,7 +2837,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getDiscoverableAbandonedPokemon
-      summary: 'API return an array of all Abandoned Pokemon on the current map. format : {index = {"x" = x, "y" = y}}'
+      summary: getDiscoverableAbandonedPokemon()
       description: '**Lua global function**
 
 
@@ -2878,7 +2870,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getNpcData
-      summary: 'Returns npc data on current map, format : { { "x" = x , "y" = y, "type" = type }, {...}, ... }'
+      summary: getNpcData()
       description: '**Lua global function**
 
 
@@ -2918,7 +2910,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getMapLinks
-      summary: Lua function `getMapLinks`
+      summary: getMapLinks()
       description: '**Lua global function**
 
 
@@ -2951,7 +2943,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getMapWidth
-      summary: The number of cells on the current map in the x direction
+      summary: getMapWidth()
       description: '**Lua global function**
 
 
@@ -2980,7 +2972,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getMapHeight
-      summary: The number of cells on the current map in the y direction
+      summary: getMapHeight()
       description: '**Lua global function**
 
 
@@ -3009,7 +3001,7 @@ paths:
       tags:
       - Map and NPC
       operationId: getCellType
-      summary: Returns the cell type of the specified cell on the current map
+      summary: getCellType()
       description: '**Lua global function**
 
 
@@ -3055,7 +3047,7 @@ paths:
       tags:
       - Items and shop
       operationId: hasItem
-      summary: Returns true if the specified item is in the inventory
+      summary: hasItem()
       description: '**Lua global function**
 
 
@@ -3097,7 +3089,7 @@ paths:
       tags:
       - Items and shop
       operationId: getItemQuantity
-      summary: Returns the quantity of the specified item in the inventory
+      summary: getItemQuantity()
       description: '**Lua global function**
 
 
@@ -3139,7 +3131,7 @@ paths:
       tags:
       - Items and shop
       operationId: hasItemId
-      summary: Returns true if the specified item is in the inventory
+      summary: hasItemId()
       description: '**Lua global function**
 
 
@@ -3181,7 +3173,7 @@ paths:
       tags:
       - Items and shop
       operationId: getItemQuantityId
-      summary: Returns the quantity of the specified item in the inventory
+      summary: getItemQuantityId()
       description: '**Lua global function**
 
 
@@ -3223,7 +3215,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: hasPokemonInTeam
-      summary: Returns true if the specified pokémon is present in the team
+      summary: hasPokemonInTeam()
       description: '**Lua global function**
 
 
@@ -3265,7 +3257,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: isTeamSortedByLevelAscending
-      summary: Returns true if the team is sorted by level in ascending order
+      summary: isTeamSortedByLevelAscending()
       description: '**Lua global function**
 
 
@@ -3294,7 +3286,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: isTeamSortedByLevelDescending
-      summary: Returns true if the team is sorted by level in descending order
+      summary: isTeamSortedByLevelDescending()
       description: '**Lua global function**
 
 
@@ -3323,7 +3315,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: isTeamRangeSortedByLevelAscending
-      summary: Returns true if the specified part of the team is sorted by level in ascending order
+      summary: isTeamRangeSortedByLevelAscending()
       description: '**Lua global function**
 
 
@@ -3369,7 +3361,7 @@ paths:
       tags:
       - Team Pokémon
       operationId: isTeamRangeSortedByLevelDescending
-      summary: Returns true if the specified part of the team the team is sorted by level in descending order
+      summary: isTeamRangeSortedByLevelDescending()
       description: '**Lua global function**
 
 
@@ -3415,7 +3407,7 @@ paths:
       tags:
       - Map and NPC
       operationId: isNpcVisible
-      summary: Returns true if there is a visible NPC with the specified name on the map
+      summary: isNpcVisible()
       description: '**Lua global function**
 
 
@@ -3457,7 +3449,7 @@ paths:
       tags:
       - Map and NPC
       operationId: isNpcOnCell
-      summary: Returns true if there is a visible NPC the specified coordinates
+      summary: isNpcOnCell()
       description: '**Lua global function**
 
 
@@ -3503,7 +3495,7 @@ paths:
       tags:
       - General state
       operationId: isShopOpen
-      summary: Returns true if there is a shop opened
+      summary: isShopOpen()
       description: '**Lua global function**
 
 
@@ -3532,7 +3524,7 @@ paths:
       tags:
       - General state
       operationId: isRelearningMoves
-      summary: Returns true if the player is relearning the move of a Pokemon from an NPC
+      summary: isRelearningMoves()
       description: '**Lua global function**
 
 
@@ -3561,7 +3553,7 @@ paths:
       tags:
       - General state
       operationId: getMoney
-      summary: Returns the amount of money in the inventory
+      summary: getMoney()
       description: '**Lua global function**
 
 
@@ -3590,7 +3582,7 @@ paths:
       tags:
       - General state
       operationId: isMounted
-      summary: Returns true if the player is riding a mount or the bicycle
+      summary: isMounted()
       description: '**Lua global function**
 
 
@@ -3619,7 +3611,7 @@ paths:
       tags:
       - General state
       operationId: isSurfing
-      summary: Returns true if the player is surfing
+      summary: isSurfing()
       description: '**Lua global function**
 
 
@@ -3648,7 +3640,7 @@ paths:
       tags:
       - General state
       operationId: isPrivateMessageEnabled
-      summary: Check if the private message from normal users are blocked
+      summary: isPrivateMessageEnabled()
       description: '**Lua global function**
 
 
@@ -3677,7 +3669,7 @@ paths:
       tags:
       - General state
       operationId: isPartyInspectionEnabled
-      summary: Check if party inspections are turned on
+      summary: isPartyInspectionEnabled()
       description: '**Lua global function**
 
 
@@ -3706,7 +3698,7 @@ paths:
       tags:
       - General state
       operationId: isNpcInteractionsEnabled
-      summary: Returns true if the bot is checking for npc interactions
+      summary: isNpcInteractionsEnabled()
       description: '**Lua global function**
 
 
@@ -3735,7 +3727,7 @@ paths:
       tags:
       - General state
       operationId: getTime
-      summary: Return the current in game hour and minute
+      summary: getTime()
       description: '**Lua global function**
 
 
@@ -3774,7 +3766,7 @@ paths:
       tags:
       - General state
       operationId: isMorning
-      summary: Return true if morning time
+      summary: isMorning()
       description: '**Lua global function**
 
 
@@ -3803,7 +3795,7 @@ paths:
       tags:
       - General state
       operationId: isNoon
-      summary: Return true if noon time
+      summary: isNoon()
       description: '**Lua global function**
 
 
@@ -3832,7 +3824,7 @@ paths:
       tags:
       - General state
       operationId: isNight
-      summary: Return true if night time
+      summary: isNight()
       description: '**Lua global function**
 
 
@@ -3861,7 +3853,7 @@ paths:
       tags:
       - General state
       operationId: isOutside
-      summary: Return true if the character is outside
+      summary: isOutside()
       description: '**Lua global function**
 
 
@@ -3890,7 +3882,7 @@ paths:
       tags:
       - General state
       operationId: isAutoEvolve
-      summary: Return the state Auto Evolve
+      summary: isAutoEvolve()
       description: '**Lua global function**
 
 
@@ -3919,7 +3911,7 @@ paths:
       tags:
       - General state
       operationId: setMount
-      summary: Sets the item that will be used to mount the player
+      summary: setMount()
       description: '**Lua global function**
 
 
@@ -3961,7 +3953,7 @@ paths:
       tags:
       - General state
       operationId: setWaterMount
-      summary: Sets the item that will be used when the player begins surfing
+      summary: setWaterMount()
       description: '**Lua global function**
 
 
@@ -4003,7 +3995,7 @@ paths:
       tags:
       - General state
       operationId: isCurrentPCBoxRefreshed
-      summary: Is the currentPcBox refreshed yet?
+      summary: isCurrentPCBoxRefreshed()
       description: '**Lua global function**
 
 
@@ -4032,7 +4024,7 @@ paths:
       tags:
       - PC storage
       operationId: getCurrentPCBoxId
-      summary: Get the active PC Box
+      summary: getCurrentPCBoxId()
       description: '**Lua global function**
 
 
@@ -4061,7 +4053,7 @@ paths:
       tags:
       - PC storage
       operationId: isPCOpen
-      summary: Check if the PC is open. Moving close the PC, usePC() opens it
+      summary: isPCOpen()
       description: '**Lua global function**
 
 
@@ -4090,7 +4082,7 @@ paths:
       tags:
       - PC storage
       operationId: getCurrentPCBoxSize
-      summary: Current box size
+      summary: getCurrentPCBoxSize()
       description: '**Lua global function**
 
 
@@ -4119,7 +4111,7 @@ paths:
       tags:
       - PC storage
       operationId: getPCBoxCount
-      summary: Return the number of non-empty boxes in the PC
+      summary: getPCBoxCount()
       description: '**Lua global function**
 
 
@@ -4148,7 +4140,7 @@ paths:
       tags:
       - PC storage
       operationId: getPCPokemonCount
-      summary: Return the number of pokemon in the PC
+      summary: getPCPokemonCount()
       description: '**Lua global function**
 
 
@@ -4177,7 +4169,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonIdFromPC
-      summary: Pokedex ID of the pokemon of the current box matching the ID
+      summary: getPokemonIdFromPC()
       description: '**Lua global function**
 
 
@@ -4223,7 +4215,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonNameFromPC
-      summary: Name of the pokemon of the current box matching the ID
+      summary: getPokemonNameFromPC()
       description: '**Lua global function**
 
 
@@ -4269,7 +4261,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonHealthFromPC
-      summary: Current HP of the pokemon of the current box matching the ID
+      summary: getPokemonHealthFromPC()
       description: '**Lua global function**
 
 
@@ -4315,7 +4307,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonHealthPercentFromPC
-      summary: Returns the percentage of remaining health of the specified pokémon in the team
+      summary: getPokemonHealthPercentFromPC()
       description: '**Lua global function**
 
 
@@ -4361,7 +4353,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonMaxHealthFromPC
-      summary: Max HP of the pokemon of the current box matching the ID
+      summary: getPokemonMaxHealthFromPC()
       description: '**Lua global function**
 
 
@@ -4407,7 +4399,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonLevelFromPC
-      summary: Level of the pokemon of the current box matching the ID
+      summary: getPokemonLevelFromPC()
       description: '**Lua global function**
 
 
@@ -4453,7 +4445,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonTotalExperienceFromPC
-      summary: Total of experience cost of a level for the pokemon of the current box matching the ID
+      summary: getPokemonTotalExperienceFromPC()
       description: '**Lua global function**
 
 
@@ -4499,7 +4491,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonRemainingExperienceFromPC
-      summary: Remaining experience before the next level of the pokemon of the current box matching the ID
+      summary: getPokemonRemainingExperienceFromPC()
       description: '**Lua global function**
 
 
@@ -4545,7 +4537,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonStatusFromPC
-      summary: Status of the pokemon of the current box matching the ID
+      summary: getPokemonStatusFromPC()
       description: '**Lua global function**
 
 
@@ -4591,7 +4583,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonTypeFromPC
-      summary: Type of the pokemon of the current box matching the ID as an array of length 2
+      summary: getPokemonTypeFromPC()
       description: '**Lua global function**
 
 
@@ -4639,7 +4631,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonHeldItemFromPC
-      summary: Returns the item held by the specified pokemon in the PC, null if empty
+      summary: getPokemonHeldItemFromPC()
       description: '**Lua global function**
 
 
@@ -4685,7 +4677,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonUniqueIdFromPC
-      summary: PROCatchem custom unique ID of the pokemon of the current box matching the ID
+      summary: getPokemonUniqueIdFromPC()
       description: '**Lua global function**
 
 
@@ -4731,7 +4723,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonRemainingPowerPointsFromPC
-      summary: Current move PP of the pokemon of the current box matching the ID
+      summary: getPokemonRemainingPowerPointsFromPC()
       description: '**Lua global function**
 
 
@@ -4781,7 +4773,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonMaxPowerPointsFromPC
-      summary: Max move PP of the pokemon of the current box matching the ID
+      summary: getPokemonMaxPowerPointsFromPC()
       description: '**Lua global function**
 
 
@@ -4831,7 +4823,7 @@ paths:
       tags:
       - PC storage
       operationId: isPokemonFromPCShiny
-      summary: Shyniness of the pokemon of the current box matching the ID
+      summary: isPokemonFromPCShiny()
       description: '**Lua global function**
 
 
@@ -4877,7 +4869,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonMoveNameFromPC
-      summary: Move of the pokemon of the current box matching the ID
+      summary: getPokemonMoveNameFromPC()
       description: '**Lua global function**
 
 
@@ -4927,7 +4919,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonMoveAccuracyFromPC
-      summary: Returns the move accuracy of the specified pokémon in the box at the specified index
+      summary: getPokemonMoveAccuracyFromPC()
       description: '**Lua global function**
 
 
@@ -4977,7 +4969,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonMovePowerFromPC
-      summary: Returns the move power of the specified pokémon in the box at the specified index
+      summary: getPokemonMovePowerFromPC()
       description: '**Lua global function**
 
 
@@ -5027,7 +5019,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonMoveTypeFromPC
-      summary: Returns the move type of the specified pokémon in the box at the specified index
+      summary: getPokemonMoveTypeFromPC()
       description: '**Lua global function**
 
 
@@ -5077,7 +5069,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonMoveDamageTypeFromPC
-      summary: Returns the move damage type of the specified pokémon in the box at the specified index
+      summary: getPokemonMoveDamageTypeFromPC()
       description: '**Lua global function**
 
 
@@ -5127,7 +5119,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonMoveStatusFromPC
-      summary: 'Returns true if the move of the specified pokémon in the box at the specified index can apply a status '
+      summary: getPokemonMoveStatusFromPC()
       description: '**Lua global function**
 
 
@@ -5177,7 +5169,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonNatureFromPC
-      summary: Nature of the pokemon of the current box matching the ID
+      summary: getPokemonNatureFromPC()
       description: '**Lua global function**
 
 
@@ -5223,7 +5215,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonAbilityFromPC
-      summary: Ability of the pokemon of the current box matching the ID
+      summary: getPokemonAbilityFromPC()
       description: '**Lua global function**
 
 
@@ -5269,7 +5261,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonStatFromPC
-      summary: Returns the value for the specified stat of the specified pokémon in the PC
+      summary: getPokemonStatFromPC()
       description: '**Lua global function**
 
 
@@ -5319,7 +5311,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonEffortValueFromPC
-      summary: Returns the effort value for the specified stat of the specified pokémon in the PC
+      summary: getPokemonEffortValueFromPC()
       description: '**Lua global function**
 
 
@@ -5369,7 +5361,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonIndividualValueFromPC
-      summary: Returns the individual value for the specified stat of the specified pokémon in the PC
+      summary: getPokemonIndividualValueFromPC()
       description: '**Lua global function**
 
 
@@ -5419,7 +5411,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonHappinessFromPC
-      summary: Happiness of the pokemon of the current box matching the ID
+      summary: getPokemonHappinessFromPC()
       description: '**Lua global function**
 
 
@@ -5465,7 +5457,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonRegionFromPC
-      summary: Region of capture of the pokemon of the current box matching the ID
+      summary: getPokemonRegionFromPC()
       description: '**Lua global function**
 
 
@@ -5511,7 +5503,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonOriginalTrainerFromPC
-      summary: Original trainer of the pokemon of the current box matching the ID
+      summary: getPokemonOriginalTrainerFromPC()
       description: '**Lua global function**
 
 
@@ -5557,7 +5549,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonGenderFromPC
-      summary: Gender of the pokemon of the current box matching the ID
+      summary: getPokemonGenderFromPC()
       description: '**Lua global function**
 
 
@@ -5603,7 +5595,7 @@ paths:
       tags:
       - PC storage
       operationId: getPokemonFormFromPC
-      summary: Form of the pokémon in the current box matching the ID. (0 if no form)
+      summary: getPokemonFormFromPC()
       description: '**Lua global function**
 
 
@@ -5649,7 +5641,7 @@ paths:
       tags:
       - General state
       operationId: getServer
-      summary: Returns the connected server
+      summary: getServer()
       description: '**Lua global function**
 
 
@@ -5678,7 +5670,7 @@ paths:
       tags:
       - Battle state
       operationId: isOpponentShiny
-      summary: Returns true if the opponent pokémon is shiny
+      summary: isOpponentShiny()
       description: '**Lua global function**
 
 
@@ -5707,7 +5699,7 @@ paths:
       tags:
       - Battle state
       operationId: isAlreadyCaught
-      summary: Returns true if the opponent pokémon has already been caught and has a pokédex entry
+      summary: isAlreadyCaught()
       description: '**Lua global function**
 
 
@@ -5736,7 +5728,7 @@ paths:
       tags:
       - Battle state
       operationId: isWildBattle
-      summary: Returns true if the current battle is against a wild pokémon
+      summary: isWildBattle()
       description: '**Lua global function**
 
 
@@ -5765,7 +5757,7 @@ paths:
       tags:
       - Battle state
       operationId: getActivePokemonNumber
-      summary: Returns the index of the active team pokémon in the current battle
+      summary: getActivePokemonNumber()
       description: '**Lua global function**
 
 
@@ -5794,7 +5786,7 @@ paths:
       tags:
       - Battle state
       operationId: getOpponentId
-      summary: Returns the id of the opponent pokémon in the current battle
+      summary: getOpponentId()
       description: '**Lua global function**
 
 
@@ -5823,7 +5815,7 @@ paths:
       tags:
       - Battle state
       operationId: getOpponentName
-      summary: Returns the name of the opponent pokémon in the current battle
+      summary: getOpponentName()
       description: '**Lua global function**
 
 
@@ -5852,7 +5844,7 @@ paths:
       tags:
       - Battle state
       operationId: getOpponentHealth
-      summary: Returns the current health of the opponent pokémon in the current battle
+      summary: getOpponentHealth()
       description: '**Lua global function**
 
 
@@ -5881,7 +5873,7 @@ paths:
       tags:
       - Battle state
       operationId: getOpponentMaxHealth
-      summary: Returns the maximum health of the opponent pokémon in the current battle
+      summary: getOpponentMaxHealth()
       description: '**Lua global function**
 
 
@@ -5910,7 +5902,7 @@ paths:
       tags:
       - Battle state
       operationId: getOpponentHealthPercent
-      summary: Returns the percentage of remaining health of the opponent pokémon in the current battle
+      summary: getOpponentHealthPercent()
       description: '**Lua global function**
 
 
@@ -5939,7 +5931,7 @@ paths:
       tags:
       - Battle state
       operationId: getOpponentLevel
-      summary: Returns the level of the opponent pokémon in the current battle
+      summary: getOpponentLevel()
       description: '**Lua global function**
 
 
@@ -5968,7 +5960,7 @@ paths:
       tags:
       - Battle state
       operationId: getOpponentStatus
-      summary: Returns the status of the opponent pokémon in the current battle
+      summary: getOpponentStatus()
       description: '**Lua global function**
 
 
@@ -5997,7 +5989,7 @@ paths:
       tags:
       - Battle state
       operationId: getOpponentForm
-      summary: Returns the form of the opponent pokémon in the current battle (0 if no form)
+      summary: getOpponentForm()
       description: '**Lua global function**
 
 
@@ -6026,7 +6018,7 @@ paths:
       tags:
       - Battle state
       operationId: isOpponentEffortValue
-      summary: Returns true if the opponent is only giving the specified effort value
+      summary: isOpponentEffortValue()
       description: '**Lua global function**
 
 
@@ -6068,7 +6060,7 @@ paths:
       tags:
       - Battle state
       operationId: getOpponentEffortValue
-      summary: Returns the amount of a particular EV given by the opponent
+      summary: getOpponentEffortValue()
       description: '**Lua global function**
 
 
@@ -6110,7 +6102,7 @@ paths:
       tags:
       - Battle state
       operationId: getOpponentType
-      summary: Returns the type of the opponent pokémon in the current battle as an array of length 2
+      summary: getOpponentType()
       description: '**Lua global function**
 
 
@@ -6141,7 +6133,7 @@ paths:
       tags:
       - Path actions
       operationId: moveToCell
-      summary: Moves to the specified coordinates
+      summary: moveToCell()
       description: '**Lua global function**
 
 
@@ -6187,7 +6179,7 @@ paths:
       tags:
       - Path actions
       operationId: moveToListCell
-      summary: Moves to the specified list coordinates
+      summary: moveToListCell()
       description: '**Lua global function**
 
 
@@ -6233,7 +6225,7 @@ paths:
       tags:
       - Path actions
       operationId: moveToMap
-      summary: Moves to the nearest cell teleporting to the specified map
+      summary: moveToMap()
       description: '**Lua global function**
 
 
@@ -6275,7 +6267,7 @@ paths:
       tags:
       - Path actions
       operationId: moveToRectangle
-      summary: Moves to a random accessible cell of the specified rectangle
+      summary: moveToRectangle()
       description: '**Lua global function**
 
 
@@ -6326,7 +6318,7 @@ paths:
       tags:
       - Path actions
       operationId: moveToNormalGround
-      summary: Move randomly avoiding water and links
+      summary: moveToNormalGround()
       description: '**Lua global function**
 
 
@@ -6355,7 +6347,7 @@ paths:
       tags:
       - Path actions
       operationId: moveToGrass
-      summary: Moves to the nearest grass patch then move randomly inside it
+      summary: moveToGrass()
       description: '**Lua global function**
 
 
@@ -6384,7 +6376,7 @@ paths:
       tags:
       - Path actions
       operationId: moveToWater
-      summary: Moves to the nearest water area then move randomly inside it
+      summary: moveToWater()
       description: '**Lua global function**
 
 
@@ -6413,7 +6405,7 @@ paths:
       tags:
       - Path actions
       operationId: moveNearExit
-      summary: Moves near the cell teleporting to the specified map
+      summary: moveNearExit()
       description: '**Lua global function**
 
 
@@ -6455,7 +6447,7 @@ paths:
       tags:
       - Path actions
       operationId: talkToNpc
-      summary: Moves then talk to NPC specified by its name
+      summary: talkToNpc()
       description: '**Lua global function**
 
 
@@ -6497,7 +6489,7 @@ paths:
       tags:
       - Path actions
       operationId: talkToNpcOnCell
-      summary: Moves then talk to NPC located on the specified cell
+      summary: talkToNpcOnCell()
       description: '**Lua global function**
 
 
@@ -6543,7 +6535,7 @@ paths:
       tags:
       - Path actions
       operationId: usePokecenter
-      summary: Moves to the Nurse Joy then talk to the cell below her
+      summary: usePokecenter()
       description: '**Lua global function**
 
 
@@ -6572,7 +6564,7 @@ paths:
       tags:
       - Path actions
       operationId: swapPokemon
-      summary: Swaps the two pokémon specified by their position in the team
+      summary: swapPokemon()
       description: '**Lua global function**
 
 
@@ -6618,7 +6610,7 @@ paths:
       tags:
       - Path actions
       operationId: swapPokemonWithLeader
-      summary: Swaps the first pokémon with the specified name with the leader of the team
+      summary: swapPokemonWithLeader()
       description: '**Lua global function**
 
 
@@ -6660,7 +6652,7 @@ paths:
       tags:
       - Path actions
       operationId: sortTeamByLevelAscending
-      summary: Sorts the pokémon in the team by level in ascending order, one pokémon at a time
+      summary: sortTeamByLevelAscending()
       description: '**Lua global function**
 
 
@@ -6689,7 +6681,7 @@ paths:
       tags:
       - Path actions
       operationId: sortTeamByLevelDescending
-      summary: Sorts the pokémon in the team by level in descending order, one pokémon at a time
+      summary: sortTeamByLevelDescending()
       description: '**Lua global function**
 
 
@@ -6718,7 +6710,7 @@ paths:
       tags:
       - Path actions
       operationId: sortTeamRangeByLevelAscending
-      summary: Sorts the specified part of the team by level in ascending order, one pokémon at a time
+      summary: sortTeamRangeByLevelAscending()
       description: '**Lua global function**
 
 
@@ -6764,7 +6756,7 @@ paths:
       tags:
       - Path actions
       operationId: sortTeamRangeByLevelDescending
-      summary: Sorts the specified part of the team by level in descending order, one pokémon at a time
+      summary: sortTeamRangeByLevelDescending()
       description: '**Lua global function**
 
 
@@ -6810,7 +6802,7 @@ paths:
       tags:
       - Items and shop
       operationId: buyItem
-      summary: Buys the specified item from the opened shop
+      summary: buyItem()
       description: '**Lua global function**
 
 
@@ -6856,7 +6848,7 @@ paths:
       tags:
       - Items and shop
       operationId: hasShopItem
-      summary: Lua function `hasShopItem`
+      summary: hasShopItem()
       description: '**Lua global function**
 
 
@@ -6898,7 +6890,7 @@ paths:
       tags:
       - Path actions
       operationId: relearnMove
-      summary: Relearn a move from the move relearner NPC
+      summary: relearnMove()
       description: '**Lua global function**
 
 
@@ -6940,7 +6932,7 @@ paths:
       tags:
       - PC storage
       operationId: usePC
-      summary: Move to the PC and opens it, refreshing the first box
+      summary: usePC()
       description: '**Lua global function**
 
 
@@ -6969,7 +6961,7 @@ paths:
       tags:
       - PC storage
       operationId: openPCBox
-      summary: Open box from the PC
+      summary: openPCBox()
       description: '**Lua global function**
 
 
@@ -7011,7 +7003,7 @@ paths:
       tags:
       - PC storage
       operationId: depositPokemonToPC
-      summary: Deposit a pokemon to the pc
+      summary: depositPokemonToPC()
       description: '**Lua global function**
 
 
@@ -7053,7 +7045,7 @@ paths:
       tags:
       - PC storage
       operationId: withdrawPokemonFromPC
-      summary: Withdraw a pokemon from a known box
+      summary: withdrawPokemonFromPC()
       description: '**Lua global function**
 
 
@@ -7099,7 +7091,7 @@ paths:
       tags:
       - PC storage
       operationId: swapPokemonFromPC
-      summary: Swap a pokemon from the team with a pokemon from the pc
+      summary: swapPokemonFromPC()
       description: '**Lua global function**
 
 
@@ -7149,7 +7141,7 @@ paths:
       tags:
       - Items and shop
       operationId: giveItemToPokemon
-      summary: Give the specified item on the specified pokemon
+      summary: giveItemToPokemon()
       description: '**Lua global function**
 
 
@@ -7195,7 +7187,7 @@ paths:
       tags:
       - Items and shop
       operationId: takeItemFromPokemon
-      summary: Take the held item from the specified pokemon
+      summary: takeItemFromPokemon()
       description: '**Lua global function**
 
 
@@ -7237,7 +7229,7 @@ paths:
       tags:
       - Path actions
       operationId: releasePokemonFromTeam
-      summary: Releases the specified pokemon in the team
+      summary: releasePokemonFromTeam()
       description: '**Lua global function**
 
 
@@ -7279,7 +7271,7 @@ paths:
       tags:
       - PC storage
       operationId: releasePokemonFromPC
-      summary: Releases the specified pokemon in the PC
+      summary: releasePokemonFromPC()
       description: '**Lua global function**
 
 
@@ -7325,7 +7317,7 @@ paths:
       tags:
       - Path actions
       operationId: enablePrivateMessage
-      summary: Enable private messages from users
+      summary: enablePrivateMessage()
       description: '**Lua global function**
 
 
@@ -7354,7 +7346,7 @@ paths:
       tags:
       - Path actions
       operationId: disablePrivateMessage
-      summary: Disable private messages from users
+      summary: disablePrivateMessage()
       description: '**Lua global function**
 
 
@@ -7383,7 +7375,7 @@ paths:
       tags:
       - Path actions
       operationId: enablePartyInspection
-      summary: Enable party inspection from users
+      summary: enablePartyInspection()
       description: '**Lua global function**
 
 
@@ -7412,7 +7404,7 @@ paths:
       tags:
       - Path actions
       operationId: disablePartyInspection
-      summary: Disable party inspection from users
+      summary: disablePartyInspection()
       description: '**Lua global function**
 
 
@@ -7441,7 +7433,7 @@ paths:
       tags:
       - Path actions
       operationId: enableAutoEvolve
-      summary: Enable auto evolve on Pkm Catchem client
+      summary: enableAutoEvolve()
       description: '**Lua global function**
 
 
@@ -7470,7 +7462,7 @@ paths:
       tags:
       - Path actions
       operationId: disableAutoEvolve
-      summary: Disable auto evolve on Pkm Catchem client
+      summary: disableAutoEvolve()
       description: '**Lua global function**
 
 
@@ -7499,7 +7491,7 @@ paths:
       tags:
       - Path actions
       operationId: enableNpcInteractions
-      summary: Enables npc interactions
+      summary: enableNpcInteractions()
       description: '**Lua global function**
 
 
@@ -7528,7 +7520,7 @@ paths:
       tags:
       - Path actions
       operationId: disableNpcInteractions
-      summary: Disables npc interactions
+      summary: disableNpcInteractions()
       description: '**Lua global function**
 
 
@@ -7557,7 +7549,7 @@ paths:
       tags:
       - Map and NPC
       operationId: isInArea
-      summary: Check condition list cell
+      summary: isInArea()
       description: '**Lua global function**
 
 
@@ -7599,7 +7591,7 @@ paths:
       tags:
       - Dialog functions
       operationId: pushDialogAnswer
-      summary: Adds the specified answer to the answer queue. It will be used in the next dialog
+      summary: pushDialogAnswer()
       description: '**Lua global function**
 
 
@@ -7643,7 +7635,7 @@ paths:
       tags:
       - Items and shop
       operationId: useItem
-      summary: Uses the specified item
+      summary: useItem()
       description: '**Lua global function**
 
 
@@ -7685,7 +7677,7 @@ paths:
       tags:
       - Items and shop
       operationId: useItemOnPokemon
-      summary: Uses the specified item on the specified pokémon
+      summary: useItemOnPokemon()
       description: '**Lua global function**
 
 
@@ -7731,7 +7723,7 @@ paths:
       tags:
       - Battle actions
       operationId: attack
-      summary: Uses the most effective offensive move available
+      summary: attack()
       description: '**Lua global function**
 
 
@@ -7760,7 +7752,7 @@ paths:
       tags:
       - Battle actions
       operationId: weakAttack
-      summary: Uses the least effective offensive move available
+      summary: weakAttack()
       description: '**Lua global function**
 
 
@@ -7789,7 +7781,7 @@ paths:
       tags:
       - Battle actions
       operationId: run
-      summary: Tries to escape from the current wild battle
+      summary: run()
       description: '**Lua global function**
 
 
@@ -7818,7 +7810,7 @@ paths:
       tags:
       - Battle actions
       operationId: sendUsablePokemon
-      summary: Sends the first usable pokemon different from the active one
+      summary: sendUsablePokemon()
       description: '**Lua global function**
 
 
@@ -7847,7 +7839,7 @@ paths:
       tags:
       - Battle actions
       operationId: sendAnyPokemon
-      summary: Sends the first available pokemon different from the active one
+      summary: sendAnyPokemon()
       description: '**Lua global function**
 
 
@@ -7876,7 +7868,7 @@ paths:
       tags:
       - Battle actions
       operationId: sendPokemon
-      summary: Sends the specified pokemon to battle
+      summary: sendPokemon()
       description: '**Lua global function**
 
 
@@ -7918,7 +7910,7 @@ paths:
       tags:
       - Battle actions
       operationId: useMove
-      summary: Uses the specified move in the current battle if available
+      summary: useMove()
       description: '**Lua global function**
 
 
@@ -7960,7 +7952,7 @@ paths:
       tags:
       - Battle actions
       operationId: useAnyMove
-      summary: Uses the first available move or struggle if out of PP
+      summary: useAnyMove()
       description: '**Lua global function**
 
 
@@ -7989,7 +7981,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setAfk
-      summary: Sets afk timeout for BOT
+      summary: setAfk()
       description: '**Lua global function**
 
 
@@ -8031,7 +8023,7 @@ paths:
       tags:
       - Move learning actions
       operationId: forgetMove
-      summary: Forgets the specified move, if existing, in order to learn a new one
+      summary: forgetMove()
       description: '**Lua global function**
 
 
@@ -8073,7 +8065,7 @@ paths:
       tags:
       - Move learning actions
       operationId: forgetAnyMoveExcept
-      summary: Forgets the first move that is not one of the specified moves
+      summary: forgetAnyMoveExcept()
       description: '**Lua global function**
 
 
@@ -8124,7 +8116,7 @@ paths:
       tags:
       - Custom options
       operationId: setOption
-      summary: Sets the option at a particular index, or creates it if it doesn't exist
+      summary: setOption()
       description: '**Lua global function**
 
 
@@ -8165,7 +8157,7 @@ paths:
       tags:
       - Custom options
       operationId: getOption
-      summary: Gets the option at a particular index, or creates it if it doesn't exist
+      summary: getOption()
       description: '**Lua global function**
 
 
@@ -8207,7 +8199,7 @@ paths:
       tags:
       - Custom options
       operationId: setOptionName
-      summary: Sets the name of the option at a particular index, or creates it if it doesn't exist
+      summary: setOptionName()
       description: '**Lua global function**
 
 
@@ -8248,7 +8240,7 @@ paths:
       tags:
       - Custom options
       operationId: setOptionDescription
-      summary: Sets the tooltip description of the option at a particular index, or creates it if it doesn't exist
+      summary: setOptionDescription()
       description: '**Lua global function**
 
 
@@ -8289,7 +8281,7 @@ paths:
       tags:
       - Custom options
       operationId: removeOption
-      summary: Removes the slider option at the specified index
+      summary: removeOption()
       description: '**Lua global function**
 
 
@@ -8326,7 +8318,7 @@ paths:
       tags:
       - Custom options
       operationId: setTextOption
-      summary: Sets the text of the TextOption at a particular index, or creates it if it doesn't exist
+      summary: setTextOption()
       description: '**Lua global function**
 
 
@@ -8367,7 +8359,7 @@ paths:
       tags:
       - Custom options
       operationId: getTextOption
-      summary: Returns the text content of the TextOption at a particular index, or an empty string if it doesn't exist
+      summary: getTextOption()
       description: '**Lua global function**
 
 
@@ -8409,7 +8401,7 @@ paths:
       tags:
       - Custom options
       operationId: setTextOptionName
-      summary: Sets the name of the TextOption at a particular index, or creates it if it doesn't exist
+      summary: setTextOptionName()
       description: '**Lua global function**
 
 
@@ -8450,7 +8442,7 @@ paths:
       tags:
       - Custom options
       operationId: setTextOptionDescription
-      summary: Sets the tooltip description of the TextOption at a particular index, or creates it if it doesn't exist
+      summary: setTextOptionDescription()
       description: '**Lua global function**
 
 
@@ -8491,7 +8483,7 @@ paths:
       tags:
       - Custom options
       operationId: removeTextOption
-      summary: Removes the text option at the specified index
+      summary: removeTextOption()
       description: '**Lua global function**
 
 
@@ -8528,7 +8520,7 @@ paths:
       tags:
       - File APIs
       operationId: writeToFile
-      summary: Writes a string to file overwrite is an optional parameter, and will append the line(s) if absent
+      summary: writeToFile()
       description: '**Lua global function**
 
 
@@ -8573,8 +8565,7 @@ paths:
       tags:
       - File APIs
       operationId: logToFile
-      summary: Writes a string, a number, or a table of strings and/or numbers to file overwrite is an optional parameter,
-        and will app
+      summary: logToFile()
       description: '**Lua global function**
 
 
@@ -8585,8 +8576,7 @@ paths:
         ```
 
 
-        Writes a string, a number, or a table of strings and/or numbers to file overwrite is an optional parameter, and will
-        append the line(s) if absent'
+        Writes a string, a number, or a table of strings and/or numbers to file overwrite is an optional parameter, and will append the line(s) if absent'
       requestBody:
         required: true
         content:
@@ -8627,7 +8617,7 @@ paths:
       tags:
       - File APIs
       operationId: readLinesFromFile
-      summary: Returns a table of every line in file
+      summary: readLinesFromFile()
       description: '**Lua global function**
 
 
@@ -8671,7 +8661,7 @@ paths:
       tags:
       - PC storage
       operationId: refreshPCBox
-      summary: Refresh PC Box
+      summary: refreshPCBox()
       description: '**Lua global function**
 
 
@@ -8713,7 +8703,7 @@ paths:
       tags:
       - File APIs
       operationId: tradeGiveMoney
-      summary: Used to trade money With Parameters Username and Money
+      summary: tradeGiveMoney()
       description: '**Lua global function**
 
 
@@ -8759,7 +8749,7 @@ paths:
       tags:
       - File APIs
       operationId: tradeAcceptMoney
-      summary: Lua function `tradeAcceptMoney`
+      summary: tradeAcceptMoney()
       description: '**Lua global function**
 
 
@@ -8788,7 +8778,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setLoadingMapTimeout
-      summary: Sets loading timeout for BOT
+      summary: setLoadingMapTimeout()
       description: '**Lua global function**
 
 
@@ -8830,7 +8820,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setLoadingTimeout
-      summary: Sets loading timeout for BOT
+      summary: setLoadingTimeout()
       description: '**Lua global function**
 
 
@@ -8872,7 +8862,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setMovementTimeout
-      summary: Sets movement timeout for BOT
+      summary: setMovementTimeout()
       description: '**Lua global function**
 
 
@@ -8914,7 +8904,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setDialogTimeout
-      summary: Sets dialog timeout for BOT
+      summary: setDialogTimeout()
       description: '**Lua global function**
 
 
@@ -8956,7 +8946,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setBattleTimeout
-      summary: Sets battle timeout for BOT
+      summary: setBattleTimeout()
       description: '**Lua global function**
 
 
@@ -8998,7 +8988,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setMountingTimeout
-      summary: Sets mounting timeout for BOT
+      summary: setMountingTimeout()
       description: '**Lua global function**
 
 
@@ -9040,7 +9030,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setTeleportationTimeout
-      summary: Sets teleportation timeout for BOT
+      summary: setTeleportationTimeout()
       description: '**Lua global function**
 
 
@@ -9082,7 +9072,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setSwapTimeout
-      summary: Sets swap timeout for BOT
+      summary: setSwapTimeout()
       description: '**Lua global function**
 
 
@@ -9124,7 +9114,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setItemUseTimeout
-      summary: Sets item-use timeout for BOT
+      summary: setItemUseTimeout()
       description: '**Lua global function**
 
 
@@ -9166,7 +9156,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setFishingTimeout
-      summary: Sets fishing timeout for BOT
+      summary: setFishingTimeout()
       description: '**Lua global function**
 
 
@@ -9208,7 +9198,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setRefreshingPCBoxTimeout
-      summary: Sets refreshing PC box timeout for BOT
+      summary: setRefreshingPCBoxTimeout()
       description: '**Lua global function**
 
 
@@ -9250,7 +9240,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setMoveRelearnerTimeout
-      summary: Sets move relearner timeout for BOT
+      summary: setMoveRelearnerTimeout()
       description: '**Lua global function**
 
 
@@ -9292,7 +9282,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setNpcBattleTimeout
-      summary: Sets NPC battle timeout for BOT
+      summary: setNpcBattleTimeout()
       description: '**Lua global function**
 
 
@@ -9334,7 +9324,7 @@ paths:
       tags:
       - Bot configuration
       operationId: setAfkTimeout
-      summary: Sets afk timeout for BOT
+      summary: setAfkTimeout()
       description: '**Lua global function**
 
 
@@ -9376,7 +9366,7 @@ paths:
       tags:
       - Chat
       operationId: closeChannel
-      summary: Close channel chat by name
+      summary: closeChannel()
       description: '**Lua global function**
 
 
@@ -9418,7 +9408,7 @@ paths:
       tags:
       - Legacy special actions
       operationId: useSurf
-      summary: Use Surf
+      summary: useSurf()
       description: '**Lua global function**
 
 

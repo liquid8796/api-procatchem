@@ -51,3 +51,8 @@ When the Lua script API changes, update `openapi.yaml` and bump the version fiel
 - `onBattleAction()` is called while in battle.
 - Execute at most one path or battle action per frame.
 - Query/helper functions can be called before deciding which action to run.
+
+
+## Documentation UI note
+
+Sidebar operation titles use Lua function names only, for example `getPokedexEvolved()` or `onStart()`, while descriptions stay inside each API detail page.
