@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PROCatchem Lua Script API</title>
+    <meta name="description" content="Lua scripting API reference for PROCatchem script authors." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111827'/%3E%3Ctext x='32' y='40' font-size='28' text-anchor='middle' fill='white'%3EP%3C/text%3E%3C/svg%3E" />
+    <style>
+      body { margin: 0; padding: 0; }
+      .topbar {
+        font-family: Inter, Arial, sans-serif;
+        background: #111827;
+        color: white;
+        padding: 12px 20px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .topbar strong { font-size: 16px; }
+      .topbar a { color: #93c5fd; text-decoration: none; font-size: 13px; }
+      .topbar a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <strong>PROCatchem Lua Script API</strong>
+      <a href="./openapi.yaml">OpenAPI YAML</a>
+    </div>
+    <redoc spec-url="./openapi.yaml" hide-download-button="false" expand-responses="200,204"></redoc>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+  </body>
+</html>

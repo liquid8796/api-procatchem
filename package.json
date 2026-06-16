@@ -1,0 +1,16 @@
+{
+  "name": "procatchem-lua-api-docs",
+  "version": "1.0.15",
+  "private": true,
+  "description": "Redoc documentation site for PROCatchem Lua Script API.",
+  "scripts": {
+    "dev": "redocly preview-docs openapi.yaml",
+    "lint": "redocly lint openapi.yaml",
+    "build": "mkdir -p dist && cp index.html dist/index.html && cp openapi.yaml dist/openapi.yaml",
+    "build:bundle": "mkdir -p dist && redocly build-docs openapi.yaml -o dist/index.html",
+    "vercel-build": "npm run build"
+  },
+  "devDependencies": {
+    "@redocly/cli": "latest"
+  }
+}
