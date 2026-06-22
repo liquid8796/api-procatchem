@@ -3,9 +3,33 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PROCatchem Lua Script API</title>
-    <meta name="description" content="Lua scripting API reference for PROCatchem script authors." />
+    <title>PROCatchem Lua Script API Docs | Bot Scripting Reference</title>
+    <meta name="description" content="Official PROCatchem Lua Script API documentation for bot scripts, battle helpers, map actions, chat helpers, and Discord or Telegram notification APIs." />
+    <meta name="keywords" content="PROCatchem, PROCatchem API, PROCatchem Lua, PROCatchem docs, PROCatchem script, Pokemon Revolution Online bot scripting, Lua bot API, Discord notification Lua API, Telegram notification Lua API" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="author" content="PROCatchem Community" />
+    <link rel="canonical" href="https://api-procatchem.vercel.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="PROCatchem Lua Script API Docs" />
+    <meta property="og:description" content="Searchable PROCatchem Lua API reference for script authors, including notification helpers for Discord and Telegram." />
+    <meta property="og:url" content="https://api-procatchem.vercel.app/" />
+    <meta property="og:site_name" content="PROCatchem API Docs" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="PROCatchem Lua Script API Docs" />
+    <meta name="twitter:description" content="Lua scripting reference for PROCatchem script authors with notification APIs and examples." />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111827'/%3E%3Ctext x='32' y='40' font-size='28' text-anchor='middle' fill='white'%3EP%3C/text%3E%3C/svg%3E" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "headline": "PROCatchem Lua Script API Documentation",
+        "description": "Official PROCatchem Lua Script API documentation for script authors, including notification helpers for Discord and Telegram.",
+        "name": "PROCatchem Lua Script API Docs",
+        "url": "https://api-procatchem.vercel.app/",
+        "about": ["PROCatchem", "Lua scripting", "Notification API", "Discord webhook", "Telegram bot"]
+      }
+    </script>
     <style>
       body { margin: 0; padding: 0; }
       .topbar {
@@ -21,6 +45,17 @@
       .topbar strong { font-size: 16px; }
       .topbar a { color: #93c5fd; text-decoration: none; font-size: 13px; }
       .topbar a:hover { text-decoration: underline; }
+      .seo-intro {
+        font-family: Inter, Arial, sans-serif;
+        padding: 20px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+        color: #111827;
+      }
+      .seo-intro h1 { margin: 0 0 8px; font-size: 24px; }
+      .seo-intro p { margin: 0 0 8px; max-width: 980px; line-height: 1.55; }
+      .seo-intro ul { margin: 8px 0 0; padding-left: 20px; }
+      .seo-intro a { color: #2563eb; }
     </style>
   </head>
   <body>
@@ -28,7 +63,18 @@
       <strong>PROCatchem Lua Script API</strong>
       <a href="./openapi.yaml">OpenAPI YAML</a>
     </div>
+    <main class="seo-intro">
+      <h1>PROCatchem Lua Script API Documentation</h1>
+      <p>Searchable documentation for PROCatchem Lua scripts: lifecycle callbacks, map helpers, battle actions, inventory and PC storage APIs, chat helpers, and notification APIs for Discord and Telegram.</p>
+      <p>Notification helpers include <code>sendNotification()</code>, <code>sendNotificationWith()</code>, <code>sendNotificationTo()</code>, <code>sendNotificationWithTo()</code>, <code>notify()</code>, <code>setNotifyVar()</code>, and <code>clearNotifyVars()</code>.</p>
+      <ul>
+        <li><a href="./openapi.yaml">Download the OpenAPI YAML source</a></li>
+        <li><a href="./examples/basic-script.lua">Basic Lua script example</a></li>
+        <li><a href="./examples/notification-script.lua">Notification Lua script example</a></li>
+      </ul>
+    </main>
     <redoc spec-url="./openapi.yaml" hide-download-button="false" expand-responses="200,204"></redoc>
+    <noscript>Please enable JavaScript to view the interactive Redoc API reference. The raw OpenAPI source is available at /openapi.yaml.</noscript>
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
   </body>
 </html>

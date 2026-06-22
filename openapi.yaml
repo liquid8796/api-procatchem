@@ -1,18 +1,9 @@
 openapi: 3.1.0
 info:
   title: PROCatchem Lua Script API
-  summary: Lua API reference for script authors.
-  version: 1.0.15
-  description: "This documentation describes the Lua functions exposed by PROCatchem
-    to user scripts.\n\nThe API is represented as OpenAPI pseudo-endpoints so it can
-    be rendered with Redoc/Redocly and deployed as a static documentation site. These
-    are not HTTP endpoints. Each operation describes one Lua global function or script
-    callback.\n\nBasic script shape:\n\n```lua\nname = \"Example Script\"\nauthor
-    = \"YourName\"\ndescription = \"Simple PROCatchem script.\"\n\nfunction onPathAction()\n\
-    \    if getMapName() == \"Viridian City\" then\n        moveToGrass()\n    end\n\
-    end\n\nfunction onBattleAction()\n    attack()\nend\n```\n\nAction rule: a script
-    should execute at most one path or battle action per frame. Query/helper functions
-    can be called freely.\n"
+  summary: Lua API reference for PROCatchem script authors, including notification helpers.
+  version: 1.0.92
+  description: "This documentation describes the Lua functions exposed by PROCatchem to user scripts.\n\nThe API is represented as OpenAPI pseudo-endpoints so it can be rendered with Redoc/Redocly and deployed as a static documentation site. These are not HTTP endpoints. Each operation describes one Lua global function or script callback.\n\nNew notification helpers let scripts send configured Discord/Telegram notification templates, pass template variables, override delivery targets, and send quick plain-text alerts from Lua.\n\nBasic script shape:\n\n```lua\nname = \"Example Script\"\nauthor = \"YourName\"\ndescription = \"Simple PROCatchem script.\"\n\nfunction onPathAction()\n    if getMapName() == \"Viridian City\" then\n        moveToGrass()\n    end\nend\n\nfunction onBattleAction()\n    attack()\nend\n```\n\nAction rule: a script should execute at most one path or battle action per frame. Query/helper functions can be called freely.\n"
 servers:
 - url: lua://PROCatchem
   description: Pseudo server used only to render Lua function documentation.
@@ -20,8 +11,7 @@ tags:
 - name: Script metadata
   description: Top-level Lua fields read by the script loader.
 - name: Lifecycle callbacks
-  description: Functions implemented by your script and called by the bot 
-    runtime.
+  description: Functions implemented by your script and called by the bot runtime.
 - name: Core utilities
   description: Logging, relog/restart helpers, hooks and utility helpers.
 - name: Map and NPC
@@ -37,8 +27,7 @@ tags:
 - name: Battle state
   description: Current battle and opponent query helpers.
 - name: Path actions
-  description: Movement, NPC interaction, team ordering, PC and overworld 
-    actions.
+  description: Movement, NPC interaction, team ordering, PC and overworld actions.
 - name: Dialog functions
   description: Dialog answer helpers.
 - name: Battle actions
@@ -53,6 +42,8 @@ tags:
   description: Read/write helpers for script-local files.
 - name: Chat
   description: Chat/channel helpers.
+- name: Notifications
+  description: Discord and Telegram notification helpers for Lua scripts.
 - name: Legacy special actions
   description: Legacy or special-purpose actions.
 components:
@@ -86,6 +77,25 @@ components:
         type: string
       minItems: 0
       maxItems: 2
+    NotificationVariables:
+      type: object
+      description: Lua table of template variable values. Keys are variable names without braces, e.g. pokemon for {pokemon}. Values are converted to strings.
+      additionalProperties:
+        type: string
+      example:
+        pokemon: Gyarados
+        level: '30'
+        map: Route 22
+    NotificationTarget:
+      type: string
+      description: Notification delivery target override. personal/discord sends only to the user Discord webhook, procatchem sends only to the built-in PROCatchem Discord channel, telegram sends only to Telegram, and all uses the template configured target.
+      enum:
+      - personal
+      - discord
+      - procatchem
+      - telegram
+      - all
+      example: procatchem
 paths:
   /lua/metadata/name:
     get:
@@ -286,8 +296,7 @@ paths:
         ```
 
 
-        Called repeatedly while the player is outside battle. Execute at most one
-        path action per frame.'
+        Called repeatedly while the player is outside battle. Execute at most one path action per frame.'
       responses:
         '204':
           description: No Lua return value.
@@ -311,8 +320,7 @@ paths:
         ```
 
 
-        Called repeatedly while the player is in battle. Execute at most one battle
-        action per frame.'
+        Called repeatedly while the player is in battle. Execute at most one battle action per frame.'
       responses:
         '204':
           description: No Lua return value.
@@ -1269,8 +1277,7 @@ paths:
         ```
 
 
-        Returns the percentage of remaining health of the specified pokémon in the
-        team.'
+        Returns the percentage of remaining health of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -1648,8 +1655,7 @@ paths:
         ```
 
 
-        Returns the remaining power points of the specified move of the specified
-        pokémon in the team.'
+        Returns the remaining power points of the specified move of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -1829,8 +1835,7 @@ paths:
         ```
 
 
-        Returns the move accuracy of the specified pokémon in the team at the specified
-        index.'
+        Returns the move accuracy of the specified pokémon in the team at the specified index.'
       requestBody:
         required: true
         content:
@@ -1876,8 +1881,7 @@ paths:
         ```
 
 
-        Returns the move power of the specified pokémon in the team at the specified
-        index.'
+        Returns the move power of the specified pokémon in the team at the specified index.'
       requestBody:
         required: true
         content:
@@ -1923,8 +1927,7 @@ paths:
         ```
 
 
-        Returns the move type of the specified pokémon in the team at the specified
-        index.'
+        Returns the move type of the specified pokémon in the team at the specified index.'
       requestBody:
         required: true
         content:
@@ -1970,8 +1973,7 @@ paths:
         ```
 
 
-        Returns the move damage type of the specified pokémon in the team at the specified
-        index.'
+        Returns the move damage type of the specified pokémon in the team at the specified index.'
       requestBody:
         required: true
         content:
@@ -2017,8 +2019,7 @@ paths:
         ```
 
 
-        Returns true if the move of the specified pokémon in the team at the specified
-        index can apply a status .'
+        Returns true if the move of the specified pokémon in the team at the specified index can apply a status .'
       requestBody:
         required: true
         content:
@@ -2194,8 +2195,7 @@ paths:
         ```
 
 
-        Returns the effort value for the specified stat of the specified pokémon in
-        the team.'
+        Returns the effort value for the specified stat of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -2241,8 +2241,7 @@ paths:
         ```
 
 
-        Returns the individual value for the specified stat of the specified pokémon
-        in the team.'
+        Returns the individual value for the specified stat of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -2268,8 +2267,7 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonIndividualValue(pokemonIndex, 
-        statType)
+      x-lua-signature: result = getPokemonIndividualValue(pokemonIndex, statType)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonIndividualValue(1, "value")
@@ -2457,8 +2455,7 @@ paths:
         ```
 
 
-        Returns the type of the specified pokémon in the team as an array of length
-        2.'
+        Returns the type of the specified pokémon in the team as an array of length 2.'
       requestBody:
         required: true
         content:
@@ -2502,8 +2499,7 @@ paths:
         ```
 
 
-        Returns the multiplier of the damage type between an attacking type and one
-        or two defending types.'
+        Returns the multiplier of the damage type between an attacking type and one or two defending types.'
       requestBody:
         required: true
         content:
@@ -2558,8 +2554,7 @@ paths:
         ```
 
 
-        Returns true if the specified pokémon has is alive and has an offensive attack
-        available.'
+        Returns true if the specified pokémon has is alive and has an offensive attack available.'
       requestBody:
         required: true
         content:
@@ -2676,8 +2671,7 @@ paths:
         ```
 
 
-        API return an array of all NPCs that can be challenged on the current map.
-        format : {"npcName" = {"x" = x, "y" = y}}'
+        API return an array of all NPCs that can be challenged on the current map. format : {"npcName" = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2710,8 +2704,7 @@ paths:
         ```
 
 
-        API return an array of all usable Dig Spots on the currrent map. format :
-        {index = {"x" = x, "y" = y}}'
+        API return an array of all usable Dig Spots on the currrent map. format : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2744,8 +2737,7 @@ paths:
         ```
 
 
-        API return an array of all usable Headbutt trees on the currrent map. format
-        : {index = {"x" = x, "y" = y}}'
+        API return an array of all usable Headbutt trees on the currrent map. format : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2778,8 +2770,7 @@ paths:
         ```
 
 
-        API return an array of all harvestable berry trees on the currrent map. format
-        : {index = {"x" = x, "y" = y}}'
+        API return an array of all harvestable berry trees on the currrent map. format : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2812,8 +2803,7 @@ paths:
         ```
 
 
-        API return an array of all discoverable items on the currrent map. format
-        : {index = {"x" = x, "y" = y}}'
+        API return an array of all discoverable items on the currrent map. format : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2846,8 +2836,7 @@ paths:
         ```
 
 
-        API return an array of all pokestops on the current map. format : {index =
-        {"x" = x, "y" = y}}'
+        API return an array of all pokestops on the current map. format : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2880,8 +2869,7 @@ paths:
         ```
 
 
-        API return an array of all Abandoned Pokemon on the current map. format :
-        {index = {"x" = x, "y" = y}}'
+        API return an array of all Abandoned Pokemon on the current map. format : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2914,8 +2902,7 @@ paths:
         ```
 
 
-        Returns npc data on current map, format : { { "x" = x , "y" = y, "type" =
-        type }, {...}, ... }'
+        Returns npc data on current map, format : { { "x" = x , "y" = y, "type" = type }, {...}, ... }'
       responses:
         '200':
           description: Lua return value.
@@ -3360,8 +3347,7 @@ paths:
         ```
 
 
-        Returns true if the specified part of the team is sorted by level in ascending
-        order.'
+        Returns true if the specified part of the team is sorted by level in ascending order.'
       requestBody:
         required: true
         content:
@@ -3387,8 +3373,7 @@ paths:
               schema:
                 type: boolean
               example: true
-      x-lua-signature: result = isTeamRangeSortedByLevelAscending(fromIndex, 
-        toIndex)
+      x-lua-signature: result = isTeamRangeSortedByLevelAscending(fromIndex, toIndex)
       x-codeSamples:
       - lang: Lua
         source: local result = isTeamRangeSortedByLevelAscending(10, 10)
@@ -3408,8 +3393,7 @@ paths:
         ```
 
 
-        Returns true if the specified part of the team the team is sorted by level
-        in descending order.'
+        Returns true if the specified part of the team the team is sorted by level in descending order.'
       requestBody:
         required: true
         content:
@@ -3435,8 +3419,7 @@ paths:
               schema:
                 type: boolean
               example: true
-      x-lua-signature: result = isTeamRangeSortedByLevelDescending(fromIndex, 
-        toIndex)
+      x-lua-signature: result = isTeamRangeSortedByLevelDescending(fromIndex, toIndex)
       x-codeSamples:
       - lang: Lua
         source: local result = isTeamRangeSortedByLevelDescending(10, 10)
@@ -4356,8 +4339,7 @@ paths:
         ```
 
 
-        Returns the percentage of remaining health of the specified pokémon in the
-        team.'
+        Returns the percentage of remaining health of the specified pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -4383,8 +4365,7 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonHealthPercentFromPC(boxId, 
-        boxPokemonId)
+      x-lua-signature: result = getPokemonHealthPercentFromPC(boxId, boxPokemonId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonHealthPercentFromPC(1, 1)
@@ -4496,8 +4477,7 @@ paths:
         ```
 
 
-        Total of experience cost of a level for the pokemon of the current box matching
-        the ID.'
+        Total of experience cost of a level for the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -4523,8 +4503,7 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonTotalExperienceFromPC(boxId, 
-        boxPokemonId)
+      x-lua-signature: result = getPokemonTotalExperienceFromPC(boxId, boxPokemonId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonTotalExperienceFromPC(1, 1)
@@ -4544,8 +4523,7 @@ paths:
         ```
 
 
-        Remaining experience before the next level of the pokemon of the current box
-        matching the ID.'
+        Remaining experience before the next level of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -4571,8 +4549,7 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonRemainingExperienceFromPC(boxId, 
-        boxPokemonId)
+      x-lua-signature: result = getPokemonRemainingExperienceFromPC(boxId, boxPokemonId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonRemainingExperienceFromPC(1, 1)
@@ -4638,8 +4615,7 @@ paths:
         ```
 
 
-        Type of the pokemon of the current box matching the ID as an array of length
-        2.'
+        Type of the pokemon of the current box matching the ID as an array of length 2.'
       requestBody:
         required: true
         content:
@@ -4733,8 +4709,7 @@ paths:
         ```
 
 
-        PROCatchem custom unique ID of the pokemon of the current box matching the
-        ID.'
+        PROCatchem custom unique ID of the pokemon of the current box matching the ID.'
       requestBody:
         required: true
         content:
@@ -4810,12 +4785,10 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonRemainingPowerPointsFromPC(boxId, 
-        boxPokemonId, moveId)
+      x-lua-signature: result = getPokemonRemainingPowerPointsFromPC(boxId, boxPokemonId, moveId)
       x-codeSamples:
       - lang: Lua
-        source: local result = getPokemonRemainingPowerPointsFromPC(1, 1, 
-          "Tackle")
+        source: local result = getPokemonRemainingPowerPointsFromPC(1, 1, "Tackle")
   /lua/pc-storage/getpokemonmaxpowerpointsfrompc:
     post:
       tags:
@@ -4862,8 +4835,7 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonMaxPowerPointsFromPC(boxId, 
-        boxPokemonId, moveId)
+      x-lua-signature: result = getPokemonMaxPowerPointsFromPC(boxId, boxPokemonId, moveId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonMaxPowerPointsFromPC(1, 1, "Tackle")
@@ -4959,8 +4931,7 @@ paths:
               schema:
                 type: string
               example: value
-      x-lua-signature: result = getPokemonMoveNameFromPC(boxId, boxPokemonId, 
-        moveId)
+      x-lua-signature: result = getPokemonMoveNameFromPC(boxId, boxPokemonId, moveId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonMoveNameFromPC(1, 1, "Tackle")
@@ -4980,8 +4951,7 @@ paths:
         ```
 
 
-        Returns the move accuracy of the specified pokémon in the box at the specified
-        index.'
+        Returns the move accuracy of the specified pokémon in the box at the specified index.'
       requestBody:
         required: true
         content:
@@ -5011,8 +4981,7 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonMoveAccuracyFromPC(boxId, 
-        boxPokemonId, moveId)
+      x-lua-signature: result = getPokemonMoveAccuracyFromPC(boxId, boxPokemonId, moveId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonMoveAccuracyFromPC(1, 1, "Tackle")
@@ -5032,8 +5001,7 @@ paths:
         ```
 
 
-        Returns the move power of the specified pokémon in the box at the specified
-        index.'
+        Returns the move power of the specified pokémon in the box at the specified index.'
       requestBody:
         required: true
         content:
@@ -5063,8 +5031,7 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonMovePowerFromPC(boxId, boxPokemonId, 
-        moveId)
+      x-lua-signature: result = getPokemonMovePowerFromPC(boxId, boxPokemonId, moveId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonMovePowerFromPC(1, 1, "Tackle")
@@ -5084,8 +5051,7 @@ paths:
         ```
 
 
-        Returns the move type of the specified pokémon in the box at the specified
-        index.'
+        Returns the move type of the specified pokémon in the box at the specified index.'
       requestBody:
         required: true
         content:
@@ -5115,8 +5081,7 @@ paths:
               schema:
                 type: string
               example: value
-      x-lua-signature: result = getPokemonMoveTypeFromPC(boxId, boxPokemonId, 
-        moveId)
+      x-lua-signature: result = getPokemonMoveTypeFromPC(boxId, boxPokemonId, moveId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonMoveTypeFromPC(1, 1, "Tackle")
@@ -5136,8 +5101,7 @@ paths:
         ```
 
 
-        Returns the move damage type of the specified pokémon in the box at the specified
-        index.'
+        Returns the move damage type of the specified pokémon in the box at the specified index.'
       requestBody:
         required: true
         content:
@@ -5167,8 +5131,7 @@ paths:
               schema:
                 type: string
               example: value
-      x-lua-signature: result = getPokemonMoveDamageTypeFromPC(boxId, 
-        boxPokemonId, moveId)
+      x-lua-signature: result = getPokemonMoveDamageTypeFromPC(boxId, boxPokemonId, moveId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonMoveDamageTypeFromPC(1, 1, "Tackle")
@@ -5188,8 +5151,7 @@ paths:
         ```
 
 
-        Returns true if the move of the specified pokémon in the box at the specified
-        index can apply a status .'
+        Returns true if the move of the specified pokémon in the box at the specified index can apply a status .'
       requestBody:
         required: true
         content:
@@ -5219,8 +5181,7 @@ paths:
               schema:
                 type: boolean
               example: true
-      x-lua-signature: result = getPokemonMoveStatusFromPC(boxId, boxPokemonId, 
-        moveId)
+      x-lua-signature: result = getPokemonMoveStatusFromPC(boxId, boxPokemonId, moveId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonMoveStatusFromPC(1, 1, "Tackle")
@@ -5362,8 +5323,7 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonStatFromPC(boxId, boxPokemonId, 
-        statType)
+      x-lua-signature: result = getPokemonStatFromPC(boxId, boxPokemonId, statType)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonStatFromPC(1, 1, "value")
@@ -5383,8 +5343,7 @@ paths:
         ```
 
 
-        Returns the effort value for the specified stat of the specified pokémon in
-        the PC.'
+        Returns the effort value for the specified stat of the specified pokémon in the PC.'
       requestBody:
         required: true
         content:
@@ -5414,8 +5373,7 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonEffortValueFromPC(boxId, boxPokemonId,
-        statType)
+      x-lua-signature: result = getPokemonEffortValueFromPC(boxId, boxPokemonId, statType)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonEffortValueFromPC(1, 1, "value")
@@ -5435,8 +5393,7 @@ paths:
         ```
 
 
-        Returns the individual value for the specified stat of the specified pokémon
-        in the PC.'
+        Returns the individual value for the specified stat of the specified pokémon in the PC.'
       requestBody:
         required: true
         content:
@@ -5466,8 +5423,7 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonIndividualValueFromPC(boxId, 
-        boxPokemonId, statType)
+      x-lua-signature: result = getPokemonIndividualValueFromPC(boxId, boxPokemonId, statType)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonIndividualValueFromPC(1, 1, "value")
@@ -5605,8 +5561,7 @@ paths:
               schema:
                 type: string
               example: value
-      x-lua-signature: result = getPokemonOriginalTrainerFromPC(boxId, 
-        boxPokemonId)
+      x-lua-signature: result = getPokemonOriginalTrainerFromPC(boxId, boxPokemonId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonOriginalTrainerFromPC(1, 1)
@@ -5776,8 +5731,7 @@ paths:
         ```
 
 
-        Returns true if the opponent pokémon has already been caught and has a pokédex
-        entry.'
+        Returns true if the opponent pokémon has already been caught and has a pokédex entry.'
       responses:
         '200':
           description: Lua return value.
@@ -5980,8 +5934,7 @@ paths:
         ```
 
 
-        Returns the percentage of remaining health of the opponent pokémon in the
-        current battle.'
+        Returns the percentage of remaining health of the opponent pokémon in the current battle.'
       responses:
         '200':
           description: Lua return value.
@@ -6181,8 +6134,7 @@ paths:
         ```
 
 
-        Returns the type of the opponent pokémon in the current battle as an array
-        of length 2.'
+        Returns the type of the opponent pokémon in the current battle as an array of length 2.'
       responses:
         '200':
           description: Lua return value.
@@ -6732,8 +6684,7 @@ paths:
         ```
 
 
-        Sorts the pokémon in the team by level in ascending order, one pokémon at
-        a time.'
+        Sorts the pokémon in the team by level in ascending order, one pokémon at a time.'
       responses:
         '200':
           description: Lua return value.
@@ -6762,8 +6713,7 @@ paths:
         ```
 
 
-        Sorts the pokémon in the team by level in descending order, one pokémon at
-        a time.'
+        Sorts the pokémon in the team by level in descending order, one pokémon at a time.'
       responses:
         '200':
           description: Lua return value.
@@ -6792,8 +6742,7 @@ paths:
         ```
 
 
-        Sorts the specified part of the team by level in ascending order, one pokémon
-        at a time.'
+        Sorts the specified part of the team by level in ascending order, one pokémon at a time.'
       requestBody:
         required: true
         content:
@@ -6819,8 +6768,7 @@ paths:
               schema:
                 type: boolean
               example: true
-      x-lua-signature: result = sortTeamRangeByLevelAscending(fromIndex, 
-        toIndex)
+      x-lua-signature: result = sortTeamRangeByLevelAscending(fromIndex, toIndex)
       x-codeSamples:
       - lang: Lua
         source: local result = sortTeamRangeByLevelAscending(10, 10)
@@ -6840,8 +6788,7 @@ paths:
         ```
 
 
-        Sorts the specified part of the team by level in descending order, one pokémon
-        at a time.'
+        Sorts the specified part of the team by level in descending order, one pokémon at a time.'
       requestBody:
         required: true
         content:
@@ -6867,8 +6814,7 @@ paths:
               schema:
                 type: boolean
               example: true
-      x-lua-signature: result = sortTeamRangeByLevelDescending(fromIndex, 
-        toIndex)
+      x-lua-signature: result = sortTeamRangeByLevelDescending(fromIndex, toIndex)
       x-codeSamples:
       - lang: Lua
         source: local result = sortTeamRangeByLevelDescending(10, 10)
@@ -7207,8 +7153,7 @@ paths:
               schema:
                 type: boolean
               example: true
-      x-lua-signature: result = swapPokemonFromPC(boxId, boxPokemonId, 
-        pokemonUid)
+      x-lua-signature: result = swapPokemonFromPC(boxId, boxPokemonId, pokemonUid)
       x-codeSamples:
       - lang: Lua
         source: local result = swapPokemonFromPC(1, 1, 1)
@@ -7678,8 +7623,7 @@ paths:
         ```
 
 
-        Adds the specified answer to the answer queue. It will be used in the next
-        dialog.'
+        Adds the specified answer to the answer queue. It will be used in the next dialog.'
       requestBody:
         required: true
         content:
@@ -8287,8 +8231,7 @@ paths:
         ```
 
 
-        Sets the name of the option at a particular index, or creates it if it doesn''t
-        exist'
+        Sets the name of the option at a particular index, or creates it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8329,8 +8272,7 @@ paths:
         ```
 
 
-        Sets the tooltip description of the option at a particular index, or creates
-        it if it doesn''t exist'
+        Sets the tooltip description of the option at a particular index, or creates it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8408,8 +8350,7 @@ paths:
         ```
 
 
-        Sets the text of the TextOption at a particular index, or creates it if it
-        doesn''t exist'
+        Sets the text of the TextOption at a particular index, or creates it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8450,8 +8391,7 @@ paths:
         ```
 
 
-        Returns the text content of the TextOption at a particular index, or an empty
-        string if it doesn''t exist'
+        Returns the text content of the TextOption at a particular index, or an empty string if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8493,8 +8433,7 @@ paths:
         ```
 
 
-        Sets the name of the TextOption at a particular index, or creates it if it
-        doesn''t exist'
+        Sets the name of the TextOption at a particular index, or creates it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8535,8 +8474,7 @@ paths:
         ```
 
 
-        Sets the tooltip description of the TextOption at a particular index, or creates
-        it if it doesn''t exist'
+        Sets the tooltip description of the TextOption at a particular index, or creates it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8614,8 +8552,7 @@ paths:
         ```
 
 
-        Writes a string to file overwrite is an optional parameter, and will append
-        the line(s) if absent'
+        Writes a string to file overwrite is an optional parameter, and will append the line(s) if absent'
       requestBody:
         required: true
         content:
@@ -8660,8 +8597,7 @@ paths:
         ```
 
 
-        Writes a string, a number, or a table of strings and/or numbers to file overwrite
-        is an optional parameter, and will append the line(s) if absent'
+        Writes a string, a number, or a table of strings and/or numbers to file overwrite is an optional parameter, and will append the line(s) if absent'
       requestBody:
         required: true
         content:
@@ -8942,6 +8878,320 @@ paths:
       x-codeSamples:
       - lang: Lua
         source: local result = closeChannel("value")
+  /lua/notifications/sendnotification:
+    post:
+      tags:
+      - Notifications
+      operationId: sendNotification
+      summary: sendNotification()
+      description: '**Lua global function**
+
+
+        ```lua
+
+        result = sendNotification(templateName)
+
+        ```
+
+
+        Send a configured notification template by name or id. Built-in variables such as `{player}`, `{map}`, `{x}`, `{y}`, `{account}`, `{server}`, `{bot}`, `{time}`, `{date}`, and `{datetime}` are filled automatically when available. The template''s configured target controls whether it goes to personal Discord, the built-in PROCatchem Discord channel, Telegram, or all enabled channels. Returns `false` only when notifications are disabled or the template cannot be found; network delivery is asynchronous.'
+      responses:
+        '200':
+          description: Lua return value.
+          content:
+            application/json:
+              schema:
+                type: boolean
+              example: true
+      x-lua-signature: result = sendNotification(templateName)
+      x-codeSamples:
+      - lang: Lua
+        source: local ok = sendNotification("Shiny found")
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                templateName:
+                  type: string
+                  description: Template display name or stable template id.
+              required:
+              - templateName
+            example:
+              templateName: Shiny found
+  /lua/notifications/sendnotificationwith:
+    post:
+      tags:
+      - Notifications
+      operationId: sendNotificationWith
+      summary: sendNotificationWith()
+      description: '**Lua global function**
+
+
+        ```lua
+
+        result = sendNotificationWith(templateName, values)
+
+        ```
+
+
+        Send a configured notification template and override/add template variables using a Lua table. Table keys should match template variables without braces. Per-call values override built-ins, runtime variables set by `setNotifyVar`, global variables, and template defaults.'
+      responses:
+        '200':
+          description: Lua return value.
+          content:
+            application/json:
+              schema:
+                type: boolean
+              example: true
+      x-lua-signature: result = sendNotificationWith(templateName, values)
+      x-codeSamples:
+      - lang: Lua
+        source: local ok = sendNotificationWith("Shiny found", { pokemon = "Gyarados", level = "30" })
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                templateName:
+                  type: string
+                  description: Template display name or stable template id.
+                values:
+                  $ref: '#/components/schemas/NotificationVariables'
+              required:
+              - templateName
+              - values
+            example:
+              templateName: Shiny found
+              values:
+                pokemon: Gyarados
+                level: '30'
+                map: Route 22
+  /lua/notifications/sendnotificationto:
+    post:
+      tags:
+      - Notifications
+      operationId: sendNotificationTo
+      summary: sendNotificationTo()
+      description: '**Lua global function**
+
+
+        ```lua
+
+        result = sendNotificationTo(templateName, target)
+
+        ```
+
+
+        Send a configured notification template while overriding its delivery target for this one call. Accepted targets are `personal`, `discord`, `procatchem`, `telegram`, and `all`. `all` falls back to the template''s configured target, which defaults to all enabled channels.'
+      responses:
+        '200':
+          description: Lua return value.
+          content:
+            application/json:
+              schema:
+                type: boolean
+              example: true
+      x-lua-signature: result = sendNotificationTo(templateName, target)
+      x-codeSamples:
+      - lang: Lua
+        source: local ok = sendNotificationTo("Bot stopped", "personal")
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                templateName:
+                  type: string
+                  description: Template display name or stable template id.
+                target:
+                  $ref: '#/components/schemas/NotificationTarget'
+              required:
+              - templateName
+              - target
+            example:
+              templateName: Bot stopped
+              target: procatchem
+  /lua/notifications/sendnotificationwithto:
+    post:
+      tags:
+      - Notifications
+      operationId: sendNotificationWithTo
+      summary: sendNotificationWithTo()
+      description: '**Lua global function**
+
+
+        ```lua
+
+        result = sendNotificationWithTo(templateName, values, target)
+
+        ```
+
+
+        Send a configured notification template, pass template variables, and override the delivery target for this one call. This is the most explicit notification helper for scripts that need to route different alerts to different channels.'
+      responses:
+        '200':
+          description: Lua return value.
+          content:
+            application/json:
+              schema:
+                type: boolean
+              example: true
+      x-lua-signature: result = sendNotificationWithTo(templateName, values, target)
+      x-codeSamples:
+      - lang: Lua
+        source: local ok = sendNotificationWithTo("Shiny found", { pokemon = "Gyarados", level = "30" }, "procatchem")
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                templateName:
+                  type: string
+                  description: Template display name or stable template id.
+                values:
+                  $ref: '#/components/schemas/NotificationVariables'
+                target:
+                  $ref: '#/components/schemas/NotificationTarget'
+              required:
+              - templateName
+              - values
+              - target
+            example:
+              templateName: Shiny found
+              values:
+                pokemon: Gyarados
+                level: '30'
+              target: procatchem
+  /lua/notifications/notify:
+    post:
+      tags:
+      - Notifications
+      operationId: notify
+      summary: notify()
+      description: '**Lua global function**
+
+
+        ```lua
+
+        result = notify(message)
+
+        ```
+
+
+        Send a quick plain-text notification without using a configured template. Use this for simple alerts where you do not need title/body formatting or template variables. Returns immediately after queueing the asynchronous send.'
+      responses:
+        '200':
+          description: Lua return value.
+          content:
+            application/json:
+              schema:
+                type: boolean
+              example: true
+      x-lua-signature: result = notify(message)
+      x-codeSamples:
+      - lang: Lua
+        source: 'local ok = notify("PROCatchem: script reached Cerulean City.")'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: Plain text message to send.
+              required:
+              - message
+            example:
+              message: 'PROCatchem: script reached Cerulean City.'
+  /lua/notifications/setnotifyvar:
+    post:
+      tags:
+      - Notifications
+      operationId: setNotifyVar
+      summary: setNotifyVar()
+      description: '**Lua global function**
+
+
+        ```lua
+
+        setNotifyVar(name, value)
+
+        ```
+
+
+        Set a runtime notification variable. The variable can be used in any template as `{name}` until it is overwritten or cleared with `clearNotifyVars()`. Values are converted to strings.'
+      responses:
+        '200':
+          description: Lua return value.
+          content:
+            application/json:
+              schema:
+                type: 'null'
+                description: No return value.
+              example: null
+      x-lua-signature: setNotifyVar(name, value)
+      x-codeSamples:
+      - lang: Lua
+        source: setNotifyVar("hunt", "Shiny Magikarp")
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Variable name without braces.
+                value:
+                  $ref: '#/components/schemas/LuaValue'
+              required:
+              - name
+              - value
+            example:
+              name: hunt
+              value: Shiny Magikarp
+  /lua/notifications/clearnotifyvars:
+    post:
+      tags:
+      - Notifications
+      operationId: clearNotifyVars
+      summary: clearNotifyVars()
+      description: '**Lua global function**
+
+
+        ```lua
+
+        clearNotifyVars()
+
+        ```
+
+
+        Clear all runtime notification variables previously set with `setNotifyVar`. Built-in variables and configured template/default variables are not removed.'
+      responses:
+        '200':
+          description: Lua return value.
+          content:
+            application/json:
+              schema:
+                type: 'null'
+                description: No return value.
+              example: null
+      x-lua-signature: clearNotifyVars()
+      x-codeSamples:
+      - lang: Lua
+        source: clearNotifyVars()
   /lua/legacy-special-actions/usesurf:
     post:
       tags:

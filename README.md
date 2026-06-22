@@ -1,18 +1,36 @@
 # PROCatchem Lua Script API Docs
 
-This repository contains a static Redoc documentation site for the Lua scripting API exposed by **PROCatchem v1.0.15**.
+This repository contains a static Redoc documentation site for the Lua scripting API exposed by **PROCatchem v1.0.92**.
 
 The source of truth is `openapi.yaml`. The OpenAPI file models Lua functions as pseudo-endpoints so Redoc can render a searchable API reference. These are **not HTTP endpoints**; each operation documents one Lua global function or callback.
+
+## New in this docs update
+
+- Added the notification Lua APIs:
+  - `sendNotification(templateName)`
+  - `sendNotificationWith(templateName, values)`
+  - `sendNotificationTo(templateName, target)`
+  - `sendNotificationWithTo(templateName, values, target)`
+  - `notify(message)`
+  - `setNotifyVar(name, value)`
+  - `clearNotifyVars()`
+- Added SEO metadata for Google Search: title/description/keywords, Open Graph/Twitter cards, JSON-LD structured data, `robots.txt`, and `sitemap.xml`.
+- Added static crawler-visible intro content in `index.html` so search engines can associate the site with the `PROCatchem` keyword even before Redoc JavaScript renders.
 
 ## Structure
 
 ```text
 .
-├── index.html       # Static Redoc page
-├── openapi.yaml     # PROCatchem Lua API reference
-├── package.json     # Local preview/build scripts
-├── redocly.yaml     # Redocly lint/preview config
-└── vercel.json      # Vercel deployment config
+├── index.html                         # Static Redoc page + SEO intro
+├── openapi.yaml                       # PROCatchem Lua API reference
+├── robots.txt                         # Search-engine crawl rules
+├── sitemap.xml                        # Sitemap for indexing
+├── examples/
+│   ├── basic-script.lua
+│   └── notification-script.lua
+├── package.json                       # Local preview/build scripts
+├── redocly.yaml                       # Redocly lint/preview config
+└── vercel.json                        # Vercel deployment config
 ```
 
 ## Local preview
@@ -41,6 +59,16 @@ npx serve dist
    - Output Directory: `dist`
 6. Deploy.
 
+## SEO note
+
+The included canonical URL and sitemap use `https://api-procatchem.vercel.app/` as the default deployment URL. If you deploy under a different Vercel project name or a custom domain, update these files before publishing:
+
+- `index.html` canonical / Open Graph URL
+- `sitemap.xml`
+- `robots.txt` sitemap URL
+
+After deployment, submit the live URL and sitemap in Google Search Console to help Google discover `PROCatchem` faster.
+
 ## Updating the docs
 
 When the Lua script API changes, update `openapi.yaml` and bump the version field in `package.json`.
@@ -51,7 +79,7 @@ When the Lua script API changes, update `openapi.yaml` and bump the version fiel
 - `onBattleAction()` is called while in battle.
 - Execute at most one path or battle action per frame.
 - Query/helper functions can be called before deciding which action to run.
-
+- Notification sending is asynchronous. Lua calls return after queueing the send, not after Discord/Telegram delivery is complete.
 
 ## Documentation UI note
 
