@@ -31,38 +31,58 @@
       }
     </script>
     <style>
-      body { margin: 0; padding: 0; }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; padding: 0; overflow-x: hidden; }
       .topbar {
         font-family: Inter, Arial, sans-serif;
         background: #111827;
         color: white;
-        padding: 12px 20px;
+        min-height: 40px;
+        padding: 0 20px;
         display: flex;
         gap: 12px;
         align-items: center;
         justify-content: space-between;
+        box-sizing: border-box;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
       }
-      .topbar strong { font-size: 16px; }
-      .topbar a { color: #93c5fd; text-decoration: none; font-size: 13px; }
+      .topbar strong { font-size: 16px; line-height: 40px; white-space: nowrap; }
+      .topbar nav { display: flex; gap: 14px; align-items: center; }
+      .topbar a { color: #93c5fd; text-decoration: none; font-size: 13px; white-space: nowrap; }
       .topbar a:hover { text-decoration: underline; }
       .seo-intro {
-        font-family: Inter, Arial, sans-serif;
-        padding: 20px;
-        border-bottom: 1px solid #e5e7eb;
-        background: #f9fafb;
-        color: #111827;
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
       }
-      .seo-intro h1 { margin: 0 0 8px; font-size: 24px; }
-      .seo-intro p { margin: 0 0 8px; max-width: 980px; line-height: 1.55; }
-      .seo-intro ul { margin: 8px 0 0; padding-left: 20px; }
-      .seo-intro a { color: #2563eb; }
+      redoc { display: block; }
+      @media (max-width: 640px) {
+        .topbar { padding: 0 12px; }
+        .topbar nav { gap: 10px; }
+        .topbar strong { font-size: 14px; }
+        .topbar a { font-size: 12px; }
+      }
     </style>
   </head>
   <body>
-    <div class="topbar">
+    <header class="topbar">
       <strong>PROCatchem Lua Script API</strong>
-      <a href="./openapi.yaml">OpenAPI YAML</a>
-    </div>
+      <nav aria-label="Documentation shortcuts">
+        <a href="./openapi.yaml">OpenAPI YAML</a>
+        <a href="./examples/basic-script.lua">Basic example</a>
+        <a href="./examples/notification-script.lua">Notification example</a>
+      </nav>
+    </header>
     <main class="seo-intro">
       <h1>PROCatchem Lua Script API Documentation</h1>
       <p>Searchable documentation for PROCatchem Lua scripts: lifecycle callbacks, map helpers, battle actions, inventory and PC storage APIs, chat helpers, and notification APIs for Discord and Telegram.</p>
@@ -73,7 +93,7 @@
         <li><a href="./examples/notification-script.lua">Notification Lua script example</a></li>
       </ul>
     </main>
-    <redoc spec-url="./openapi.yaml" hide-download-button="false" expand-responses="200,204"></redoc>
+    <redoc id="api-docs" spec-url="./openapi.yaml" hide-download-button="false" expand-responses="200,204"></redoc>
     <noscript>Please enable JavaScript to view the interactive Redoc API reference. The raw OpenAPI source is available at /openapi.yaml.</noscript>
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
   </body>

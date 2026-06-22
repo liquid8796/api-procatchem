@@ -15,13 +15,13 @@ The source of truth is `openapi.yaml`. The OpenAPI file models Lua functions as 
   - `setNotifyVar(name, value)`
   - `clearNotifyVars()`
 - Added SEO metadata for Google Search: title/description/keywords, Open Graph/Twitter cards, JSON-LD structured data, `robots.txt`, and `sitemap.xml`.
-- Added static crawler-visible intro content in `index.html` so search engines can associate the site with the `PROCatchem` keyword even before Redoc JavaScript renders.
+- Fixed the documentation header layout so the SEO intro no longer appears as a large visible block above Redoc. SEO metadata/JSON-LD remain in place, and the semantic intro is kept visually hidden to avoid breaking the UI.
 
 ## Structure
 
 ```text
 .
-├── index.html                         # Static Redoc page + SEO intro
+├── index.html                         # Static Redoc page + compact header + SEO metadata
 ├── openapi.yaml                       # PROCatchem Lua API reference
 ├── robots.txt                         # Search-engine crawl rules
 ├── sitemap.xml                        # Sitemap for indexing
