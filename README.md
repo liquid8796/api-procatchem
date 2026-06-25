@@ -6,7 +6,7 @@ The source of truth is `openapi.yaml`. The OpenAPI file models Lua functions as 
 
 ## New in this docs update
 
-- Fixed sidebar operation navigation: clicking a function in the left Redoc menu now updates the URL hash and scrolls the main page to the selected function, with sticky-header offset handling.
+- Fixed sidebar operation navigation with a stronger Redoc fallback: clicking a Lua function in the left menu now scrolls the main content even when Redoc renders menu entries as non-anchor elements or data-section-id targets.
 - Added the notification Lua APIs:
   - `sendNotification(templateName)`
   - `sendNotificationWith(templateName, values)`
