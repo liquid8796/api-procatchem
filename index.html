@@ -99,24 +99,12 @@
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
 <script>
       (function () {
-        var SIDEBAR_MAX_LEFT_PX = 360;
-        var NAV_ATTEMPTS_MS = [0, 120, 320, 650];
+        var SIDEBAR_MAX_LEFT_PX = 380;
+        var NAV_ATTEMPTS_MS = [0, 80, 180, 360, 700];
 
         function getHeaderOffset() {
           var topbar = document.querySelector('.topbar');
-          if (!topbar) {
-            return 0;
-          }
-
-          return Math.ceil(topbar.getBoundingClientRect().height || 0) + 12;
-        }
-
-        function safeDecode(value) {
-          try {
-            return decodeURIComponent(value || '');
-          } catch (error) {
-            return value || '';
-          }
+          return topbar ? Math.ceil(topbar.getBoundingClientRect().height || 0) + 12 : 0;
         }
 
         function cssEscape(value) {
@@ -129,25 +117,16 @@
           });
         }
 
-        function normalizeText(value) {
-          return String(value || '')
-            .replace(/\s+/g, ' ')
-            .replace(/^(GET|POST|PUT|DELETE|PATCH)\s+/i, '')
-            .trim();
-        }
-
-        function normalizeSignature(value) {
-          var text = normalizeText(value);
-          var match = text.match(/([A-Za-z_][A-Za-z0-9_]*\s*\([^)]*\))/);
-          if (match) {
-            return match[1].replace(/\s+/g, '');
+        function isVisibleContentSection(element) {
+          if (!element || element.nodeType !== 1) {
+            return false;
           }
 
-          match = text.match(/([A-Za-z_][A-Za-z0-9_]*)/);
-          return match ? match[1] + '()' : '';
+          var rect = element.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0 && rect.left > SIDEBAR_MAX_LEFT_PX;
         }
 
-        function isRedocSidebarClick(target) {
+        function isSidebarRegion(target) {
           if (!target || !target.closest || !target.closest('redoc, #api-docs')) {
             return false;
           }
@@ -156,129 +135,45 @@
           return rect.left >= 0 && rect.left <= SIDEBAR_MAX_LEFT_PX;
         }
 
-        function getMenuText(target) {
-          var node = target;
-          var root = target && target.closest ? target.closest('redoc, #api-docs') : null;
-          var depth = 0;
-
-          while (node && node !== root && depth < 8) {
-            if (node.nodeType === 1) {
-              var text = normalizeText(node.innerText || node.textContent || '');
-              if (text && text.length <= 120 && /[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(text)) {
-                return text;
-              }
-            }
-            node = node.parentElement;
-            depth += 1;
-          }
-
-          return normalizeText(target && (target.innerText || target.textContent) || '');
-        }
-
-        function extractHashFromClick(target) {
-          var anchor = target && target.closest ? target.closest('a[href]') : null;
-          if (!anchor) {
+        function getRedocMenuItemId(target) {
+          if (!target || !target.closest) {
             return '';
           }
 
-          try {
-            var url = new URL(anchor.getAttribute('href'), window.location.href);
-            if (url.hash && url.origin === window.location.origin && url.pathname === window.location.pathname) {
-              return url.hash;
-            }
-          } catch (error) {
+          var item = target.closest('[data-item-id]');
+          if (!item || !isSidebarRegion(item)) {
             return '';
           }
 
-          return '';
+          return item.getAttribute('data-item-id') || '';
         }
 
-        function isContentElement(element) {
-          if (!element || element.nodeType !== 1) {
-            return false;
-          }
-
-          var rect = element.getBoundingClientRect();
-          if (rect.width <= 0 || rect.height <= 0) {
-            return false;
-          }
-
-          return rect.left > SIDEBAR_MAX_LEFT_PX;
-        }
-
-        function findByHash(hash) {
-          var id = safeDecode(String(hash || '').replace(/^#/, ''));
+        function findContentSectionById(id) {
           if (!id) {
             return null;
           }
 
-          var candidates = [id, id.charAt(0) === '/' ? id.substring(1) : '/' + id];
-          for (var i = 0; i < candidates.length; i += 1) {
-            var value = candidates[i];
-            var direct = document.getElementById(value);
-            if (isContentElement(direct)) {
-              return direct;
-            }
-
-            try {
-              var selector = '[id="' + cssEscape(value) + '"], [data-section-id="' + cssEscape(value) + '"]';
-              var nodes = document.querySelectorAll(selector);
-              for (var j = 0; j < nodes.length; j += 1) {
-                if (isContentElement(nodes[j])) {
-                  return nodes[j];
-                }
-              }
-            } catch (error) {
-              // Ignore invalid selector edge cases.
-            }
-          }
-
-          return null;
-        }
-
-        function findBySignature(signature) {
-          var wanted = normalizeSignature(signature);
-          if (!wanted) {
-            return null;
-          }
-
-          var name = wanted.replace(/\([^)]*\)$/, '').toLowerCase();
-          var wantedLower = wanted.toLowerCase();
-          var headings;
-
           try {
-            headings = document.querySelectorAll('redoc h1, redoc h2, redoc h3, redoc h4, redoc [data-section-id]');
+            var selector = 'redoc [data-section-id="' + cssEscape(id) + '"], redoc [id="' + cssEscape(id) + '"]';
+            var nodes = document.querySelectorAll(selector);
+            for (var i = 0; i < nodes.length; i += 1) {
+              if (isVisibleContentSection(nodes[i])) {
+                return nodes[i];
+              }
+            }
           } catch (error) {
-            headings = [];
-          }
-
-          for (var i = 0; i < headings.length; i += 1) {
-            var node = headings[i];
-            if (!isContentElement(node)) {
-              continue;
-            }
-
-            var id = String(node.id || '').toLowerCase();
-            var sectionId = String(node.getAttribute('data-section-id') || '').toLowerCase();
-            var text = normalizeText(node.textContent || '').toLowerCase().replace(/\s+/g, '');
-
-            if (text.indexOf(wantedLower) !== -1 ||
-                text.indexOf(name + '(') !== -1 ||
-                id.indexOf(name) !== -1 ||
-                sectionId.indexOf(name) !== -1) {
-              return node;
-            }
+            // Ignore malformed selector edge cases.
           }
 
           return null;
         }
 
-        function scrollToElement(element) {
-          if (!element) {
+        function scrollToContentSection(section) {
+          if (!section) {
             return false;
           }
 
-          element.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'auto' });
+          section.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'auto' });
           var offset = getHeaderOffset();
           if (offset > 0) {
             window.scrollBy(0, -offset);
@@ -287,55 +182,46 @@
           return true;
         }
 
-        function scheduleNavigation(resolveTarget) {
+        function navigateToRedocItem(itemId) {
+          var completed = false;
+
           NAV_ATTEMPTS_MS.forEach(function (delay) {
             window.setTimeout(function () {
-              var target = resolveTarget();
-              if (target) {
-                scrollToElement(target);
+              if (completed) {
+                return;
+              }
+
+              var section = findContentSectionById(itemId);
+              if (scrollToContentSection(section)) {
+                completed = true;
               }
             }, delay);
           });
         }
 
         document.addEventListener('click', function (event) {
-          var target = event.target;
-          if (!isRedocSidebarClick(target)) {
+          var itemId = getRedocMenuItemId(event.target);
+          if (!itemId) {
             return;
           }
 
-          var hash = extractHashFromClick(target);
-          var menuText = getMenuText(target);
-          var signature = normalizeSignature(menuText);
-
-          if (!hash && !signature) {
-            return;
-          }
-
-          scheduleNavigation(function () {
-            return (hash && findByHash(hash)) || (signature && findBySignature(signature));
-          });
-        });
+          // Redoc stops sidebar click propagation internally. Capture phase lets this
+          // lightweight fallback observe the item id without blocking Redoc itself.
+          navigateToRedocItem(itemId);
+        }, true);
 
         window.addEventListener('hashchange', function () {
-          var hash = window.location.hash;
-          if (!hash) {
-            return;
+          var id = decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
+          if (id) {
+            navigateToRedocItem(id);
           }
-
-          scheduleNavigation(function () {
-            return findByHash(hash);
-          });
         });
 
         window.addEventListener('load', function () {
-          if (!window.location.hash) {
-            return;
+          var id = decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
+          if (id) {
+            navigateToRedocItem(id);
           }
-
-          scheduleNavigation(function () {
-            return findByHash(window.location.hash);
-          });
         });
       })();
     </script>

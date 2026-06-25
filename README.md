@@ -6,7 +6,7 @@ The source of truth is `openapi.yaml`. The OpenAPI file models Lua functions as 
 
 ## New in this docs update
 
-- Fixed sidebar operation navigation with a safe lightweight Redoc fallback: clicking a Lua function in the left menu scrolls the main content without repeated heavy DOM scans that could freeze the page.
+- Fixed sidebar operation navigation using Redoc's own `data-item-id` / `data-section-id` mapping, so clicking a Lua function in the left menu scrolls to the matching content section without heavy DOM scans or UI freezes.
 - Added the notification Lua APIs:
   - `sendNotification(templateName)`
   - `sendNotificationWith(templateName, values)`
@@ -81,6 +81,10 @@ When the Lua script API changes, update `openapi.yaml` and bump the version fiel
 - Execute at most one path or battle action per frame.
 - Query/helper functions can be called before deciding which action to run.
 - Notification sending is asynchronous. Lua calls return after queueing the send, not after Discord/Telegram delivery is complete.
+
+## Redoc navigation fix note
+
+The left menu and main content are linked by Redoc attributes: sidebar items expose `data-item-id`, and content sections expose the same value through `data-section-id`. The navigation fallback now uses that exact mapping in capture phase because Redoc stops sidebar click propagation internally. It does not scan all API headings and does not depend on SEO hidden content.
 
 ## Documentation UI note
 
