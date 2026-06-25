@@ -66,6 +66,7 @@
         border: 0;
       }
       redoc { display: block; }
+      redoc [id] { scroll-margin-top: 56px; }
       @media (max-width: 640px) {
         .topbar { padding: 0 12px; }
         .topbar nav { gap: 10px; }
@@ -93,8 +94,145 @@
         <li><a href="./examples/notification-script.lua">Notification Lua script example</a></li>
       </ul>
     </main>
-    <redoc id="api-docs" spec-url="./openapi.yaml" hide-download-button="false" expand-responses="200,204"></redoc>
+    <redoc id="api-docs" spec-url="./openapi.yaml" hide-download-button="false" expand-responses="200,204" scroll-y-offset=".topbar"></redoc>
     <noscript>Please enable JavaScript to view the interactive Redoc API reference. The raw OpenAPI source is available at /openapi.yaml.</noscript>
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+    <script>
+      (function () {
+        var REDOC_NAV_RETRY_COUNT = 40;
+        var REDOC_NAV_RETRY_DELAY_MS = 50;
+
+        function getHeaderOffset() {
+          var topbar = document.querySelector('.topbar');
+          if (!topbar) {
+            return 0;
+          }
+
+          var rect = topbar.getBoundingClientRect();
+          return Math.ceil(rect.height || 0) + 12;
+        }
+
+        function decodeHash(hash) {
+          var value = (hash || '').replace(/^#/, '');
+          try {
+            return decodeURIComponent(value);
+          } catch (error) {
+            return value;
+          }
+        }
+
+        function findRedocTarget(hash) {
+          var decoded = decodeHash(hash);
+          if (!decoded) {
+            return null;
+          }
+
+          var candidates = [decoded];
+          if (decoded.charAt(0) === '/') {
+            candidates.push(decoded.substring(1));
+          }
+
+          for (var i = 0; i < candidates.length; i += 1) {
+            var byId = document.getElementById(candidates[i]);
+            if (byId) {
+              return byId;
+            }
+
+            try {
+              var escaped = candidates[i].replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+              var byAttr = document.querySelector('[id="' + escaped + '"]');
+              if (byAttr) {
+                return byAttr;
+              }
+            } catch (error) {
+              // getElementById above handles valid Redoc anchors. Ignore selector-only fallbacks.
+            }
+          }
+
+          return null;
+        }
+
+        function getScrollableContainer(element) {
+          var current = element && element.parentElement;
+          while (current && current !== document.body && current !== document.documentElement) {
+            var style = window.getComputedStyle(current);
+            var overflowY = style.overflowY || '';
+            if ((overflowY === 'auto' || overflowY === 'scroll') && current.scrollHeight > current.clientHeight) {
+              return current;
+            }
+            current = current.parentElement;
+          }
+          return window;
+        }
+
+        function scrollToTarget(target) {
+          var offset = getHeaderOffset();
+          var container = getScrollableContainer(target);
+
+          if (container === window) {
+            var pageTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            var y = target.getBoundingClientRect().top + pageTop - offset;
+            window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+          } else {
+            var containerTop = container.getBoundingClientRect().top;
+            var yInContainer = target.getBoundingClientRect().top - containerTop + container.scrollTop - offset;
+            container.scrollTo({ top: Math.max(0, yInContainer), behavior: 'smooth' });
+          }
+        }
+
+        function navigateToHash(hash, attempt) {
+          var target = findRedocTarget(hash);
+          if (target) {
+            scrollToTarget(target);
+            return;
+          }
+
+          if ((attempt || 0) < REDOC_NAV_RETRY_COUNT) {
+            window.setTimeout(function () {
+              navigateToHash(hash, (attempt || 0) + 1);
+            }, REDOC_NAV_RETRY_DELAY_MS);
+          }
+        }
+
+        document.addEventListener('click', function (event) {
+          var anchor = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+          if (!anchor || !anchor.closest('redoc, #api-docs')) {
+            return;
+          }
+
+          var url;
+          try {
+            url = new URL(anchor.getAttribute('href'), window.location.href);
+          } catch (error) {
+            return;
+          }
+
+          if (!url.hash || url.origin !== window.location.origin || url.pathname !== window.location.pathname) {
+            return;
+          }
+
+          window.setTimeout(function () {
+            if (window.location.hash !== url.hash) {
+              window.history.pushState(null, '', url.hash);
+            }
+            navigateToHash(url.hash, 0);
+          }, 0);
+        }, true);
+
+        window.addEventListener('hashchange', function () {
+          if (window.location.hash) {
+            navigateToHash(window.location.hash, 0);
+          }
+        });
+
+        window.addEventListener('load', function () {
+          if (window.location.hash) {
+            window.setTimeout(function () {
+              navigateToHash(window.location.hash, 0);
+            }, 250);
+          }
+        });
+      })();
+    </script>
   </body>
 </html>
