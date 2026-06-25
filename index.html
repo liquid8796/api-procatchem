@@ -99,8 +99,8 @@
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
 <script>
       (function () {
-        var REDOC_NAV_RETRY_COUNT = 60;
-        var REDOC_NAV_RETRY_DELAY_MS = 50;
+        var SIDEBAR_MAX_LEFT_PX = 360;
+        var NAV_ATTEMPTS_MS = [0, 120, 320, 650];
 
         function getHeaderOffset() {
           var topbar = document.querySelector('.topbar');
@@ -108,16 +108,14 @@
             return 0;
           }
 
-          var rect = topbar.getBoundingClientRect();
-          return Math.ceil(rect.height || 0) + 12;
+          return Math.ceil(topbar.getBoundingClientRect().height || 0) + 12;
         }
 
-        function decodeHash(hash) {
-          var value = (hash || '').replace(/^#/, '');
+        function safeDecode(value) {
           try {
-            return decodeURIComponent(value);
+            return decodeURIComponent(value || '');
           } catch (error) {
-            return value;
+            return value || '';
           }
         }
 
@@ -131,67 +129,14 @@
           });
         }
 
-        function getSidebarRightEdge() {
-          var selectors = [
-            'redoc [role="navigation"]',
-            'redoc nav',
-            'redoc ul[role="menu"]',
-            'redoc [aria-label*="menu" i]',
-            'redoc [class*="menu" i]',
-            'redoc [class*="sidebar" i]'
-          ];
-          var bestRight = 0;
-
-          selectors.forEach(function (selector) {
-            var nodes;
-            try {
-              nodes = document.querySelectorAll(selector);
-            } catch (error) {
-              nodes = [];
-            }
-
-            Array.prototype.forEach.call(nodes, function (node) {
-              var rect = node.getBoundingClientRect();
-              if (rect.width >= 180 && rect.width <= 420 && rect.height >= 200 && rect.left < 80) {
-                bestRight = Math.max(bestRight, rect.right);
-              }
-            });
-          });
-
-          return bestRight || 280;
-        }
-
-        function isVisible(element) {
-          if (!element || element.nodeType !== 1) {
-            return false;
-          }
-
-          var rect = element.getBoundingClientRect();
-          var style = window.getComputedStyle(element);
-          return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
-        }
-
-        function isInsideRedoc(element) {
-          return !!(element && element.closest && element.closest('redoc, #api-docs'));
-        }
-
-        function isInsideRedocSidebar(element) {
-          if (!isInsideRedoc(element)) {
-            return false;
-          }
-
-          var rect = element.getBoundingClientRect();
-          return rect.left < getSidebarRightEdge() + 24;
-        }
-
         function normalizeText(value) {
           return String(value || '')
             .replace(/\s+/g, ' ')
-            .replace(/^GET\s+/i, '')
+            .replace(/^(GET|POST|PUT|DELETE|PATCH)\s+/i, '')
             .trim();
         }
 
-        function normalizeFunctionSignature(value) {
+        function normalizeSignature(value) {
           var text = normalizeText(value);
           var match = text.match(/([A-Za-z_][A-Za-z0-9_]*\s*\([^)]*\))/);
           if (match) {
@@ -202,58 +147,125 @@
           return match ? match[1] + '()' : '';
         }
 
-        function getSidebarFunctionSignature(target) {
-          var current = target;
-          var redoc = target && target.closest ? target.closest('redoc, #api-docs') : null;
+        function isRedocSidebarClick(target) {
+          if (!target || !target.closest || !target.closest('redoc, #api-docs')) {
+            return false;
+          }
+
+          var rect = target.getBoundingClientRect();
+          return rect.left >= 0 && rect.left <= SIDEBAR_MAX_LEFT_PX;
+        }
+
+        function getMenuText(target) {
+          var node = target;
+          var root = target && target.closest ? target.closest('redoc, #api-docs') : null;
           var depth = 0;
 
-          while (current && current !== redoc && depth < 12) {
-            if (current.nodeType === 1) {
-              var text = normalizeText(current.innerText || current.textContent || '');
-              if (text && text.length <= 120) {
-                var signature = normalizeFunctionSignature(text);
-                if (signature) {
-                  return signature;
-                }
+          while (node && node !== root && depth < 8) {
+            if (node.nodeType === 1) {
+              var text = normalizeText(node.innerText || node.textContent || '');
+              if (text && text.length <= 120 && /[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(text)) {
+                return text;
               }
             }
-
-            current = current.parentElement;
+            node = node.parentElement;
             depth += 1;
+          }
+
+          return normalizeText(target && (target.innerText || target.textContent) || '');
+        }
+
+        function extractHashFromClick(target) {
+          var anchor = target && target.closest ? target.closest('a[href]') : null;
+          if (!anchor) {
+            return '';
+          }
+
+          try {
+            var url = new URL(anchor.getAttribute('href'), window.location.href);
+            if (url.hash && url.origin === window.location.origin && url.pathname === window.location.pathname) {
+              return url.hash;
+            }
+          } catch (error) {
+            return '';
           }
 
           return '';
         }
 
-        function makeHashCandidates(hash) {
-          var decoded = decodeHash(hash);
-          if (!decoded) {
-            return [];
+        function isContentElement(element) {
+          if (!element || element.nodeType !== 1) {
+            return false;
           }
 
-          var candidates = [decoded];
-          if (decoded.charAt(0) === '/') {
-            candidates.push(decoded.substring(1));
-          } else {
-            candidates.push('/' + decoded);
+          var rect = element.getBoundingClientRect();
+          if (rect.width <= 0 || rect.height <= 0) {
+            return false;
           }
 
-          return candidates.filter(function (value, index, array) {
-            return value && array.indexOf(value) === index;
-          });
+          return rect.left > SIDEBAR_MAX_LEFT_PX;
         }
 
-        function firstVisibleContentTarget(nodes) {
-          var sidebarRight = getSidebarRightEdge();
+        function findByHash(hash) {
+          var id = safeDecode(String(hash || '').replace(/^#/, ''));
+          if (!id) {
+            return null;
+          }
 
-          for (var i = 0; i < nodes.length; i += 1) {
-            var node = nodes[i];
-            if (!isVisible(node)) {
+          var candidates = [id, id.charAt(0) === '/' ? id.substring(1) : '/' + id];
+          for (var i = 0; i < candidates.length; i += 1) {
+            var value = candidates[i];
+            var direct = document.getElementById(value);
+            if (isContentElement(direct)) {
+              return direct;
+            }
+
+            try {
+              var selector = '[id="' + cssEscape(value) + '"], [data-section-id="' + cssEscape(value) + '"]';
+              var nodes = document.querySelectorAll(selector);
+              for (var j = 0; j < nodes.length; j += 1) {
+                if (isContentElement(nodes[j])) {
+                  return nodes[j];
+                }
+              }
+            } catch (error) {
+              // Ignore invalid selector edge cases.
+            }
+          }
+
+          return null;
+        }
+
+        function findBySignature(signature) {
+          var wanted = normalizeSignature(signature);
+          if (!wanted) {
+            return null;
+          }
+
+          var name = wanted.replace(/\([^)]*\)$/, '').toLowerCase();
+          var wantedLower = wanted.toLowerCase();
+          var headings;
+
+          try {
+            headings = document.querySelectorAll('redoc h1, redoc h2, redoc h3, redoc h4, redoc [data-section-id]');
+          } catch (error) {
+            headings = [];
+          }
+
+          for (var i = 0; i < headings.length; i += 1) {
+            var node = headings[i];
+            if (!isContentElement(node)) {
               continue;
             }
 
-            var rect = node.getBoundingClientRect();
-            if (rect.left > sidebarRight + 24) {
+            var id = String(node.id || '').toLowerCase();
+            var sectionId = String(node.getAttribute('data-section-id') || '').toLowerCase();
+            var text = normalizeText(node.textContent || '').toLowerCase().replace(/\s+/g, '');
+
+            if (text.indexOf(wantedLower) !== -1 ||
+                text.indexOf(name + '(') !== -1 ||
+                id.indexOf(name) !== -1 ||
+                sectionId.indexOf(name) !== -1) {
               return node;
             }
           }
@@ -261,174 +273,69 @@
           return null;
         }
 
-        function findRedocTarget(hash) {
-          var candidates = makeHashCandidates(hash);
-          var found = [];
-
-          for (var i = 0; i < candidates.length; i += 1) {
-            var candidate = candidates[i];
-            var byId = document.getElementById(candidate);
-            if (byId) {
-              found.push(byId);
-            }
-
-            try {
-              found = found.concat(Array.prototype.slice.call(document.querySelectorAll(
-                '[id="' + cssEscape(candidate) + '"], [data-section-id="' + cssEscape(candidate) + '"]'
-              )));
-            } catch (error) {
-              // Ignore selector fallback errors. getElementById covers normal IDs.
-            }
+        function scrollToElement(element) {
+          if (!element) {
+            return false;
           }
 
-          return firstVisibleContentTarget(found) || found[0] || null;
-        }
-
-        function findFunctionTarget(signature) {
-          var wanted = normalizeFunctionSignature(signature);
-          if (!wanted) {
-            return null;
-          }
-
-          var functionName = wanted.replace(/\([^)]*\)$/, '');
-          var lowerSignature = wanted.toLowerCase();
-          var lowerName = functionName.toLowerCase();
-          var selectors = [
-            'redoc h1',
-            'redoc h2',
-            'redoc h3',
-            'redoc h4',
-            'redoc [data-section-id]',
-            'redoc [id]'
-          ].join(',');
-          var nodes = [];
-
-          try {
-            nodes = Array.prototype.slice.call(document.querySelectorAll(selectors));
-          } catch (error) {
-            nodes = [];
-          }
-
-          var matches = nodes.filter(function (node) {
-            if (!isVisible(node) || isInsideRedocSidebar(node)) {
-              return false;
-            }
-
-            var id = String(node.id || '').toLowerCase();
-            var sectionId = String(node.getAttribute('data-section-id') || '').toLowerCase();
-            var text = normalizeText(node.innerText || node.textContent || '').toLowerCase().replace(/\s+/g, '');
-
-            return text.indexOf(lowerSignature) !== -1 ||
-              text.indexOf(lowerName + '(') !== -1 ||
-              id.indexOf(lowerName) !== -1 ||
-              sectionId.indexOf(lowerName) !== -1;
-          });
-
-          return firstVisibleContentTarget(matches) || matches[0] || null;
-        }
-
-        function getScrollableContainer(element) {
-          var current = element && element.parentElement;
-          while (current && current !== document.body && current !== document.documentElement) {
-            var style = window.getComputedStyle(current);
-            var overflowY = style.overflowY || '';
-            if ((overflowY === 'auto' || overflowY === 'scroll') && current.scrollHeight > current.clientHeight) {
-              return current;
-            }
-            current = current.parentElement;
-          }
-          return window;
-        }
-
-        function scrollToTarget(target) {
+          element.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'auto' });
           var offset = getHeaderOffset();
-          var container = getScrollableContainer(target);
-
-          if (container === window) {
-            var pageTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-            var y = target.getBoundingClientRect().top + pageTop - offset;
-            window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
-          } else {
-            var containerTop = container.getBoundingClientRect().top;
-            var yInContainer = target.getBoundingClientRect().top - containerTop + container.scrollTop - offset;
-            container.scrollTo({ top: Math.max(0, yInContainer), behavior: 'smooth' });
+          if (offset > 0) {
+            window.scrollBy(0, -offset);
           }
+
+          return true;
         }
 
-        function navigateToTargetResolver(resolveTarget, attempt) {
-          var target = resolveTarget();
-          if (target) {
-            scrollToTarget(target);
-            return;
-          }
-
-          if ((attempt || 0) < REDOC_NAV_RETRY_COUNT) {
+        function scheduleNavigation(resolveTarget) {
+          NAV_ATTEMPTS_MS.forEach(function (delay) {
             window.setTimeout(function () {
-              navigateToTargetResolver(resolveTarget, (attempt || 0) + 1);
-            }, REDOC_NAV_RETRY_DELAY_MS);
-          }
-        }
-
-        function navigateToHash(hash, attempt) {
-          navigateToTargetResolver(function () {
-            return findRedocTarget(hash);
-          }, attempt || 0);
-        }
-
-        function navigateToFunction(signature, attempt) {
-          navigateToTargetResolver(function () {
-            return findFunctionTarget(signature);
-          }, attempt || 0);
+              var target = resolveTarget();
+              if (target) {
+                scrollToElement(target);
+              }
+            }, delay);
+          });
         }
 
         document.addEventListener('click', function (event) {
           var target = event.target;
-          if (!isInsideRedoc(target) || !isInsideRedocSidebar(target)) {
+          if (!isRedocSidebarClick(target)) {
             return;
           }
 
-          var anchor = target && target.closest ? target.closest('a[href]') : null;
-          var hash = '';
-          if (anchor) {
-            try {
-              var url = new URL(anchor.getAttribute('href'), window.location.href);
-              if (url.hash && url.origin === window.location.origin && url.pathname === window.location.pathname) {
-                hash = url.hash;
-              }
-            } catch (error) {
-              hash = '';
-            }
+          var hash = extractHashFromClick(target);
+          var menuText = getMenuText(target);
+          var signature = normalizeSignature(menuText);
+
+          if (!hash && !signature) {
+            return;
           }
 
-          var signature = getSidebarFunctionSignature(target);
-
-          window.setTimeout(function () {
-            if (hash) {
-              if (window.location.hash !== hash) {
-                window.history.pushState(null, '', hash);
-              }
-              navigateToHash(hash, 0);
-              return;
-            }
-
-            if (signature) {
-              navigateToFunction(signature, 0);
-            }
-          }, 0);
-        }, true);
+          scheduleNavigation(function () {
+            return (hash && findByHash(hash)) || (signature && findBySignature(signature));
+          });
+        });
 
         window.addEventListener('hashchange', function () {
-          if (window.location.hash) {
-            navigateToHash(window.location.hash, 0);
+          var hash = window.location.hash;
+          if (!hash) {
+            return;
           }
+
+          scheduleNavigation(function () {
+            return findByHash(hash);
+          });
         });
 
         window.addEventListener('load', function () {
-          if (window.location.hash) {
-            window.setTimeout(function () {
-              navigateToHash(window.location.hash, 0);
-            }, 250);
+          if (!window.location.hash) {
+            return;
           }
+
+          scheduleNavigation(function () {
+            return findByHash(window.location.hash);
+          });
         });
       })();
     </script>

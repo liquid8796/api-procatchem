@@ -6,7 +6,7 @@ The source of truth is `openapi.yaml`. The OpenAPI file models Lua functions as 
 
 ## New in this docs update
 
-- Fixed sidebar operation navigation with a stronger Redoc fallback: clicking a Lua function in the left menu now scrolls the main content even when Redoc renders menu entries as non-anchor elements or data-section-id targets.
+- Fixed sidebar operation navigation with a safe lightweight Redoc fallback: clicking a Lua function in the left menu scrolls the main content without repeated heavy DOM scans that could freeze the page.
 - Added the notification Lua APIs:
   - `sendNotification(templateName)`
   - `sendNotificationWith(templateName, values)`
