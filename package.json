@@ -1,6 +1,6 @@
 {
   "name": "procatchem-lua-api-docs",
-  "version": "1.0.92",
+  "version": "1.0.93",
   "private": true,
   "description": "Redoc documentation site for PROCatchem Lua Script API, including notification helpers.",
   "scripts": {

@@ -99,7 +99,6 @@
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
 <script>
       (function () {
-        var SIDEBAR_MAX_LEFT_PX = 380;
         var NAV_ATTEMPTS_MS = [0, 80, 180, 360, 700];
 
         function getHeaderOffset() {
@@ -123,16 +122,7 @@
           }
 
           var rect = element.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0 && rect.left > SIDEBAR_MAX_LEFT_PX;
-        }
-
-        function isSidebarRegion(target) {
-          if (!target || !target.closest || !target.closest('redoc, #api-docs')) {
-            return false;
-          }
-
-          var rect = target.getBoundingClientRect();
-          return rect.left >= 0 && rect.left <= SIDEBAR_MAX_LEFT_PX;
+          return rect.width > 0 && rect.height > 0;
         }
 
         function getRedocMenuItemId(target) {
@@ -141,11 +131,7 @@
           }
 
           var item = target.closest('[data-item-id]');
-          if (!item || !isSidebarRegion(item)) {
-            return '';
-          }
-
-          return item.getAttribute('data-item-id') || '';
+          return item ? (item.getAttribute('data-item-id') || '') : '';
         }
 
         function findContentSectionById(id) {
@@ -173,12 +159,14 @@
             return false;
           }
 
-          section.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'auto' });
-          var offset = getHeaderOffset();
-          if (offset > 0) {
-            window.scrollBy(0, -offset);
+          var rect = section.getBoundingClientRect();
+          var currentTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+          var top = rect.top + currentTop - getHeaderOffset();
+          if (top < 0) {
+            top = 0;
           }
 
+          window.scrollTo({ top: top, left: 0, behavior: 'smooth' });
           return true;
         }
 

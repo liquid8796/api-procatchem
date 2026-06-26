@@ -1,12 +1,12 @@
 # PROCatchem Lua Script API Docs
 
-This repository contains a static Redoc documentation site for the Lua scripting API exposed by **PROCatchem v1.0.92**.
+This repository contains a static Redoc documentation site for the Lua scripting API exposed by **PROCatchem v1.0.93**.
 
 The source of truth is `openapi.yaml`. The OpenAPI file models Lua functions as pseudo-endpoints so Redoc can render a searchable API reference. These are **not HTTP endpoints**; each operation documents one Lua global function or callback.
 
 ## New in this docs update
 
-- Fixed sidebar operation navigation using Redoc's own `data-item-id` / `data-section-id` mapping, so clicking a Lua function in the left menu scrolls to the matching content section without heavy DOM scans or UI freezes.
+- Fixed sidebar navigation that still failed to scroll: the previous fallback rejected every content section because it required the section to start past a fixed `380px` left position, but Redoc renders content right next to the sidebar (~260px), so no section ever matched. The fallback now matches sections purely by Redoc's `data-item-id` / `data-section-id` mapping (any visible section) and performs one smooth scroll that accounts for the sticky header, so clicking a Lua function in the left menu reliably jumps to its detail.
 - Added the notification Lua APIs:
   - `sendNotification(templateName)`
   - `sendNotificationWith(templateName, values)`
@@ -84,7 +84,7 @@ When the Lua script API changes, update `openapi.yaml` and bump the version fiel
 
 ## Redoc navigation fix note
 
-The left menu and main content are linked by Redoc attributes: sidebar items expose `data-item-id`, and content sections expose the same value through `data-section-id`. The navigation fallback now uses that exact mapping in capture phase because Redoc stops sidebar click propagation internally. It does not scan all API headings and does not depend on SEO hidden content.
+The left menu and main content are linked by Redoc attributes: sidebar items expose `data-item-id`, and content sections expose the same value through `data-section-id` (and a matching `id`). The capture-phase fallback uses that exact mapping (Redoc stops sidebar click propagation internally) and scrolls to the first visible matching section. It no longer assumes a fixed pixel boundary between the sidebar and the content area, so it works regardless of the menu width or viewport size. It does not scan all API headings and does not depend on SEO hidden content.
 
 ## Documentation UI note
 
