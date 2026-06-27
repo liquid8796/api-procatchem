@@ -94,14 +94,12 @@
         <li><a href="./examples/notification-script.lua">Notification Lua script example</a></li>
       </ul>
     </main>
-    <redoc id="api-docs" spec-url="./openapi.yaml" hide-download-button="false" expand-responses="200,204" scroll-y-offset=".topbar" native-scrollbars></redoc>
+    <redoc id="api-docs" spec-url="./openapi.yaml" hide-download-button="false" expand-responses="200,204" scroll-y-offset=".topbar"></redoc>
     <noscript>Please enable JavaScript to view the interactive Redoc API reference. The raw OpenAPI source is available at /openapi.yaml.</noscript>
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
 <script>
       (function () {
-        var NAV_ATTEMPTS_MS = [0, 80, 180, 360, 720];
-        var cachedSections = [];
-        var cacheAt = 0;
+        var NAV_ATTEMPTS_MS = [30, 120, 260, 520, 900, 1500];
 
         function getHeaderOffset() {
           var topbar = document.querySelector('.topbar');
@@ -112,24 +110,18 @@
           return document.getElementById('api-docs') || document.querySelector('redoc');
         }
 
-        function refreshSectionCache() {
-          var root = getRedocRoot();
-          if (!root) {
-            cachedSections = [];
-            cacheAt = Date.now();
-            return cachedSections;
+        function cssEscape(value) {
+          if (window.CSS && typeof window.CSS.escape === 'function') {
+            return window.CSS.escape(value);
           }
 
-          cachedSections = Array.prototype.slice.call(root.querySelectorAll('[data-section-id]'));
-          cacheAt = Date.now();
-          return cachedSections;
+          return String(value).replace(/[^a-zA-Z0-9_-]/g, function (character) {
+            return '\\' + character;
+          });
         }
 
-        function getSectionCache() {
-          if (!cachedSections.length || Date.now() - cacheAt > 1500) {
-            return refreshSectionCache();
-          }
-          return cachedSections;
+        function getHashId() {
+          return decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
         }
 
         function getRedocMenuItemId(target) {
@@ -146,31 +138,61 @@
           return item.getAttribute('data-item-id') || '';
         }
 
+        function isLayouted(element) {
+          if (!element || element.nodeType !== 1) {
+            return false;
+          }
+
+          var rect = element.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        }
+
+        function isSidebarNode(element) {
+          return !!(element && element.closest && element.closest('[role="menu"], [data-item-id][role="menuitem"]'));
+        }
+
         function findContentSectionById(id) {
           if (!id) {
             return null;
           }
 
-          var sections = getSectionCache();
-          for (var i = 0; i < sections.length; i += 1) {
-            if (sections[i].getAttribute('data-section-id') === id) {
-              return sections[i];
-            }
-          }
+          try {
+            var selector = 'redoc [data-section-id="' + cssEscape(id) + '"], redoc [id="' + cssEscape(id) + '"]';
+            var nodes = document.querySelectorAll(selector);
+            var best = null;
+            var bestScore = -Infinity;
 
-          // Some Redoc builds also expose a matching element id. Keep this as a
-          // fallback, but avoid broad heading scans that can freeze large pages.
-          var root = getRedocRoot();
-          if (root) {
-            var allIdNodes = root.querySelectorAll('[id]');
-            for (var j = 0; j < allIdNodes.length; j += 1) {
-              if (allIdNodes[j].id === id) {
-                return allIdNodes[j];
+            for (var i = 0; i < nodes.length; i += 1) {
+              var node = nodes[i];
+              if (!isLayouted(node) || isSidebarNode(node)) {
+                continue;
+              }
+
+              var rect = node.getBoundingClientRect();
+              var score = rect.width + Math.max(0, rect.left);
+              if (score > bestScore) {
+                best = node;
+                bestScore = score;
               }
             }
-          }
 
-          return null;
+            return best;
+          } catch (error) {
+            return null;
+          }
+        }
+
+        function getScrollParent(element) {
+          var parent = element ? element.parentElement : null;
+          while (parent && parent !== document.body && parent !== document.documentElement) {
+            var style = window.getComputedStyle(parent);
+            var overflowY = style.overflowY || '';
+            if (/(auto|scroll|overlay)/.test(overflowY) && parent.scrollHeight > parent.clientHeight + 4) {
+              return parent;
+            }
+            parent = parent.parentElement;
+          }
+          return window;
         }
 
         function scrollToContentSection(section) {
@@ -178,31 +200,39 @@
             return false;
           }
 
-          var rect = section.getBoundingClientRect();
-          var currentTop = window.pageYOffset || document.documentElement.scrollTop || 0;
-          var top = rect.top + currentTop - getHeaderOffset();
+          var offset = getHeaderOffset();
+          var scroller = getScrollParent(section);
+
+          if (scroller === window) {
+            section.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'auto' });
+            if (offset > 0) {
+              window.scrollBy(0, -offset);
+            }
+            return true;
+          }
+
+          var sectionRect = section.getBoundingClientRect();
+          var scrollerRect = scroller.getBoundingClientRect();
+          var top = scroller.scrollTop + sectionRect.top - scrollerRect.top - offset;
           if (top < 0) {
             top = 0;
           }
-
-          window.scrollTo({ top: top, left: 0, behavior: 'auto' });
+          scroller.scrollTo({ top: top, left: 0, behavior: 'auto' });
           return true;
         }
 
-        function navigateToRedocItem(itemId) {
-          var completed = false;
+        function attemptNavigate(itemId) {
+          var activeId = getHashId() || itemId;
+          var section = findContentSectionById(activeId);
+          scrollToContentSection(section);
+        }
 
+        function scheduleNavigate(itemId) {
           NAV_ATTEMPTS_MS.forEach(function (delay) {
             window.setTimeout(function () {
-              if (completed) {
-                return;
-              }
-
-              refreshSectionCache();
-              var section = findContentSectionById(itemId);
-              if (scrollToContentSection(section)) {
-                completed = true;
-              }
+              window.requestAnimationFrame(function () {
+                attemptNavigate(itemId);
+              });
             }, delay);
           });
         }
@@ -213,24 +243,34 @@
             return;
           }
 
-          navigateToRedocItem(itemId);
+          // Redoc changes the URL with history.pushState, which does not fire the
+          // browser hashchange event. Capture the sidebar click, then scroll after
+          // Redoc has activated the item and rendered the matching content section.
+          scheduleNavigate(itemId);
         }, true);
 
         window.addEventListener('hashchange', function () {
-          var id = decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
+          var id = getHashId();
           if (id) {
-            navigateToRedocItem(id);
+            scheduleNavigate(id);
+          }
+        });
+
+        window.addEventListener('popstate', function () {
+          var id = getHashId();
+          if (id) {
+            scheduleNavigate(id);
           }
         });
 
         window.addEventListener('load', function () {
-          refreshSectionCache();
-          var id = decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
+          var id = getHashId();
           if (id) {
-            navigateToRedocItem(id);
+            scheduleNavigate(id);
           }
         });
       })();
     </script>
+
   </body>
 </html>

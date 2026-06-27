@@ -14,7 +14,7 @@ The source of truth is `openapi.yaml`. The OpenAPI file models Lua functions as 
   - `releasePokemonFromPC(boxId, boxPokemonId)` now documents permanent PC release/delete behavior.
   - `refreshPCBox(boxId)` / `isCurrentPCBoxRefreshed()` notes now explain async PC metadata, snapshot, and delta updates.
 - Updated mount/surf docs: `setWaterMount()` is optional and should be configured before entering water; default surfing still uses the normal `/surf` flow.
-- Fixed Redoc sidebar navigation again using a lightweight capture-phase helper that reads Redoc `data-item-id`, matches exact `data-section-id` values, and scrolls without heading scans or heavy retry loops.
+- Fixed Redoc sidebar navigation for same-page clicks: the helper now waits for Redoc's `history.pushState` update, uses the current hash or clicked `data-item-id`, scrolls the actual Redoc content section, and supports both window and nested scroll containers without heavy DOM scans.
 - SEO metadata and examples remain in place.
 
 ## Structure
@@ -83,7 +83,7 @@ When the Lua script API changes, update `openapi.yaml` and bump the version fiel
 
 ## Redoc navigation fix note
 
-The left menu and main content are linked by Redoc attributes: sidebar items expose `data-item-id`, and content sections expose the same value through `data-section-id`. Redoc stops sidebar click propagation internally, so the page uses a small capture-phase fallback that observes the item id, finds the exact matching content section, and scrolls with the sticky header offset. The fallback does not scan API headings, does not depend on SEO hidden content, and avoids long retry loops to prevent UI freezes.
+The left menu and main content are linked by Redoc attributes: sidebar items expose `data-item-id`, and content sections expose the same value through `data-section-id`. Redoc updates the URL with `history.pushState`, which does not emit a normal browser `hashchange` event, so the page uses a small capture-phase fallback that waits for Redoc to activate the item, then scrolls the matching content section with the sticky header offset. The fallback supports both normal window scrolling and nested Redoc scroll containers. It does not scan API headings, does not depend on SEO hidden content, and avoids long retry loops to prevent UI freezes.
 
 ## Documentation UI note
 
