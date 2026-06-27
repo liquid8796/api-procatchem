@@ -39,6 +39,6 @@ npm run slate:build
 
 Vercel uses the default `npm run build` static build to avoid failing when Bundler gems are not installed.
 
-Version: `1.0.100`.
+Version: `1.0.101`.
 
-- Clicking either the category label or the chevron toggles collapse/expand; function links still scroll to their API sections.
+- Sidebar categories are collapsed by default on first landing. Clicking either the category label or the chevron toggles collapse/expand; function links still scroll to their API sections.

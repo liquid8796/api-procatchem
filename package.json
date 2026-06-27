@@ -1,6 +1,6 @@
 {
   "name": "procatchem-lua-api-slate-docs",
-  "version": "1.0.100",
+  "version": "1.0.101",
   "private": true,
   "description": "Slate-style documentation site for the PROCatchem Lua Script API.",
   "scripts": {
