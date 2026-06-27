@@ -3,7 +3,7 @@ info:
   title: PROCatchem Lua Script API
   summary: Lua API reference for PROCatchem script authors, including notification
     helpers.
-  version: 1.0.98
+  version: 1.0.99
   description: "This documentation describes the Lua functions exposed by PROCatchem\
     \ to user scripts.\n\nThe API is represented as OpenAPI pseudo-endpoints so it\
     \ can be rendered with Redoc/Redocly and deployed as a static documentation site.\

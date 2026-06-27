@@ -39,4 +39,4 @@ npm run slate:build
 
 Vercel uses the default `npm run build` static build to avoid failing when Bundler gems are not installed.
 
-Version: `1.0.98`.
+Version: `1.0.99`.
