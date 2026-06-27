@@ -15,13 +15,13 @@ The source of truth is `openapi.yaml`. The OpenAPI file models Lua functions as 
   - `refreshPCBox(boxId)` / `isCurrentPCBoxRefreshed()` notes now explain async PC metadata, snapshot, and delta updates.
 - Updated mount/surf docs: `setWaterMount()` is optional and should be configured before entering water; default surfing still uses the normal `/surf` flow.
 - Fixed Redoc sidebar navigation for same-page clicks: the helper now waits for Redoc's `history.pushState` update, uses the current hash or clicked `data-item-id`, scrolls the actual Redoc content section, and supports both window and nested scroll containers without heavy DOM scans.
-- SEO metadata and examples remain in place.
+- Removed SEO-only blocks from the generated HTML page, including canonical/Open Graph/Twitter metadata, JSON-LD, sitemap link, and the hidden SEO intro. Examples remain in place.
 
 ## Structure
 
 ```text
 .
-├── index.html                         # Static Redoc page + compact header + SEO metadata
+├── index.html                         # Static Redoc page + compact header
 ├── openapi.yaml                       # PROCatchem Lua API reference
 ├── robots.txt                         # Search-engine crawl rules
 ├── sitemap.xml                        # Sitemap for indexing
@@ -59,15 +59,6 @@ npx serve dist
    - Output Directory: `dist`
 6. Deploy.
 
-## SEO note
-
-The included canonical URL and sitemap use `https://api-procatchem.vercel.app/` as the default deployment URL. If you deploy under a different Vercel project name or a custom domain, update these files before publishing:
-
-- `index.html` canonical / Open Graph URL
-- `sitemap.xml`
-- `robots.txt` sitemap URL
-
-After deployment, submit the live URL and sitemap in Google Search Console to help Google discover `PROCatchem` faster.
 
 ## Updating the docs
 
@@ -83,7 +74,7 @@ When the Lua script API changes, update `openapi.yaml` and bump the version fiel
 
 ## Redoc navigation fix note
 
-The left menu and main content are linked by Redoc attributes: sidebar items expose `data-item-id`, and content sections expose the same value through `data-section-id`. Redoc updates the URL with `history.pushState`, which does not emit a normal browser `hashchange` event, so the page uses a small capture-phase fallback that waits for Redoc to activate the item, then scrolls the matching content section with the sticky header offset. The fallback supports both normal window scrolling and nested Redoc scroll containers. It does not scan API headings, does not depend on SEO hidden content, and avoids long retry loops to prevent UI freezes.
+The left menu and main content are linked by Redoc attributes: sidebar items expose `data-item-id`, and content sections expose the same value through `data-section-id`. Redoc updates the URL with `history.pushState`, which does not emit a normal browser `hashchange` event, so the page uses a small capture-phase fallback that waits for Redoc to activate the item, then scrolls the matching content section with the sticky header offset. The fallback supports both normal window scrolling and nested Redoc scroll containers. It does not scan API headings and avoids long retry loops to prevent UI freezes.
 
 ## Documentation UI note
 

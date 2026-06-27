@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: PROCatchem Lua Script API
   summary: Lua API reference for PROCatchem script authors, including notification helpers.
-  version: 1.0.95
+  version: 1.0.96
   description: "This documentation describes the Lua functions exposed by PROCatchem to user scripts.\n\nThe API is represented as OpenAPI pseudo-endpoints so it can be rendered with Redoc/Redocly and deployed as a static documentation site. These are not HTTP endpoints. Each operation describes one Lua global function or script callback.\n\nNew notification helpers let scripts send configured Discord/Telegram notification templates, pass template variables, override delivery targets, and send quick plain-text alerts from Lua.\n\nBasic script shape:\n\n```lua\nname = \"Example Script\"\nauthor = \"YourName\"\ndescription = \"Simple PROCatchem script.\"\n\nfunction onPathAction()\n    if getMapName() == \"Viridian City\" then\n        moveToGrass()\n    end\nend\n\nfunction onBattleAction()\n    attack()\nend\n```\n\nAction rule: a script should execute at most one path or battle action per frame. Query/helper functions can be called freely.\n\nPC storage helpers document the current official storage flow: open with `usePC()`, refresh or open a box, then use one-based indexes for the visible team/box order. PC updates are asynchronous; after deposit, withdraw, swap, internal box swap, or release, wait for `isCurrentPCBoxRefreshed()` or re-check the relevant PC/team state before issuing the next dependent action."
 servers:
 - url: lua://PROCatchem
