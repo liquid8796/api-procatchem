@@ -1,9 +1,26 @@
 openapi: 3.1.0
 info:
   title: PROCatchem Lua Script API
-  summary: Lua API reference for PROCatchem script authors, including notification helpers.
-  version: 1.0.96
-  description: "This documentation describes the Lua functions exposed by PROCatchem to user scripts.\n\nThe API is represented as OpenAPI pseudo-endpoints so it can be rendered with Redoc/Redocly and deployed as a static documentation site. These are not HTTP endpoints. Each operation describes one Lua global function or script callback.\n\nNew notification helpers let scripts send configured Discord/Telegram notification templates, pass template variables, override delivery targets, and send quick plain-text alerts from Lua.\n\nBasic script shape:\n\n```lua\nname = \"Example Script\"\nauthor = \"YourName\"\ndescription = \"Simple PROCatchem script.\"\n\nfunction onPathAction()\n    if getMapName() == \"Viridian City\" then\n        moveToGrass()\n    end\nend\n\nfunction onBattleAction()\n    attack()\nend\n```\n\nAction rule: a script should execute at most one path or battle action per frame. Query/helper functions can be called freely.\n\nPC storage helpers document the current official storage flow: open with `usePC()`, refresh or open a box, then use one-based indexes for the visible team/box order. PC updates are asynchronous; after deposit, withdraw, swap, internal box swap, or release, wait for `isCurrentPCBoxRefreshed()` or re-check the relevant PC/team state before issuing the next dependent action."
+  summary: Lua API reference for PROCatchem script authors, including notification
+    helpers.
+  version: 1.0.97
+  description: "This documentation describes the Lua functions exposed by PROCatchem\
+    \ to user scripts.\n\nThe API is represented as OpenAPI pseudo-endpoints so it\
+    \ can be rendered with Redoc/Redocly and deployed as a static documentation site.\
+    \ These are not HTTP endpoints. Each operation describes one Lua global function\
+    \ or script callback.\n\nNew notification helpers let scripts send configured\
+    \ Discord/Telegram notification templates, pass template variables, override delivery\
+    \ targets, and send quick plain-text alerts from Lua.\n\nBasic script shape:\n\
+    \n```lua\nname = \"Example Script\"\nauthor = \"YourName\"\ndescription = \"Simple\
+    \ PROCatchem script.\"\n\nfunction onPathAction()\n    if getMapName() == \"Viridian\
+    \ City\" then\n        moveToGrass()\n    end\nend\n\nfunction onBattleAction()\n\
+    \    attack()\nend\n```\n\nAction rule: a script should execute at most one path\
+    \ or battle action per frame. Query/helper functions can be called freely.\n\n\
+    PC storage helpers document the current official storage flow: open with `usePC()`,\
+    \ refresh or open a box, then use one-based indexes for the visible team/box order.\
+    \ PC updates are asynchronous; after deposit, withdraw, swap, internal box swap,\
+    \ or release, wait for `isCurrentPCBoxRefreshed()` or re-check the relevant PC/team\
+    \ state before issuing the next dependent action."
 servers:
 - url: lua://PROCatchem
   description: Pseudo server used only to render Lua function documentation.
@@ -79,7 +96,8 @@ components:
       maxItems: 2
     NotificationVariables:
       type: object
-      description: Lua table of template variable values. Keys are variable names without braces, e.g. pokemon for {pokemon}. Values are converted to strings.
+      description: Lua table of template variable values. Keys are variable names
+        without braces, e.g. pokemon for {pokemon}. Values are converted to strings.
       additionalProperties:
         type: string
       example:
@@ -88,7 +106,10 @@ components:
         map: Route 22
     NotificationTarget:
       type: string
-      description: Notification delivery target override. personal/discord sends only to the user Discord webhook, procatchem sends only to the built-in PROCatchem Discord channel, telegram sends only to Telegram, and all uses the template configured target.
+      description: Notification delivery target override. personal/discord sends only
+        to the user Discord webhook, procatchem sends only to the built-in PROCatchem
+        Discord channel, telegram sends only to Telegram, and all uses the template
+        configured target.
       enum:
       - personal
       - discord
@@ -296,7 +317,8 @@ paths:
         ```
 
 
-        Called repeatedly while the player is outside battle. Execute at most one path action per frame.'
+        Called repeatedly while the player is outside battle. Execute at most one
+        path action per frame.'
       responses:
         '204':
           description: No Lua return value.
@@ -320,7 +342,8 @@ paths:
         ```
 
 
-        Called repeatedly while the player is in battle. Execute at most one battle action per frame.'
+        Called repeatedly while the player is in battle. Execute at most one battle
+        action per frame.'
       responses:
         '204':
           description: No Lua return value.
@@ -1277,7 +1300,8 @@ paths:
         ```
 
 
-        Returns the percentage of remaining health of the specified pokémon in the team.'
+        Returns the percentage of remaining health of the specified pokémon in the
+        team.'
       requestBody:
         required: true
         content:
@@ -1655,7 +1679,8 @@ paths:
         ```
 
 
-        Returns the remaining power points of the specified move of the specified pokémon in the team.'
+        Returns the remaining power points of the specified move of the specified
+        pokémon in the team.'
       requestBody:
         required: true
         content:
@@ -1835,7 +1860,8 @@ paths:
         ```
 
 
-        Returns the move accuracy of the specified pokémon in the team at the specified index.'
+        Returns the move accuracy of the specified pokémon in the team at the specified
+        index.'
       requestBody:
         required: true
         content:
@@ -1881,7 +1907,8 @@ paths:
         ```
 
 
-        Returns the move power of the specified pokémon in the team at the specified index.'
+        Returns the move power of the specified pokémon in the team at the specified
+        index.'
       requestBody:
         required: true
         content:
@@ -1927,7 +1954,8 @@ paths:
         ```
 
 
-        Returns the move type of the specified pokémon in the team at the specified index.'
+        Returns the move type of the specified pokémon in the team at the specified
+        index.'
       requestBody:
         required: true
         content:
@@ -1973,7 +2001,8 @@ paths:
         ```
 
 
-        Returns the move damage type of the specified pokémon in the team at the specified index.'
+        Returns the move damage type of the specified pokémon in the team at the specified
+        index.'
       requestBody:
         required: true
         content:
@@ -2019,7 +2048,8 @@ paths:
         ```
 
 
-        Returns true if the move of the specified pokémon in the team at the specified index can apply a status .'
+        Returns true if the move of the specified pokémon in the team at the specified
+        index can apply a status .'
       requestBody:
         required: true
         content:
@@ -2195,7 +2225,8 @@ paths:
         ```
 
 
-        Returns the effort value for the specified stat of the specified pokémon in the team.'
+        Returns the effort value for the specified stat of the specified pokémon in
+        the team.'
       requestBody:
         required: true
         content:
@@ -2241,7 +2272,8 @@ paths:
         ```
 
 
-        Returns the individual value for the specified stat of the specified pokémon in the team.'
+        Returns the individual value for the specified stat of the specified pokémon
+        in the team.'
       requestBody:
         required: true
         content:
@@ -2455,7 +2487,8 @@ paths:
         ```
 
 
-        Returns the type of the specified pokémon in the team as an array of length 2.'
+        Returns the type of the specified pokémon in the team as an array of length
+        2.'
       requestBody:
         required: true
         content:
@@ -2499,7 +2532,8 @@ paths:
         ```
 
 
-        Returns the multiplier of the damage type between an attacking type and one or two defending types.'
+        Returns the multiplier of the damage type between an attacking type and one
+        or two defending types.'
       requestBody:
         required: true
         content:
@@ -2554,7 +2588,8 @@ paths:
         ```
 
 
-        Returns true if the specified pokémon has is alive and has an offensive attack available.'
+        Returns true if the specified pokémon has is alive and has an offensive attack
+        available.'
       requestBody:
         required: true
         content:
@@ -2671,7 +2706,8 @@ paths:
         ```
 
 
-        API return an array of all NPCs that can be challenged on the current map. format : {"npcName" = {"x" = x, "y" = y}}'
+        API return an array of all NPCs that can be challenged on the current map.
+        format : {"npcName" = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2704,7 +2740,8 @@ paths:
         ```
 
 
-        API return an array of all usable Dig Spots on the currrent map. format : {index = {"x" = x, "y" = y}}'
+        API return an array of all usable Dig Spots on the currrent map. format :
+        {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2737,7 +2774,8 @@ paths:
         ```
 
 
-        API return an array of all usable Headbutt trees on the currrent map. format : {index = {"x" = x, "y" = y}}'
+        API return an array of all usable Headbutt trees on the currrent map. format
+        : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2770,7 +2808,8 @@ paths:
         ```
 
 
-        API return an array of all harvestable berry trees on the currrent map. format : {index = {"x" = x, "y" = y}}'
+        API return an array of all harvestable berry trees on the currrent map. format
+        : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2803,7 +2842,8 @@ paths:
         ```
 
 
-        API return an array of all discoverable items on the currrent map. format : {index = {"x" = x, "y" = y}}'
+        API return an array of all discoverable items on the currrent map. format
+        : {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2836,7 +2876,8 @@ paths:
         ```
 
 
-        API return an array of all pokestops on the current map. format : {index = {"x" = x, "y" = y}}'
+        API return an array of all pokestops on the current map. format : {index =
+        {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2869,7 +2910,8 @@ paths:
         ```
 
 
-        API return an array of all Abandoned Pokemon on the current map. format : {index = {"x" = x, "y" = y}}'
+        API return an array of all Abandoned Pokemon on the current map. format :
+        {index = {"x" = x, "y" = y}}'
       responses:
         '200':
           description: Lua return value.
@@ -2902,7 +2944,8 @@ paths:
         ```
 
 
-        Returns npc data on current map, format : { { "x" = x , "y" = y, "type" = type }, {...}, ... }'
+        Returns npc data on current map, format : { { "x" = x , "y" = y, "type" =
+        type }, {...}, ... }'
       responses:
         '200':
           description: Lua return value.
@@ -3347,7 +3390,8 @@ paths:
         ```
 
 
-        Returns true if the specified part of the team is sorted by level in ascending order.'
+        Returns true if the specified part of the team is sorted by level in ascending
+        order.'
       requestBody:
         required: true
         content:
@@ -3393,7 +3437,8 @@ paths:
         ```
 
 
-        Returns true if the specified part of the team the team is sorted by level in descending order.'
+        Returns true if the specified part of the team the team is sorted by level
+        in descending order.'
       requestBody:
         required: true
         content:
@@ -3943,7 +3988,11 @@ paths:
         ```
 
 
-        Configure the ground mount or bike item that the bot should use while moving on outside ground maps. Pass the exact item name, for example `Arcanine Mount` or `Blue Bicycle`. Pass an empty string to clear the configured ground mount. The function only configures the item; the tool uses it automatically before movement when appropriate.'
+        Configure the ground mount or bike item that the bot should use while moving
+        on outside ground maps. Pass the exact item name, for example `Arcanine Mount`
+        or `Blue Bicycle`. Pass an empty string to clear the configured ground mount.
+        The function only configures the item; the tool uses it automatically before
+        movement when appropriate.'
       requestBody:
         required: true
         content:
@@ -3985,7 +4034,11 @@ paths:
         ```
 
 
-        Configure an optional water mount item that should be used when the bot needs to start surfing. Call this before a path that may enter water. Most scripts can leave it unset; without a water mount, `useSurf()` and pathfinding use the normal `/surf` flow. Pass an empty string to clear the configured water mount.'
+        Configure an optional water mount item that should be used when the bot needs
+        to start surfing. Call this before a path that may enter water. Most scripts
+        can leave it unset; without a water mount, `useSurf()` and pathfinding use
+        the normal `/surf` flow. Pass an empty string to clear the configured water
+        mount.'
       requestBody:
         required: true
         content:
@@ -4027,7 +4080,9 @@ paths:
         ```
 
 
-        Returns true when the latest requested PC box action has completed or there is no pending PC box refresh. Use this after `usePC()`, `openPCBox()`, or `refreshPCBox()` before reading PC Pokémon data.'
+        Returns true when the latest requested PC box action has completed or there
+        is no pending PC box refresh. Use this after `usePC()`, `openPCBox()`, or
+        `refreshPCBox()` before reading PC Pokémon data.'
       responses:
         '200':
           description: Lua return value.
@@ -4114,7 +4169,9 @@ paths:
         ```
 
 
-        Returns the number of Pokémon currently cached in the visible PC box. PC boxes can hold up to 30 slots; use this as the safe upper bound for one-based `boxPokemonId` indexes after the box is refreshed.'
+        Returns the number of Pokémon currently cached in the visible PC box. PC boxes
+        can hold up to 30 slots; use this as the safe upper bound for one-based `boxPokemonId`
+        indexes after the box is refreshed.'
       responses:
         '200':
           description: Lua return value.
@@ -4172,7 +4229,9 @@ paths:
         ```
 
 
-        Returns the latest known total Pokémon count for the current PC storage view. The value is read from server PC metadata when available and should not be inferred from internal slot IDs.'
+        Returns the latest known total Pokémon count for the current PC storage view.
+        The value is read from server PC metadata when available and should not be
+        inferred from internal slot IDs.'
       responses:
         '200':
           description: Lua return value.
@@ -4339,7 +4398,8 @@ paths:
         ```
 
 
-        Returns the percentage of remaining health of the specified pokémon in the team.'
+        Returns the percentage of remaining health of the specified pokémon in the
+        team.'
       requestBody:
         required: true
         content:
@@ -4477,7 +4537,8 @@ paths:
         ```
 
 
-        Total of experience cost of a level for the pokemon of the current box matching the ID.'
+        Total of experience cost of a level for the pokemon of the current box matching
+        the ID.'
       requestBody:
         required: true
         content:
@@ -4523,7 +4584,8 @@ paths:
         ```
 
 
-        Remaining experience before the next level of the pokemon of the current box matching the ID.'
+        Remaining experience before the next level of the pokemon of the current box
+        matching the ID.'
       requestBody:
         required: true
         content:
@@ -4615,7 +4677,8 @@ paths:
         ```
 
 
-        Type of the pokemon of the current box matching the ID as an array of length 2.'
+        Type of the pokemon of the current box matching the ID as an array of length
+        2.'
       requestBody:
         required: true
         content:
@@ -4709,7 +4772,8 @@ paths:
         ```
 
 
-        PROCatchem custom unique ID of the pokemon of the current box matching the ID.'
+        PROCatchem custom unique ID of the pokemon of the current box matching the
+        ID.'
       requestBody:
         required: true
         content:
@@ -4785,7 +4849,8 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonRemainingPowerPointsFromPC(boxId, boxPokemonId, moveId)
+      x-lua-signature: result = getPokemonRemainingPowerPointsFromPC(boxId, boxPokemonId,
+        moveId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonRemainingPowerPointsFromPC(1, 1, "Tackle")
@@ -4835,7 +4900,8 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonMaxPowerPointsFromPC(boxId, boxPokemonId, moveId)
+      x-lua-signature: result = getPokemonMaxPowerPointsFromPC(boxId, boxPokemonId,
+        moveId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonMaxPowerPointsFromPC(1, 1, "Tackle")
@@ -4951,7 +5017,8 @@ paths:
         ```
 
 
-        Returns the move accuracy of the specified pokémon in the box at the specified index.'
+        Returns the move accuracy of the specified pokémon in the box at the specified
+        index.'
       requestBody:
         required: true
         content:
@@ -4981,7 +5048,8 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonMoveAccuracyFromPC(boxId, boxPokemonId, moveId)
+      x-lua-signature: result = getPokemonMoveAccuracyFromPC(boxId, boxPokemonId,
+        moveId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonMoveAccuracyFromPC(1, 1, "Tackle")
@@ -5001,7 +5069,8 @@ paths:
         ```
 
 
-        Returns the move power of the specified pokémon in the box at the specified index.'
+        Returns the move power of the specified pokémon in the box at the specified
+        index.'
       requestBody:
         required: true
         content:
@@ -5051,7 +5120,8 @@ paths:
         ```
 
 
-        Returns the move type of the specified pokémon in the box at the specified index.'
+        Returns the move type of the specified pokémon in the box at the specified
+        index.'
       requestBody:
         required: true
         content:
@@ -5101,7 +5171,8 @@ paths:
         ```
 
 
-        Returns the move damage type of the specified pokémon in the box at the specified index.'
+        Returns the move damage type of the specified pokémon in the box at the specified
+        index.'
       requestBody:
         required: true
         content:
@@ -5131,7 +5202,8 @@ paths:
               schema:
                 type: string
               example: value
-      x-lua-signature: result = getPokemonMoveDamageTypeFromPC(boxId, boxPokemonId, moveId)
+      x-lua-signature: result = getPokemonMoveDamageTypeFromPC(boxId, boxPokemonId,
+        moveId)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonMoveDamageTypeFromPC(1, 1, "Tackle")
@@ -5151,7 +5223,8 @@ paths:
         ```
 
 
-        Returns true if the move of the specified pokémon in the box at the specified index can apply a status .'
+        Returns true if the move of the specified pokémon in the box at the specified
+        index can apply a status .'
       requestBody:
         required: true
         content:
@@ -5343,7 +5416,8 @@ paths:
         ```
 
 
-        Returns the effort value for the specified stat of the specified pokémon in the PC.'
+        Returns the effort value for the specified stat of the specified pokémon in
+        the PC.'
       requestBody:
         required: true
         content:
@@ -5393,7 +5467,8 @@ paths:
         ```
 
 
-        Returns the individual value for the specified stat of the specified pokémon in the PC.'
+        Returns the individual value for the specified stat of the specified pokémon
+        in the PC.'
       requestBody:
         required: true
         content:
@@ -5423,7 +5498,8 @@ paths:
               schema:
                 type: integer
               example: 1
-      x-lua-signature: result = getPokemonIndividualValueFromPC(boxId, boxPokemonId, statType)
+      x-lua-signature: result = getPokemonIndividualValueFromPC(boxId, boxPokemonId,
+        statType)
       x-codeSamples:
       - lang: Lua
         source: local result = getPokemonIndividualValueFromPC(1, 1, "value")
@@ -5731,7 +5807,8 @@ paths:
         ```
 
 
-        Returns true if the opponent pokémon has already been caught and has a pokédex entry.'
+        Returns true if the opponent pokémon has already been caught and has a pokédex
+        entry.'
       responses:
         '200':
           description: Lua return value.
@@ -5934,7 +6011,8 @@ paths:
         ```
 
 
-        Returns the percentage of remaining health of the opponent pokémon in the current battle.'
+        Returns the percentage of remaining health of the opponent pokémon in the
+        current battle.'
       responses:
         '200':
           description: Lua return value.
@@ -6134,7 +6212,8 @@ paths:
         ```
 
 
-        Returns the type of the opponent pokémon in the current battle as an array of length 2.'
+        Returns the type of the opponent pokémon in the current battle as an array
+        of length 2.'
       responses:
         '200':
           description: Lua return value.
@@ -6684,7 +6763,8 @@ paths:
         ```
 
 
-        Sorts the pokémon in the team by level in ascending order, one pokémon at a time.'
+        Sorts the pokémon in the team by level in ascending order, one pokémon at
+        a time.'
       responses:
         '200':
           description: Lua return value.
@@ -6713,7 +6793,8 @@ paths:
         ```
 
 
-        Sorts the pokémon in the team by level in descending order, one pokémon at a time.'
+        Sorts the pokémon in the team by level in descending order, one pokémon at
+        a time.'
       responses:
         '200':
           description: Lua return value.
@@ -6742,7 +6823,8 @@ paths:
         ```
 
 
-        Sorts the specified part of the team by level in ascending order, one pokémon at a time.'
+        Sorts the specified part of the team by level in ascending order, one pokémon
+        at a time.'
       requestBody:
         required: true
         content:
@@ -6788,7 +6870,8 @@ paths:
         ```
 
 
-        Sorts the specified part of the team by level in descending order, one pokémon at a time.'
+        Sorts the specified part of the team by level in descending order, one pokémon
+        at a time.'
       requestBody:
         required: true
         content:
@@ -6964,7 +7047,10 @@ paths:
         ```
 
 
-        Move next to the map PC when needed, open Pokémon Storage, and request the current PC box. The PC opens using the official storage flow and remains open until closed by movement or another PC action. Use `isCurrentPCBoxRefreshed()` before relying on the refreshed box contents.'
+        Move next to the map PC when needed, open Pokémon Storage, and request the
+        current PC box. The PC opens using the official storage flow and remains open
+        until closed by movement or another PC action. Use `isCurrentPCBoxRefreshed()`
+        before relying on the refreshed box contents.'
       responses:
         '200':
           description: Lua return value.
@@ -6993,7 +7079,10 @@ paths:
         ```
 
 
-        Open or refresh a PC box by its one-based box number. The visible box order uses one-based `boxPokemonId` indexes, while the tool internally tracks server database IDs and PC slot IDs. Wait for `isCurrentPCBoxRefreshed()` before reading the box immediately after opening it.'
+        Open or refresh a PC box by its one-based box number. The visible box order
+        uses one-based `boxPokemonId` indexes, while the tool internally tracks server
+        database IDs and PC slot IDs. Wait for `isCurrentPCBoxRefreshed()` before
+        reading the box immediately after opening it.'
       requestBody:
         required: true
         content:
@@ -7035,7 +7124,10 @@ paths:
         ```
 
 
-        Send the Pokémon at the one-based team index into the currently open PC box. The tool resolves the selected team Pokémon to its server database ID and waits for the server PC delta update instead of forcing an immediate full refresh. Re-check team/PC state before issuing a dependent action.'
+        Send the Pokémon at the one-based team index into the currently open PC box.
+        The tool resolves the selected team Pokémon to its server database ID and
+        waits for the server PC delta update instead of forcing an immediate full
+        refresh. Re-check team/PC state before issuing a dependent action.'
       requestBody:
         required: true
         content:
@@ -7077,7 +7169,10 @@ paths:
         ```
 
 
-        Move the Pokémon at the one-based PC box index into the team. The tool resolves the selected PC Pokémon to its server database ID and waits for the normal team update plus PC delta remove response. The target `boxId` should match the visible/refreshed PC box.'
+        Move the Pokémon at the one-based PC box index into the team. The tool resolves
+        the selected PC Pokémon to its server database ID and waits for the normal
+        team update plus PC delta remove response. The target `boxId` should match
+        the visible/refreshed PC box.'
       requestBody:
         required: true
         content:
@@ -7123,7 +7218,10 @@ paths:
         ```
 
 
-        Swap the Pokémon at the one-based team index with the Pokémon at the one-based index in the selected PC box. The tool sends the official database-ID swap packet and applies the server PC delta update, so the PC Pokémon can be at any position in the box, including the first slot.'
+        Swap the Pokémon at the one-based team index with the Pokémon at the one-based
+        index in the selected PC box. The tool sends the official database-ID swap
+        packet and applies the server PC delta update, so the PC Pokémon can be at
+        any position in the box, including the first slot.'
       requestBody:
         required: true
         content:
@@ -7163,7 +7261,19 @@ paths:
       - PC storage
       operationId: swapPokemonWithinPC
       summary: swapPokemonWithinPC()
-      description: "**Lua global function**\n\n```lua\nresult = swapPokemonWithinPC(boxId, firstBoxPokemonId, secondBoxPokemonId)\n```\n\nSwap two Pokémon positions inside the same visible PC box. Both PC indexes are one-based. The server returns a position-pair delta, and the tool updates the cached PC slot order without refreshing the full box."
+      description: '**Lua global function**
+
+
+        ```lua
+
+        result = swapPokemonWithinPC(boxId, firstBoxPokemonId, secondBoxPokemonId)
+
+        ```
+
+
+        Swap two Pokémon positions inside the same visible PC box. Both PC indexes
+        are one-based. The server returns a position-pair delta, and the tool updates
+        the cached PC slot order without refreshing the full box.'
       requestBody:
         required: true
         content:
@@ -7343,7 +7453,10 @@ paths:
         ```
 
 
-        Permanently release/delete the Pokémon at the one-based index in the selected PC box. This cannot be undone. The tool resolves the Pokémon database ID, sends the official release packet, and waits for the server PC delta remove update.'
+        Permanently release/delete the Pokémon at the one-based index in the selected
+        PC box. This cannot be undone. The tool resolves the Pokémon database ID,
+        sends the official release packet, and waits for the server PC delta remove
+        update.'
       requestBody:
         required: true
         content:
@@ -7663,7 +7776,8 @@ paths:
         ```
 
 
-        Adds the specified answer to the answer queue. It will be used in the next dialog.'
+        Adds the specified answer to the answer queue. It will be used in the next
+        dialog.'
       requestBody:
         required: true
         content:
@@ -8271,7 +8385,8 @@ paths:
         ```
 
 
-        Sets the name of the option at a particular index, or creates it if it doesn''t exist'
+        Sets the name of the option at a particular index, or creates it if it doesn''t
+        exist'
       requestBody:
         required: true
         content:
@@ -8312,7 +8427,8 @@ paths:
         ```
 
 
-        Sets the tooltip description of the option at a particular index, or creates it if it doesn''t exist'
+        Sets the tooltip description of the option at a particular index, or creates
+        it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8390,7 +8506,8 @@ paths:
         ```
 
 
-        Sets the text of the TextOption at a particular index, or creates it if it doesn''t exist'
+        Sets the text of the TextOption at a particular index, or creates it if it
+        doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8431,7 +8548,8 @@ paths:
         ```
 
 
-        Returns the text content of the TextOption at a particular index, or an empty string if it doesn''t exist'
+        Returns the text content of the TextOption at a particular index, or an empty
+        string if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8473,7 +8591,8 @@ paths:
         ```
 
 
-        Sets the name of the TextOption at a particular index, or creates it if it doesn''t exist'
+        Sets the name of the TextOption at a particular index, or creates it if it
+        doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8514,7 +8633,8 @@ paths:
         ```
 
 
-        Sets the tooltip description of the TextOption at a particular index, or creates it if it doesn''t exist'
+        Sets the tooltip description of the TextOption at a particular index, or creates
+        it if it doesn''t exist'
       requestBody:
         required: true
         content:
@@ -8592,7 +8712,8 @@ paths:
         ```
 
 
-        Writes a string to file overwrite is an optional parameter, and will append the line(s) if absent'
+        Writes a string to file overwrite is an optional parameter, and will append
+        the line(s) if absent'
       requestBody:
         required: true
         content:
@@ -8637,7 +8758,8 @@ paths:
         ```
 
 
-        Writes a string, a number, or a table of strings and/or numbers to file overwrite is an optional parameter, and will append the line(s) if absent'
+        Writes a string, a number, or a table of strings and/or numbers to file overwrite
+        is an optional parameter, and will append the line(s) if absent'
       requestBody:
         required: true
         content:
@@ -8733,7 +8855,9 @@ paths:
         ```
 
 
-        Request a refresh for the specified PC box. The response can be a full box snapshot, a metadata-only update, or a delta update. Use `isCurrentPCBoxRefreshed()` before reading the refreshed contents immediately after this call.'
+        Request a refresh for the specified PC box. The response can be a full box
+        snapshot, a metadata-only update, or a delta update. Use `isCurrentPCBoxRefreshed()`
+        before reading the refreshed contents immediately after this call.'
       requestBody:
         required: true
         content:
@@ -8934,7 +9058,13 @@ paths:
         ```
 
 
-        Send a configured notification template by name or id. Built-in variables such as `{player}`, `{map}`, `{x}`, `{y}`, `{account}`, `{server}`, `{bot}`, `{time}`, `{date}`, and `{datetime}` are filled automatically when available. The template''s configured target controls whether it goes to personal Discord, the built-in PROCatchem Discord channel, Telegram, or all enabled channels. Returns `false` only when notifications are disabled or the template cannot be found; network delivery is asynchronous.'
+        Send a configured notification template by name or id. Built-in variables
+        such as `{player}`, `{map}`, `{x}`, `{y}`, `{account}`, `{server}`, `{bot}`,
+        `{time}`, `{date}`, and `{datetime}` are filled automatically when available.
+        The template''s configured target controls whether it goes to personal Discord,
+        the built-in PROCatchem Discord channel, Telegram, or all enabled channels.
+        Returns `false` only when notifications are disabled or the template cannot
+        be found; network delivery is asynchronous.'
       responses:
         '200':
           description: Lua return value.
@@ -8977,7 +9107,10 @@ paths:
         ```
 
 
-        Send a configured notification template and override/add template variables using a Lua table. Table keys should match template variables without braces. Per-call values override built-ins, runtime variables set by `setNotifyVar`, global variables, and template defaults.'
+        Send a configured notification template and override/add template variables
+        using a Lua table. Table keys should match template variables without braces.
+        Per-call values override built-ins, runtime variables set by `setNotifyVar`,
+        global variables, and template defaults.'
       responses:
         '200':
           description: Lua return value.
@@ -8989,7 +9122,8 @@ paths:
       x-lua-signature: result = sendNotificationWith(templateName, values)
       x-codeSamples:
       - lang: Lua
-        source: local ok = sendNotificationWith("Shiny found", { pokemon = "Gyarados", level = "30" })
+        source: local ok = sendNotificationWith("Shiny found", { pokemon = "Gyarados",
+          level = "30" })
       requestBody:
         required: true
         content:
@@ -9027,7 +9161,10 @@ paths:
         ```
 
 
-        Send a configured notification template while overriding its delivery target for this one call. Accepted targets are `personal`, `discord`, `procatchem`, `telegram`, and `all`. `all` falls back to the template''s configured target, which defaults to all enabled channels.'
+        Send a configured notification template while overriding its delivery target
+        for this one call. Accepted targets are `personal`, `discord`, `procatchem`,
+        `telegram`, and `all`. `all` falls back to the template''s configured target,
+        which defaults to all enabled channels.'
       responses:
         '200':
           description: Lua return value.
@@ -9074,7 +9211,9 @@ paths:
         ```
 
 
-        Send a configured notification template, pass template variables, and override the delivery target for this one call. This is the most explicit notification helper for scripts that need to route different alerts to different channels.'
+        Send a configured notification template, pass template variables, and override
+        the delivery target for this one call. This is the most explicit notification
+        helper for scripts that need to route different alerts to different channels.'
       responses:
         '200':
           description: Lua return value.
@@ -9086,7 +9225,8 @@ paths:
       x-lua-signature: result = sendNotificationWithTo(templateName, values, target)
       x-codeSamples:
       - lang: Lua
-        source: local ok = sendNotificationWithTo("Shiny found", { pokemon = "Gyarados", level = "30" }, "procatchem")
+        source: local ok = sendNotificationWithTo("Shiny found", { pokemon = "Gyarados",
+          level = "30" }, "procatchem")
       requestBody:
         required: true
         content:
@@ -9127,7 +9267,9 @@ paths:
         ```
 
 
-        Send a quick plain-text notification without using a configured template. Use this for simple alerts where you do not need title/body formatting or template variables. Returns immediately after queueing the asynchronous send.'
+        Send a quick plain-text notification without using a configured template.
+        Use this for simple alerts where you do not need title/body formatting or
+        template variables. Returns immediately after queueing the asynchronous send.'
       responses:
         '200':
           description: Lua return value.
@@ -9170,7 +9312,9 @@ paths:
         ```
 
 
-        Set a runtime notification variable. The variable can be used in any template as `{name}` until it is overwritten or cleared with `clearNotifyVars()`. Values are converted to strings.'
+        Set a runtime notification variable. The variable can be used in any template
+        as `{name}` until it is overwritten or cleared with `clearNotifyVars()`. Values
+        are converted to strings.'
       responses:
         '200':
           description: Lua return value.
@@ -9179,7 +9323,7 @@ paths:
               schema:
                 type: 'null'
                 description: No return value.
-              example:
+              example: null
       x-lua-signature: setNotifyVar(name, value)
       x-codeSamples:
       - lang: Lua
@@ -9218,7 +9362,8 @@ paths:
         ```
 
 
-        Clear all runtime notification variables previously set with `setNotifyVar`. Built-in variables and configured template/default variables are not removed.'
+        Clear all runtime notification variables previously set with `setNotifyVar`.
+        Built-in variables and configured template/default variables are not removed.'
       responses:
         '200':
           description: Lua return value.
@@ -9227,7 +9372,7 @@ paths:
               schema:
                 type: 'null'
                 description: No return value.
-              example:
+              example: null
       x-lua-signature: clearNotifyVars()
       x-codeSamples:
       - lang: Lua
@@ -9248,7 +9393,10 @@ paths:
         ```
 
 
-        Start surfing from the current position. If `setWaterMount()` configured a water mount, the tool uses that mount item; otherwise it sends the normal `/surf` action. Pathfinding also calls this automatically when a route transitions from ground to water.'
+        Start surfing from the current position. If `setWaterMount()` configured a
+        water mount, the tool uses that mount item; otherwise it sends the normal
+        `/surf` action. Pathfinding also calls this automatically when a route transitions
+        from ground to water.'
       responses:
         '200':
           description: Lua return value.

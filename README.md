@@ -1,81 +1,37 @@
-# PROCatchem Lua Script API Docs
+# PROCatchem Lua API Docs - Slate Template
 
-This repository contains a static Redoc documentation site for the Lua scripting API exposed by **PROCatchem v1.0.145**.
+This package converts the full PROCatchem Lua API reference from the previous Redoc/OpenAPI page to the uploaded Slate-style template.
 
-The source of truth is `openapi.yaml`. The OpenAPI file models Lua functions as pseudo-endpoints so Redoc can render a searchable API reference. These are **not HTTP endpoints**; each operation documents one Lua global function or callback.
+## What changed
 
-## New in this docs update
+- All Lua APIs from `openapi.yaml` are rendered into `source/index.md` using Slate sections and Lua code tabs.
+- A direct static fallback is available at `index.html` and `dist/index.html`, so you can open the docs without building Ruby/Middleman.
+- The previous Redoc sidebar-scroll workaround is no longer needed because this template uses normal anchor navigation.
+- PC storage APIs include the latest flows: official PC open/close, team-PC swap, deposit/withdraw, release, and internal PC box swap.
 
-- Updated PC storage Lua APIs to match the latest tool behavior:
-  - `depositPokemonToPC(teamPokemonId)` documents team index based deposit into the current PC box.
-  - `withdrawPokemonFromPC(boxId, boxPokemonId)` documents PC index based withdraw back to team.
-  - `swapPokemonFromPC(boxId, boxPokemonId, teamPokemonId)` documents team ↔ PC swap using visible one-based indexes.
-  - Added `swapPokemonWithinPC(boxId, firstBoxPokemonId, secondBoxPokemonId)` for internal PC box position swaps.
-  - `releasePokemonFromPC(boxId, boxPokemonId)` now documents permanent PC release/delete behavior.
-  - `refreshPCBox(boxId)` / `isCurrentPCBoxRefreshed()` notes now explain async PC metadata, snapshot, and delta updates.
-- Updated mount/surf docs: `setWaterMount()` is optional and should be configured before entering water; default surfing still uses the normal `/surf` flow.
-- Fixed Redoc sidebar navigation for same-page clicks: the helper now waits for Redoc's `history.pushState` update, uses the current hash or clicked `data-item-id`, scrolls the actual Redoc content section, and supports both window and nested scroll containers without heavy DOM scans.
-- Removed SEO-only blocks from the generated HTML page, including canonical/Open Graph/Twitter metadata, JSON-LD, sitemap link, and the hidden SEO intro. Examples remain in place.
+## Files
 
-## Structure
+- `source/index.md` - Slate source document.
+- `index.html` - direct static Slate-like page.
+- `dist/index.html` - deployable static page.
+- `openapi.yaml` - source metadata retained for tooling.
+- `examples/` - Lua examples.
 
-```text
-.
-├── index.html                         # Static Redoc page + compact header
-├── openapi.yaml                       # PROCatchem Lua API reference
-├── robots.txt                         # Search-engine crawl rules
-├── sitemap.xml                        # Sitemap for indexing
-├── examples/
-│   ├── basic-script.lua
-│   └── notification-script.lua
-├── package.json                       # Local preview/build scripts
-├── redocly.yaml                       # Redocly lint/preview config
-└── vercel.json                        # Vercel deployment config
-```
-
-## Local preview
+## Run static page
 
 ```bash
-npm install
-npm run dev
+python3 -m http.server 8080 -d dist
 ```
 
-Alternative static preview:
+Then open `http://localhost:8080`.
+
+## Optional Slate/Middleman build
+
+If Ruby dependencies are available:
 
 ```bash
-npm run build
-npx serve dist
+bundle install
+bundle exec middleman build
 ```
 
-## Deploy to Vercel from GitHub
-
-1. Create a new GitHub repository, for example `procatchem-api-docs`.
-2. Push these files to the repository root.
-3. Open Vercel and choose **Add New Project**.
-4. Import the GitHub repository.
-5. Keep the settings from `vercel.json`:
-   - Framework Preset: `Other`
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-6. Deploy.
-
-
-## Updating the docs
-
-When the Lua script API changes, update `openapi.yaml` and bump the version field in `package.json`.
-
-## Notes for script authors
-
-- `onPathAction()` is called while outside battle.
-- `onBattleAction()` is called while in battle.
-- Execute at most one path or battle action per frame.
-- Query/helper functions can be called before deciding which action to run.
-- Notification sending is asynchronous. Lua calls return after queueing the send, not after Discord/Telegram delivery is complete.
-
-## Redoc navigation fix note
-
-The left menu and main content are linked by Redoc attributes: sidebar items expose `data-item-id`, and content sections expose the same value through `data-section-id`. Redoc updates the URL with `history.pushState`, which does not emit a normal browser `hashchange` event, so the page uses a small capture-phase fallback that waits for Redoc to activate the item, then scrolls the matching content section with the sticky header offset. The fallback supports both normal window scrolling and nested Redoc scroll containers. It does not scan API headings and avoids long retry loops to prevent UI freezes.
-
-## Documentation UI note
-
-Sidebar operation titles use Lua function names only, for example `getPokedexEvolved()` or `onStart()`, while descriptions stay inside each API detail page.
+Version: `1.0.97`.
