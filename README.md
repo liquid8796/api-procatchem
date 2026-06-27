@@ -17,21 +17,26 @@ This package converts the full PROCatchem Lua API reference from the previous Re
 - `openapi.yaml` - source metadata retained for tooling.
 - `examples/` - Lua examples.
 
-## Run static page
+## Build and run static page
+
+The default build is Vercel-safe and does not require Ruby gems:
 
 ```bash
-python3 -m http.server 8080 -d dist
+npm install
+npm run build
+npm run dev
 ```
 
 Then open `http://localhost:8080`.
 
 ## Optional Slate/Middleman build
 
-If Ruby dependencies are available:
+If Ruby dependencies are available and you specifically want to rebuild from the Slate/Middleman source:
 
 ```bash
-bundle install
-bundle exec middleman build
+npm run slate:build
 ```
 
-Version: `1.0.97`.
+Vercel uses the default `npm run build` static build to avoid failing when Bundler gems are not installed.
+
+Version: `1.0.98`.
