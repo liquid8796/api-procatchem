@@ -2,8 +2,8 @@ openapi: 3.1.0
 info:
   title: PROCatchem Lua Script API
   summary: Lua API reference for PROCatchem script authors, including notification helpers.
-  version: 1.0.92
-  description: "This documentation describes the Lua functions exposed by PROCatchem to user scripts.\n\nThe API is represented as OpenAPI pseudo-endpoints so it can be rendered with Redoc/Redocly and deployed as a static documentation site. These are not HTTP endpoints. Each operation describes one Lua global function or script callback.\n\nNew notification helpers let scripts send configured Discord/Telegram notification templates, pass template variables, override delivery targets, and send quick plain-text alerts from Lua.\n\nBasic script shape:\n\n```lua\nname = \"Example Script\"\nauthor = \"YourName\"\ndescription = \"Simple PROCatchem script.\"\n\nfunction onPathAction()\n    if getMapName() == \"Viridian City\" then\n        moveToGrass()\n    end\nend\n\nfunction onBattleAction()\n    attack()\nend\n```\n\nAction rule: a script should execute at most one path or battle action per frame. Query/helper functions can be called freely.\n"
+  version: 1.0.94
+  description: "This documentation describes the Lua functions exposed by PROCatchem to user scripts.\n\nThe API is represented as OpenAPI pseudo-endpoints so it can be rendered with Redoc/Redocly and deployed as a static documentation site. These are not HTTP endpoints. Each operation describes one Lua global function or script callback.\n\nNew notification helpers let scripts send configured Discord/Telegram notification templates, pass template variables, override delivery targets, and send quick plain-text alerts from Lua.\n\nBasic script shape:\n\n```lua\nname = \"Example Script\"\nauthor = \"YourName\"\ndescription = \"Simple PROCatchem script.\"\n\nfunction onPathAction()\n    if getMapName() == \"Viridian City\" then\n        moveToGrass()\n    end\nend\n\nfunction onBattleAction()\n    attack()\nend\n```\n\nAction rule: a script should execute at most one path or battle action per frame. Query/helper functions can be called freely.\n\nPC storage helpers document the current official storage flow: open with `usePC()`, refresh or open a box, then use one-based indexes for the visible team/box order. PC updates are asynchronous; after deposit, withdraw, swap, internal box swap, or release, wait for `isCurrentPCBoxRefreshed()` or re-check the relevant PC/team state before issuing the next dependent action."
 servers:
 - url: lua://PROCatchem
   description: Pseudo server used only to render Lua function documentation.
@@ -3943,7 +3943,7 @@ paths:
         ```
 
 
-        Sets the item that will be used to mount the player'
+        Configure the ground mount or bike item that the bot should use while moving on outside ground maps. Pass the exact item name, for example `Arcanine Mount` or `Blue Bicycle`. Pass an empty string to clear the configured ground mount. The function only configures the item; the tool uses it automatically before movement when appropriate.'
       requestBody:
         required: true
         content:
@@ -3956,7 +3956,7 @@ paths:
               required:
               - mount
             example:
-              mount: value
+              mount: Arcanine Mount
       responses:
         '200':
           description: Lua return value.
@@ -3968,7 +3968,7 @@ paths:
       x-lua-signature: result = setMount(mount)
       x-codeSamples:
       - lang: Lua
-        source: local result = setMount("value")
+        source: local result = setMount("Arcanine Mount")
   /lua/general-state/setwatermount:
     post:
       tags:
@@ -3985,7 +3985,7 @@ paths:
         ```
 
 
-        Sets the item that will be used when the player begins surfing'
+        Configure an optional water mount item that should be used when the bot needs to start surfing. Call this before a path that may enter water. Most scripts can leave it unset; without a water mount, `useSurf()` and pathfinding use the normal `/surf` flow. Pass an empty string to clear the configured water mount.'
       requestBody:
         required: true
         content:
@@ -3998,7 +3998,7 @@ paths:
               required:
               - mount
             example:
-              mount: value
+              mount: Lapras Mount
       responses:
         '200':
           description: Lua return value.
@@ -4010,7 +4010,7 @@ paths:
       x-lua-signature: result = setWaterMount(mount)
       x-codeSamples:
       - lang: Lua
-        source: local result = setWaterMount("value")
+        source: local result = setWaterMount("Lapras Mount")
   /lua/general-state/iscurrentpcboxrefreshed:
     post:
       tags:
@@ -4027,7 +4027,7 @@ paths:
         ```
 
 
-        Is the currentPcBox refreshed yet?'
+        Returns true when the latest requested PC box action has completed or there is no pending PC box refresh. Use this after `usePC()`, `openPCBox()`, or `refreshPCBox()` before reading PC Pokémon data.'
       responses:
         '200':
           description: Lua return value.
@@ -4114,7 +4114,7 @@ paths:
         ```
 
 
-        Current box size.'
+        Returns the number of Pokémon currently cached in the visible PC box. PC boxes can hold up to 30 slots; use this as the safe upper bound for one-based `boxPokemonId` indexes after the box is refreshed.'
       responses:
         '200':
           description: Lua return value.
@@ -4172,7 +4172,7 @@ paths:
         ```
 
 
-        Return the number of pokemon in the PC'
+        Returns the latest known total Pokémon count for the current PC storage view. The value is read from server PC metadata when available and should not be inferred from internal slot IDs.'
       responses:
         '200':
           description: Lua return value.
@@ -6964,7 +6964,7 @@ paths:
         ```
 
 
-        Move to the PC and opens it, refreshing the first box.'
+        Move next to the map PC when needed, open Pokémon Storage, and request the current PC box. The PC opens using the official storage flow and remains open until closed by movement or another PC action. Use `isCurrentPCBoxRefreshed()` before relying on the refreshed box contents.'
       responses:
         '200':
           description: Lua return value.
@@ -6993,7 +6993,7 @@ paths:
         ```
 
 
-        Open box from the PC.'
+        Open or refresh a PC box by its one-based box number. The visible box order uses one-based `boxPokemonId` indexes, while the tool internally tracks server database IDs and PC slot IDs. Wait for `isCurrentPCBoxRefreshed()` before reading the box immediately after opening it.'
       requestBody:
         required: true
         content:
@@ -7030,12 +7030,12 @@ paths:
 
         ```lua
 
-        result = depositPokemonToPC(pokemonUid)
+        result = depositPokemonToPC(teamPokemonId)
 
         ```
 
 
-        Deposit a pokemon to the pc.'
+        Send the Pokémon at the one-based team index into the currently open PC box. The tool resolves the selected team Pokémon to its server database ID and waits for the server PC delta update instead of forcing an immediate full refresh. Re-check team/PC state before issuing a dependent action.'
       requestBody:
         required: true
         content:
@@ -7043,12 +7043,12 @@ paths:
             schema:
               type: object
               properties:
-                pokemonUid:
+                teamPokemonId:
                   type: integer
               required:
-              - pokemonUid
+              - teamPokemonId
             example:
-              pokemonUid: 1
+              teamPokemonId: 2
       responses:
         '200':
           description: Lua return value.
@@ -7057,10 +7057,10 @@ paths:
               schema:
                 type: boolean
               example: true
-      x-lua-signature: result = depositPokemonToPC(pokemonUid)
+      x-lua-signature: result = depositPokemonToPC(teamPokemonId)
       x-codeSamples:
       - lang: Lua
-        source: local result = depositPokemonToPC(1)
+        source: local result = depositPokemonToPC(2)
   /lua/pc-storage/withdrawpokemonfrompc:
     post:
       tags:
@@ -7077,7 +7077,7 @@ paths:
         ```
 
 
-        Withdraw a pokemon from a known box.'
+        Move the Pokémon at the one-based PC box index into the team. The tool resolves the selected PC Pokémon to its server database ID and waits for the normal team update plus PC delta remove response. The target `boxId` should match the visible/refreshed PC box.'
       requestBody:
         required: true
         content:
@@ -7118,12 +7118,12 @@ paths:
 
         ```lua
 
-        result = swapPokemonFromPC(boxId, boxPokemonId, pokemonUid)
+        result = swapPokemonFromPC(boxId, boxPokemonId, teamPokemonId)
 
         ```
 
 
-        Swap a pokemon from the team with a pokemon from the pc.'
+        Swap the Pokémon at the one-based team index with the Pokémon at the one-based index in the selected PC box. The tool sends the official database-ID swap packet and applies the server PC delta update, so the PC Pokémon can be at any position in the box, including the first slot.'
       requestBody:
         required: true
         content:
@@ -7135,16 +7135,16 @@ paths:
                   type: integer
                 boxPokemonId:
                   type: integer
-                pokemonUid:
+                teamPokemonId:
                   type: integer
               required:
               - boxId
               - boxPokemonId
-              - pokemonUid
+              - teamPokemonId
             example:
               boxId: 1
               boxPokemonId: 1
-              pokemonUid: 1
+              teamPokemonId: 2
       responses:
         '200':
           description: Lua return value.
@@ -7153,10 +7153,50 @@ paths:
               schema:
                 type: boolean
               example: true
-      x-lua-signature: result = swapPokemonFromPC(boxId, boxPokemonId, pokemonUid)
+      x-lua-signature: result = swapPokemonFromPC(boxId, boxPokemonId, teamPokemonId)
       x-codeSamples:
       - lang: Lua
-        source: local result = swapPokemonFromPC(1, 1, 1)
+        source: local result = swapPokemonFromPC(1, 1, 2)
+  /lua/pc-storage/swappokemonwithinpc:
+    post:
+      tags:
+      - PC storage
+      operationId: swapPokemonWithinPC
+      summary: swapPokemonWithinPC()
+      description: "**Lua global function**\n\n```lua\nresult = swapPokemonWithinPC(boxId, firstBoxPokemonId, secondBoxPokemonId)\n```\n\nSwap two Pokémon positions inside the same visible PC box. Both PC indexes are one-based. The server returns a position-pair delta, and the tool updates the cached PC slot order without refreshing the full box."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                boxId:
+                  type: integer
+                firstBoxPokemonId:
+                  type: integer
+                secondBoxPokemonId:
+                  type: integer
+              required:
+              - boxId
+              - firstBoxPokemonId
+              - secondBoxPokemonId
+            example:
+              boxId: 1
+              firstBoxPokemonId: 1
+              secondBoxPokemonId: 2
+      responses:
+        '200':
+          description: Lua return value.
+          content:
+            application/json:
+              schema:
+                type: boolean
+              example: true
+      x-lua-signature: result = swapPokemonWithinPC(boxId, firstBoxPokemonId, secondBoxPokemonId)
+      x-codeSamples:
+      - lang: Lua
+        source: local result = swapPokemonWithinPC(1, 1, 2)
   /lua/items-and-shop/giveitemtopokemon:
     post:
       tags:
@@ -7303,7 +7343,7 @@ paths:
         ```
 
 
-        Releases the specified pokemon in the PC.'
+        Permanently release/delete the Pokémon at the one-based index in the selected PC box. This cannot be undone. The tool resolves the Pokémon database ID, sends the official release packet, and waits for the server PC delta remove update.'
       requestBody:
         required: true
         content:
@@ -8693,7 +8733,7 @@ paths:
         ```
 
 
-        Refresh PC Box'
+        Request a refresh for the specified PC box. The response can be a full box snapshot, a metadata-only update, or a delta update. Use `isCurrentPCBoxRefreshed()` before reading the refreshed contents immediately after this call.'
       requestBody:
         required: true
         content:
@@ -9139,7 +9179,7 @@ paths:
               schema:
                 type: 'null'
                 description: No return value.
-              example: null
+              example:
       x-lua-signature: setNotifyVar(name, value)
       x-codeSamples:
       - lang: Lua
@@ -9187,7 +9227,7 @@ paths:
               schema:
                 type: 'null'
                 description: No return value.
-              example: null
+              example:
       x-lua-signature: clearNotifyVars()
       x-codeSamples:
       - lang: Lua
@@ -9208,7 +9248,7 @@ paths:
         ```
 
 
-        Use Surf'
+        Start surfing from the current position. If `setWaterMount()` configured a water mount, the tool uses that mount item; otherwise it sends the normal `/surf` action. Pathfinding also calls this automatically when a route transitions from ground to water.'
       responses:
         '200':
           description: Lua return value.

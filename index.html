@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>PROCatchem Lua Script API Docs | Bot Scripting Reference</title>
-    <meta name="description" content="Official PROCatchem Lua Script API documentation for bot scripts, battle helpers, map actions, chat helpers, and Discord or Telegram notification APIs." />
-    <meta name="keywords" content="PROCatchem, PROCatchem API, PROCatchem Lua, PROCatchem docs, PROCatchem script, Pokemon Revolution Online bot scripting, Lua bot API, Discord notification Lua API, Telegram notification Lua API" />
+    <meta name="description" content="Official PROCatchem Lua Script API documentation for bot scripts, battle helpers, map actions, PC storage helpers, and Discord or Telegram notification APIs." />
+    <meta name="keywords" content="PROCatchem, PROCatchem API, PROCatchem Lua, PROCatchem docs, PROCatchem script, Pokemon Revolution Online bot scripting, Lua bot API, PC storage Lua API, Discord notification Lua API, Telegram notification Lua API" />
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <meta name="author" content="PROCatchem Community" />
     <link rel="canonical" href="https://api-procatchem.vercel.app/" />
@@ -94,35 +94,42 @@
         <li><a href="./examples/notification-script.lua">Notification Lua script example</a></li>
       </ul>
     </main>
-    <redoc id="api-docs" spec-url="./openapi.yaml" hide-download-button="false" expand-responses="200,204" scroll-y-offset=".topbar"></redoc>
+    <redoc id="api-docs" spec-url="./openapi.yaml" hide-download-button="false" expand-responses="200,204" scroll-y-offset=".topbar" native-scrollbars></redoc>
     <noscript>Please enable JavaScript to view the interactive Redoc API reference. The raw OpenAPI source is available at /openapi.yaml.</noscript>
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
 <script>
       (function () {
-        var NAV_ATTEMPTS_MS = [0, 80, 180, 360, 700];
+        var NAV_ATTEMPTS_MS = [0, 80, 180, 360, 720];
+        var cachedSections = [];
+        var cacheAt = 0;
 
         function getHeaderOffset() {
           var topbar = document.querySelector('.topbar');
           return topbar ? Math.ceil(topbar.getBoundingClientRect().height || 0) + 12 : 0;
         }
 
-        function cssEscape(value) {
-          if (window.CSS && typeof window.CSS.escape === 'function') {
-            return window.CSS.escape(value);
-          }
-
-          return String(value).replace(/[^a-zA-Z0-9_-]/g, function (character) {
-            return '\\' + character;
-          });
+        function getRedocRoot() {
+          return document.getElementById('api-docs') || document.querySelector('redoc');
         }
 
-        function isVisibleContentSection(element) {
-          if (!element || element.nodeType !== 1) {
-            return false;
+        function refreshSectionCache() {
+          var root = getRedocRoot();
+          if (!root) {
+            cachedSections = [];
+            cacheAt = Date.now();
+            return cachedSections;
           }
 
-          var rect = element.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0;
+          cachedSections = Array.prototype.slice.call(root.querySelectorAll('[data-section-id]'));
+          cacheAt = Date.now();
+          return cachedSections;
+        }
+
+        function getSectionCache() {
+          if (!cachedSections.length || Date.now() - cacheAt > 1500) {
+            return refreshSectionCache();
+          }
+          return cachedSections;
         }
 
         function getRedocMenuItemId(target) {
@@ -130,8 +137,13 @@
             return '';
           }
 
+          var root = getRedocRoot();
           var item = target.closest('[data-item-id]');
-          return item ? (item.getAttribute('data-item-id') || '') : '';
+          if (!item || (root && !root.contains(item))) {
+            return '';
+          }
+
+          return item.getAttribute('data-item-id') || '';
         }
 
         function findContentSectionById(id) {
@@ -139,16 +151,23 @@
             return null;
           }
 
-          try {
-            var selector = 'redoc [data-section-id="' + cssEscape(id) + '"], redoc [id="' + cssEscape(id) + '"]';
-            var nodes = document.querySelectorAll(selector);
-            for (var i = 0; i < nodes.length; i += 1) {
-              if (isVisibleContentSection(nodes[i])) {
-                return nodes[i];
+          var sections = getSectionCache();
+          for (var i = 0; i < sections.length; i += 1) {
+            if (sections[i].getAttribute('data-section-id') === id) {
+              return sections[i];
+            }
+          }
+
+          // Some Redoc builds also expose a matching element id. Keep this as a
+          // fallback, but avoid broad heading scans that can freeze large pages.
+          var root = getRedocRoot();
+          if (root) {
+            var allIdNodes = root.querySelectorAll('[id]');
+            for (var j = 0; j < allIdNodes.length; j += 1) {
+              if (allIdNodes[j].id === id) {
+                return allIdNodes[j];
               }
             }
-          } catch (error) {
-            // Ignore malformed selector edge cases.
           }
 
           return null;
@@ -166,7 +185,7 @@
             top = 0;
           }
 
-          window.scrollTo({ top: top, left: 0, behavior: 'smooth' });
+          window.scrollTo({ top: top, left: 0, behavior: 'auto' });
           return true;
         }
 
@@ -179,6 +198,7 @@
                 return;
               }
 
+              refreshSectionCache();
               var section = findContentSectionById(itemId);
               if (scrollToContentSection(section)) {
                 completed = true;
@@ -193,8 +213,6 @@
             return;
           }
 
-          // Redoc stops sidebar click propagation internally. Capture phase lets this
-          // lightweight fallback observe the item id without blocking Redoc itself.
           navigateToRedocItem(itemId);
         }, true);
 
@@ -206,6 +224,7 @@
         });
 
         window.addEventListener('load', function () {
+          refreshSectionCache();
           var id = decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
           if (id) {
             navigateToRedocItem(id);

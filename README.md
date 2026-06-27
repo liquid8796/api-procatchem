@@ -1,22 +1,21 @@
 # PROCatchem Lua Script API Docs
 
-This repository contains a static Redoc documentation site for the Lua scripting API exposed by **PROCatchem v1.0.93**.
+This repository contains a static Redoc documentation site for the Lua scripting API exposed by **PROCatchem v1.0.145**.
 
 The source of truth is `openapi.yaml`. The OpenAPI file models Lua functions as pseudo-endpoints so Redoc can render a searchable API reference. These are **not HTTP endpoints**; each operation documents one Lua global function or callback.
 
 ## New in this docs update
 
-- Fixed sidebar navigation that still failed to scroll: the previous fallback rejected every content section because it required the section to start past a fixed `380px` left position, but Redoc renders content right next to the sidebar (~260px), so no section ever matched. The fallback now matches sections purely by Redoc's `data-item-id` / `data-section-id` mapping (any visible section) and performs one smooth scroll that accounts for the sticky header, so clicking a Lua function in the left menu reliably jumps to its detail.
-- Added the notification Lua APIs:
-  - `sendNotification(templateName)`
-  - `sendNotificationWith(templateName, values)`
-  - `sendNotificationTo(templateName, target)`
-  - `sendNotificationWithTo(templateName, values, target)`
-  - `notify(message)`
-  - `setNotifyVar(name, value)`
-  - `clearNotifyVars()`
-- Added SEO metadata for Google Search: title/description/keywords, Open Graph/Twitter cards, JSON-LD structured data, `robots.txt`, and `sitemap.xml`.
-- Fixed the documentation header layout so the SEO intro no longer appears as a large visible block above Redoc. SEO metadata/JSON-LD remain in place, and the semantic intro is kept visually hidden to avoid breaking the UI.
+- Updated PC storage Lua APIs to match the latest tool behavior:
+  - `depositPokemonToPC(teamPokemonId)` documents team index based deposit into the current PC box.
+  - `withdrawPokemonFromPC(boxId, boxPokemonId)` documents PC index based withdraw back to team.
+  - `swapPokemonFromPC(boxId, boxPokemonId, teamPokemonId)` documents team ↔ PC swap using visible one-based indexes.
+  - Added `swapPokemonWithinPC(boxId, firstBoxPokemonId, secondBoxPokemonId)` for internal PC box position swaps.
+  - `releasePokemonFromPC(boxId, boxPokemonId)` now documents permanent PC release/delete behavior.
+  - `refreshPCBox(boxId)` / `isCurrentPCBoxRefreshed()` notes now explain async PC metadata, snapshot, and delta updates.
+- Updated mount/surf docs: `setWaterMount()` is optional and should be configured before entering water; default surfing still uses the normal `/surf` flow.
+- Fixed Redoc sidebar navigation again using a lightweight capture-phase helper that reads Redoc `data-item-id`, matches exact `data-section-id` values, and scrolls without heading scans or heavy retry loops.
+- SEO metadata and examples remain in place.
 
 ## Structure
 
@@ -84,7 +83,7 @@ When the Lua script API changes, update `openapi.yaml` and bump the version fiel
 
 ## Redoc navigation fix note
 
-The left menu and main content are linked by Redoc attributes: sidebar items expose `data-item-id`, and content sections expose the same value through `data-section-id` (and a matching `id`). The capture-phase fallback uses that exact mapping (Redoc stops sidebar click propagation internally) and scrolls to the first visible matching section. It no longer assumes a fixed pixel boundary between the sidebar and the content area, so it works regardless of the menu width or viewport size. It does not scan all API headings and does not depend on SEO hidden content.
+The left menu and main content are linked by Redoc attributes: sidebar items expose `data-item-id`, and content sections expose the same value through `data-section-id`. Redoc stops sidebar click propagation internally, so the page uses a small capture-phase fallback that observes the item id, finds the exact matching content section, and scrolls with the sticky header offset. The fallback does not scan API headings, does not depend on SEO hidden content, and avoids long retry loops to prevent UI freezes.
 
 ## Documentation UI note
 
