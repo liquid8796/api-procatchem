@@ -1,9 +1,226 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PROCatchem Lua Script API</title><style>
-:root{--sidebar:#1f2933;--sidebar2:#111820;--main:#fff;--code:#0f1720;--accent:#5dade2;--border:#e5e7eb;--text:#263238;--muted:#718096}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Lato,Arial,sans-serif;color:var(--text);background:#fff}.sidebar{position:fixed;left:0;top:0;bottom:0;width:300px;background:var(--sidebar);color:#e5eef7;overflow:auto;padding:20px 0}.brand{padding:0 24px 18px;border-bottom:1px solid rgba(255,255,255,.08)}.brand h1{font-size:22px;margin:0 0 8px}.brand p{margin:0;color:#a8b3bf;font-size:13px}.search{padding:16px 20px}.search input{width:100%;padding:10px 12px;background:var(--sidebar2);border:1px solid rgba(255,255,255,.12);border-radius:4px;color:#fff}.nav{list-style:none;padding:0 0 32px;margin:0}.nav a{display:block;padding:6px 24px;color:#d8e1ea;text-decoration:none;font-size:13px}.nav a:hover,.nav a.active{background:#2c3e50;color:#fff}.nav-tag>a,.nav-tag-header>a{font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#fff;margin-top:8px}.nav-tag-header{display:flex;align-items:center;position:relative;cursor:pointer}.nav-tag-header>a{flex:1;min-width:0;padding-right:8px;cursor:pointer}.nav-tag-header:hover>a,.nav-tag-header:focus-within>a{background:#2c3e50;color:#fff}.nav-toggle{width:36px;align-self:stretch;margin-top:8px;border:0;background:transparent;color:#b9c7d5;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center}.nav-toggle:hover,.nav-toggle:focus-visible{background:#2c3e50;color:#fff;outline:none}.nav-toggle .nav-caret{display:inline-block;transition:transform .16s ease}.nav-tag.collapsed>.nav-tag-header .nav-caret{transform:rotate(-90deg)}.nav-tag.collapsed>ul{display:none}.nav.searching .nav-tag.collapsed>ul{display:block}.nav-tag.has-active>.nav-tag-header>a{color:#fff}.nav ul{list-style:none;padding:0;margin:0}.nav ul a{padding-left:36px;color:#b9c7d5}.content{margin-left:300px}.intro,.tag-section{padding:32px 40px}.intro{max-width:960px}.intro h1{font-size:32px}.operation{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,42%);border-top:1px solid var(--border);scroll-margin-top:18px}.operation .doc{padding:28px 40px;min-width:0}.operation .code{background:var(--code);padding:28px 24px;overflow:auto}.operation h2{margin-top:0;font-size:24px}.tag-section>h1{font-size:30px;margin:30px 0 18px;border-bottom:1px solid var(--border);padding-bottom:12px;scroll-margin-top:18px}code{background:#f3f4f6;padding:2px 5px;border-radius:3px;font-family:Menlo,Consolas,monospace;font-size:90%}.code code{background:transparent;color:#e2e8f0;padding:0}.code pre{margin:0;white-space:pre-wrap}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{border:1px solid var(--border);padding:8px;vertical-align:top}th{background:#f8fafc;text-align:left}.muted,.source-key{color:var(--muted);font-size:12px}.signature{background:#f8fafc;border-left:4px solid var(--accent);padding:10px 12px}.toplinks{display:flex;gap:12px;flex-wrap:wrap}.toplinks a{color:#2563eb}@media(max-width:980px){.sidebar{position:static;width:auto;height:auto}.content{margin-left:0}.operation{grid-template-columns:1fr}.operation .code{order:-1}.intro,.tag-section,.operation .doc{padding:22px}}
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PROCatchem Lua Script API</title><meta name="description" content="PROCatchem Lua Script API reference — a Pokédex-styled field manual for every scripting function and callback."><meta name="theme-color" content="#E3350D"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"><style>
+:root{
+  --dex-red:#E3350D;--dex-red-hi:#F04A2A;--dex-red-deep:#7F1B06;
+  --shell-ink:#20242B;--paper:#FDFBF4;--paper-line:#E7E0CC;--paper-dash:#E3DCC6;
+  --ink:#252B38;--muted-ink:#8A8267;
+  --lcd:#0B1E16;--lcd-hi:#0F241B;--lcd-frame:#1E4A35;--lcd-text:#D7F5DF;--lcd-dim:#6FA383;
+  --gold:#F2C94C;--leaf:#78C850;--sea:#6890F0;
+  --ff-pixel:'Press Start 2P',ui-monospace,monospace;
+  --ff-body:'Nunito',system-ui,'Segoe UI',sans-serif;
+  --ff-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--ff-body);font-size:15px;color:var(--ink);background:var(--paper)}
+::selection{background:var(--gold);color:var(--shell-ink)}
+:focus-visible{outline:3px dashed var(--gold);outline-offset:2px}
+
+/* ============================== Pokédex shell (sidebar) */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:300px;overflow:auto;padding:18px 0 24px;
+  background:linear-gradient(160deg,var(--dex-red-hi),var(--dex-red) 42%,#B4230A);
+  border-right:4px solid var(--dex-red-deep);box-shadow:inset -6px 0 14px rgba(0,0,0,.18)}
+.sidebar::-webkit-scrollbar{width:10px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--dex-red-deep);border-radius:8px;border:2px solid var(--dex-red)}
+.sidebar::-webkit-scrollbar-track{background:transparent}
+
+.brand{padding:0 20px 16px}
+.dex-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.dex-lens{width:46px;height:46px;border-radius:50%;flex:none;position:relative;
+  background:radial-gradient(circle at 32% 30%,#EAF6FF 0 13%,#7CC7FF 14% 45%,#1877D2 46% 78%,#0B3E7A 79% 100%);
+  border:4px solid #FCFCFC;box-shadow:0 3px 6px rgba(0,0,0,.4),inset -3px -4px 8px rgba(0,0,0,.3)}
+.dex-lens::after{content:'';position:absolute;left:7px;top:6px;width:10px;height:10px;border-radius:50%;background:#fff;opacity:.92}
+.dex-leds{display:flex;gap:7px}
+.dex-leds i{width:11px;height:11px;border-radius:50%;box-shadow:inset 0 -2px 2px rgba(0,0,0,.4),0 0 7px currentColor}
+.dex-leds i:nth-child(1){color:#FF5A5A;background:#FF5A5A}
+.dex-leds i:nth-child(2){color:#FFD84D;background:#FFD84D}
+.dex-leds i:nth-child(3){color:#5AFF7A;background:#5AFF7A}
+.brand-row{display:flex;align-items:center;gap:12px}
+.pokeball{width:34px;height:34px;border-radius:50%;flex:none;position:relative;
+  background:linear-gradient(180deg,#FF5A44 0 44%,var(--shell-ink) 44% 56%,#F6F6F6 56% 100%);
+  border:3px solid var(--shell-ink);box-shadow:0 2px 4px rgba(0,0,0,.35)}
+.pokeball::after{content:'';position:absolute;inset:0;margin:auto;width:9px;height:9px;border-radius:50%;background:#F6F6F6;border:3px solid var(--shell-ink)}
+.brand-row:hover .pokeball{animation:wiggle .55s ease}
+@keyframes wiggle{20%{transform:rotate(-16deg)}45%{transform:rotate(13deg)}70%{transform:rotate(-7deg)}100%{transform:rotate(0)}}
+.brand h1{font-family:var(--ff-pixel);font-size:13px;line-height:1.55;color:#fff;text-shadow:0 2px 0 var(--dex-red-deep);margin:0}
+.brand-sub{margin:12px 0 0;color:#FFD9CC;font-size:12px;font-weight:600}
+.brand-sub .ver{background:var(--gold);color:#5A3E00;font-weight:800;font-size:11px;padding:2px 9px;border-radius:999px;margin-left:4px}
+
+.search{padding:0 14px 10px}
+.search input{width:100%;padding:11px 12px;background:#0E1B14;border:2px solid #245239;border-radius:10px;
+  color:var(--lcd-text);font:600 13px var(--ff-mono)}
+.search input::placeholder{color:#5F8F74}
+.search input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(242,201,76,.25);outline:none}
+
+/* nav = green LCD screen inside the red shell */
+.nav{list-style:none;margin:0 14px 20px;padding:8px 0 14px;
+  background:linear-gradient(180deg,#101D16,#0A1510);
+  border:3px solid var(--dex-red-deep);border-radius:14px;
+  box-shadow:inset 0 2px 12px rgba(0,0,0,.65),0 2px 0 var(--dex-red-deep)}
+.nav ul{list-style:none;padding:0;margin:0}
+.nav a{display:block;padding:7px 18px;color:#BFE8CC;text-decoration:none;font-size:13px;font-weight:600}
+.nav a:hover{background:#1B2E24;color:#EAFBEF}
+.nav a.active{background:#1B2E24;color:#fff;box-shadow:inset 3px 0 0 var(--gold)}
+.nav ul a{padding-left:40px;font:500 12px var(--ff-mono);color:#8FBFA0}
+.nav-tag>a,.nav-tag-header>a{font-family:var(--ff-body);font-size:11px;font-weight:800;letter-spacing:.1em;
+  text-transform:uppercase;color:#EAF9EF;margin-top:6px;display:flex;align-items:center;gap:9px}
+.nav-tag>a::before,.nav-tag-header>a::before{content:'';width:9px;height:9px;border-radius:3px;flex:none;
+  background:var(--type,#A8A878);box-shadow:0 0 7px var(--type,#A8A878)}
+.nav-tag-header{display:flex;align-items:stretch;position:relative;cursor:pointer}
+.nav-tag-header>a{flex:1;min-width:0;padding-right:6px;cursor:pointer}
+.nav-tag-header:hover>a,.nav-tag-header:focus-within>a{background:#1B2E24;color:#fff}
+.nav-toggle{width:34px;align-self:stretch;margin-top:6px;border:0;background:transparent;color:#6FA383;
+  cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center}
+.nav-toggle:hover,.nav-toggle:focus-visible{background:#1B2E24;color:#EAFBEF;outline:none}
+.nav-toggle .nav-caret{display:inline-block;transition:transform .16s ease}
+.nav-tag.collapsed>.nav-tag-header .nav-caret{transform:rotate(-90deg)}
+.nav-tag.collapsed>ul{display:none}
+.nav.searching .nav-tag.collapsed>ul{display:block}
+.nav-tag.has-active>.nav-tag-header>a{color:#fff}
+
+/* ============================== content column (trainer's log) */
+.content{margin-left:300px;background:var(--paper);min-height:100vh}
+.intro{padding:34px 40px 8px;max-width:1200px}
+.tag-section{padding:26px 40px 8px}
+a{color:#C7431F;font-weight:700}
+a:hover{text-decoration-thickness:2px}
+
+/* hero */
+.hero{position:relative;overflow:hidden;color:#fff;border-radius:16px;padding:30px 32px;margin-bottom:30px;
+  background:linear-gradient(135deg,#20242B,#2E3440 55%,#3A2B27);
+  border:3px solid var(--shell-ink);box-shadow:0 10px 26px rgba(32,36,43,.16)}
+.hero::before{content:'';position:absolute;right:-70px;bottom:-95px;width:270px;height:270px;border-radius:50%;
+  border:26px solid rgba(255,255,255,.05)}
+.hero-eyebrow{font-family:var(--ff-pixel);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--gold);margin:0 0 16px}
+.hero h1{font-family:var(--ff-pixel);font-size:clamp(19px,2.6vw,29px);line-height:1.55;margin:0 0 14px;color:#fff}
+.hero h1 span{color:#FF6A55}
+.hero-tag{color:#C9CEDA;font-size:16px;line-height:1.65;max-width:660px;margin:0 0 22px}
+.hero-stats{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 18px;position:relative}
+.stat{background:#141821;border:2px solid #394253;border-radius:12px;padding:11px 18px;min-width:118px}
+.stat b{display:block;font-family:var(--ff-pixel);font-size:16px;color:#7CF2B0;margin-bottom:7px}
+.stat span{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#8B93A7}
+.hp{display:flex;align-items:center;gap:12px;background:#141821;border:2px solid #394253;border-radius:999px;
+  padding:9px 16px;max-width:560px;position:relative}
+.hp-label{font-family:var(--ff-pixel);font-size:8px;color:#FFD84D;white-space:nowrap}
+.hp-track{flex:1;height:10px;background:#0B0E14;border:2px solid #394253;border-radius:999px;overflow:hidden}
+#hp-fill{display:block;height:100%;width:0;background:linear-gradient(90deg,#5AFF7A,#2ECC71);transition:width 1.4s ease .3s}
+.hp-val{font:800 12px var(--ff-mono);color:var(--lcd-text)}
+
+/* section headers with type chips */
+.tag-section>h1,.intro-h{font-family:var(--ff-pixel);font-size:17px;line-height:1.6;color:var(--shell-ink);
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:30px 0 8px;padding:0 0 16px;position:relative;scroll-margin-top:18px}
+.tag-section>h1::after,.intro-h::after{content:'';position:absolute;left:0;bottom:6px;width:78px;height:4px;
+  border-radius:2px;background:var(--type,var(--dex-red))}
+.type-chip{font-family:var(--ff-pixel);font-size:7px;letter-spacing:.08em;text-transform:uppercase;flex:none;
+  background:var(--type,#A8A878);color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.35);
+  padding:6px 9px;border-radius:7px;border:2px solid var(--shell-ink);box-shadow:0 2px 0 var(--shell-ink)}
+
+/* operation entries */
+.operation{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,42%);border-top:2px dashed var(--paper-dash);scroll-margin-top:18px}
+.operation .doc{padding:24px 30px 28px 0;min-width:0}
+.operation .code{padding:24px 0 28px 26px;border-left:2px dashed var(--paper-dash)}
+.operation .code pre{position:sticky;top:18px;margin:0}
+.operation h2{font-family:var(--ff-pixel);font-size:13px;line-height:1.7;color:var(--shell-ink);margin:0 0 16px}
+.doc h3{display:flex;align-items:center;gap:9px;margin:24px 0 10px;font-size:11px;font-weight:800;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--muted-ink)}
+.doc h3::before{content:'';width:8px;height:8px;border-radius:2px;background:var(--type,var(--dex-red))}
+.rv{opacity:0;transform:translateY(10px);transition:opacity .5s ease,transform .5s ease}
+.rv.in{opacity:1;transform:none}
+
+/* signature card */
+.signature{background:#fff;border:2px solid var(--paper-line);border-left:6px solid var(--type,var(--dex-red));
+  border-radius:10px;padding:12px 14px;box-shadow:0 2px 0 var(--paper-line)}
+
+/* inline code + tables */
+code{background:#F1ECDC;border:1px solid var(--paper-dash);color:#3B3325;padding:2px 6px;border-radius:5px;
+  font:600 12.5px var(--ff-mono)}
+.muted{color:#9A9178;font-size:12px}
+table{width:100%;border-collapse:separate;border-spacing:0;margin:14px 0;border:2px solid #2A2F3A;border-radius:10px;overflow:hidden}
+th,td{padding:9px 11px;vertical-align:top;text-align:left;font-size:14px}
+th{background:#F6F1E0;background:color-mix(in srgb,var(--type,var(--dex-red)) 16%,#fff);
+  font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--shell-ink);
+  border-bottom:2px solid #2A2F3A;border-right:1px solid rgba(42,47,58,.14)}
+td{border-top:1px solid #EDE7D6;border-right:1px solid #F0EADA}
+th:last-child,td:last-child{border-right:0}
+tbody tr:nth-child(even){background:#FBF8EE}
+
+/* ============================== LCD code screens */
+main pre{position:relative;overflow:auto;margin:14px 0;padding:16px 18px;border-radius:12px;
+  background:linear-gradient(180deg,var(--lcd-hi),var(--lcd));color:var(--lcd-text);
+  border:3px solid var(--shell-ink);
+  box-shadow:inset 0 0 0 2px var(--lcd-frame),inset 0 12px 30px rgba(0,0,0,.4);
+  font:13px/1.75 var(--ff-mono);white-space:pre-wrap;word-break:break-word}
+main pre::after{content:'';position:absolute;inset:0;border-radius:9px;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(255,255,255,.035) 2px 3px)}
+main pre code{background:transparent;border:0;color:inherit;padding:0;font:inherit}
+main pre::-webkit-scrollbar{height:8px;width:8px}
+main pre::-webkit-scrollbar-thumb{background:var(--lcd-frame);border-radius:8px}
+.tok-c{color:#6FA383;font-style:italic}
+.tok-s{color:#FFD98A}
+.tok-n{color:#8FD3FF}
+.tok-k{color:#FF9AA8;font-weight:600}
+.tok-f{color:#7CF2B0}
+.copy-btn{position:absolute;top:9px;right:9px;z-index:2;cursor:pointer;
+  font-family:var(--ff-pixel);font-size:7px;letter-spacing:.06em;color:#0A1811;
+  background:#7CF2B0;border:2px solid var(--shell-ink);border-radius:7px;padding:6px 9px;
+  box-shadow:0 2px 0 var(--shell-ink)}
+.copy-btn:hover{filter:brightness(1.06)}
+.copy-btn:active{transform:translateY(2px);box-shadow:none}
+.copy-btn.copied{background:var(--gold)}
+
+/* method chips */
+.src-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:20px;padding-top:14px;border-top:1px dashed var(--paper-dash)}
+.method{font-family:var(--ff-pixel);font-size:7px;letter-spacing:.06em;padding:5px 8px;border-radius:6px;
+  color:#fff;border:2px solid var(--shell-ink);box-shadow:0 2px 0 var(--shell-ink)}
+.method-get{background:var(--leaf)}
+.method-post{background:var(--sea)}
+.method-put{background:var(--gold);color:#5A3E00}
+.method-delete{background:#C03028}
+.method-patch{background:#A040A0}
+.src-path{background:transparent;border:0;padding:0;color:var(--muted-ink);font:500 12px var(--ff-mono)}
+
+/* toplinks as capture-ball pills */
+.toplinks{display:flex;gap:12px;flex-wrap:wrap}
+.toplinks a{display:inline-flex;align-items:center;gap:9px;background:#fff;border:2px solid var(--shell-ink);
+  border-radius:999px;padding:9px 16px;font-size:12px;font-weight:800;color:var(--shell-ink);
+  text-decoration:none;box-shadow:0 3px 0 var(--shell-ink);transition:transform .15s ease,box-shadow .15s ease}
+.toplinks a::before{content:'';width:13px;height:13px;border-radius:50%;flex:none;
+  background:linear-gradient(180deg,var(--dex-red) 0 44%,var(--shell-ink) 44% 56%,#fff 56%);
+  border:2px solid var(--shell-ink)}
+.toplinks a:hover{transform:translateY(-2px);box-shadow:0 5px 0 var(--shell-ink)}
+.toplinks a:active{transform:translateY(1px);box-shadow:0 1px 0 var(--shell-ink)}
+
+/* back-to-top pokeball */
+.to-top{position:fixed;right:24px;bottom:24px;z-index:50;width:52px;height:52px;border-radius:50%;cursor:pointer;
+  border:3px solid var(--shell-ink);
+  background:linear-gradient(180deg,#FF5A44 0 44%,var(--shell-ink) 44% 56%,#F6F6F6 56%);
+  box-shadow:0 4px 0 var(--shell-ink),0 10px 20px rgba(32,36,43,.25);
+  opacity:0;transform:translateY(14px);pointer-events:none;transition:opacity .25s ease,transform .25s ease}
+.to-top .tb{position:absolute;inset:0;margin:auto;width:13px;height:13px;border-radius:50%;background:#F6F6F6;border:3px solid var(--shell-ink)}
+.to-top.show{opacity:1;transform:none;pointer-events:auto}
+.to-top:hover{animation:wiggle .55s ease}
+
+/* responsive + reduced motion */
+@media(max-width:980px){
+  .sidebar{position:static;width:auto;height:auto;border-right:0;border-bottom:4px solid var(--dex-red-deep)}
+  .content{margin-left:0}
+  .intro,.tag-section{padding:20px}
+  .hero{padding:22px 20px}
+  .operation{grid-template-columns:1fr}
+  .operation .doc{padding:20px 0}
+  .operation .code{padding:0 0 22px;border-left:0}
+  .operation .code pre{position:static}
+  .to-top{right:14px;bottom:14px}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .rv{opacity:1;transform:none}
+  #hp-fill{width:100%}
+}
 </style></head>
-<body><aside class="sidebar"><div class="brand"><h1>PROCatchem Lua API</h1><p>Slate template · v1.0.101</p></div><div class="search"><input id="search" placeholder="Search Lua API"></div><ul class="nav"><li class="nav-tag"><a href="#script-metadata">Script metadata</a><ul><li><a href="#name">name()</a></li><li><a href="#author">author()</a></li><li><a href="#description">description()</a></li></ul></li><li class="nav-tag"><a href="#lifecycle-callbacks">Lifecycle callbacks</a><ul><li><a href="#onstart">onStart()</a></li><li><a href="#onstop">onStop()</a></li><li><a href="#onpause">onPause()</a></li><li><a href="#onresume">onResume()</a></li><li><a href="#onpathaction">onPathAction()</a></li><li><a href="#onbattleaction">onBattleAction()</a></li><li><a href="#ondialogmessage">onDialogMessage()</a></li><li><a href="#onbattlemessage">onBattleMessage()</a></li><li><a href="#onsystemmessage">onSystemMessage()</a></li><li><a href="#onwarningmessage">onWarningMessage()</a></li><li><a href="#onlearningmove">onLearningMove()</a></li></ul></li><li class="nav-tag"><a href="#core-utilities">Core utilities</a><ul><li><a href="#log">log()</a></li><li><a href="#fatal">fatal()</a></li><li><a href="#logout">logout()</a></li><li><a href="#relog">relog()</a></li><li><a href="#restart">restart()</a></li><li><a href="#stringcontains">stringContains()</a></li><li><a href="#playsound">playSound()</a></li><li><a href="#registerhook">registerHook()</a></li></ul></li><li class="nav-tag"><a href="#map-and-npc">Map and NPC</a><ul><li><a href="#getplayerx">getPlayerX()</a></li><li><a href="#getplayery">getPlayerY()</a></li><li><a href="#getmapname">getMapName()</a></li><li><a href="#getactivebattlers">getActiveBattlers()</a></li><li><a href="#getactivedigspots">getActiveDigSpots()</a></li><li><a href="#getactiveheadbutttrees">getActiveHeadbuttTrees()</a></li><li><a href="#getactiveberrytrees">getActiveBerryTrees()</a></li><li><a href="#getdiscoverableitems">getDiscoverableItems()</a></li><li><a href="#getdiscoverablepokestops">getDiscoverablePokestops()</a></li><li><a href="#getdiscoverableabandonedpokemon">getDiscoverableAbandonedPokemon()</a></li><li><a href="#getnpcdata">getNpcData()</a></li><li><a href="#getmaplinks">getMapLinks()</a></li><li><a href="#getmapwidth">getMapWidth()</a></li><li><a href="#getmapheight">getMapHeight()</a></li><li><a href="#getcelltype">getCellType()</a></li><li><a href="#isnpcvisible">isNpcVisible()</a></li><li><a href="#isnpconcell">isNpcOnCell()</a></li><li><a href="#isinarea">isInArea()</a></li></ul></li><li class="nav-tag"><a href="#general-state">General state</a><ul><li><a href="#getaccountname">getAccountName()</a></li><li><a href="#getpokedexowned">getPokedexOwned()</a></li><li><a href="#getpokedexseen">getPokedexSeen()</a></li><li><a href="#getpokedexevolved">getPokedexEvolved()</a></li><li><a href="#getteamsize">getTeamSize()</a></li><li><a href="#isgamescriptactive">isGameScriptActive()</a></li><li><a href="#isaccountmember">isAccountMember()</a></li><li><a href="#getremainingpowerpoints">getRemainingPowerPoints()</a></li><li><a href="#isshopopen">isShopOpen()</a></li><li><a href="#isrelearningmoves">isRelearningMoves()</a></li><li><a href="#getmoney">getMoney()</a></li><li><a href="#ismounted">isMounted()</a></li><li><a href="#issurfing">isSurfing()</a></li><li><a href="#isprivatemessageenabled">isPrivateMessageEnabled()</a></li><li><a href="#ispartyinspectionenabled">isPartyInspectionEnabled()</a></li><li><a href="#isnpcinteractionsenabled">isNpcInteractionsEnabled()</a></li><li><a href="#gettime">getTime()</a></li><li><a href="#ismorning">isMorning()</a></li><li><a href="#isnoon">isNoon()</a></li><li><a href="#isnight">isNight()</a></li><li><a href="#isoutside">isOutside()</a></li><li><a href="#isautoevolve">isAutoEvolve()</a></li><li><a href="#setmount">setMount()</a></li><li><a href="#setwatermount">setWaterMount()</a></li><li><a href="#iscurrentpcboxrefreshed">isCurrentPCBoxRefreshed()</a></li><li><a href="#getserver">getServer()</a></li></ul></li><li class="nav-tag"><a href="#team-pok-mon">Team Pokémon</a><ul><li><a href="#getpokemonid">getPokemonId()</a></li><li><a href="#getpokemonname">getPokemonName()</a></li><li><a href="#getpokemonhealth">getPokemonHealth()</a></li><li><a href="#getpokemonhealthpercent">getPokemonHealthPercent()</a></li><li><a href="#getpokemonmaxhealth">getPokemonMaxHealth()</a></li><li><a href="#getpokemonlevel">getPokemonLevel()</a></li><li><a href="#getpokemontotalexperience">getPokemonTotalExperience()</a></li><li><a href="#getpokemonremainingexperience">getPokemonRemainingExperience()</a></li><li><a href="#getpokemonstatus">getPokemonStatus()</a></li><li><a href="#getpokemonform">getPokemonForm()</a></li><li><a href="#getpokemonhelditem">getPokemonHeldItem()</a></li><li><a href="#getpokemonuniqueid">getPokemonUniqueId()</a></li><li><a href="#getpokemonmaxpowerpoints">getPokemonMaxPowerPoints()</a></li><li><a href="#ispokemonshiny">isPokemonShiny()</a></li><li><a href="#getpokemonmovename">getPokemonMoveName()</a></li><li><a href="#getpokemonmoveaccuracy">getPokemonMoveAccuracy()</a></li><li><a href="#getpokemonmovepower">getPokemonMovePower()</a></li><li><a href="#getpokemonmovetype">getPokemonMoveType()</a></li><li><a href="#getpokemonmovedamagetype">getPokemonMoveDamageType()</a></li><li><a href="#getpokemonmovestatus">getPokemonMoveStatus()</a></li><li><a href="#getpokemonnature">getPokemonNature()</a></li><li><a href="#getpokemonability">getPokemonAbility()</a></li><li><a href="#getpokemonstat">getPokemonStat()</a></li><li><a href="#getpokemoneffortvalue">getPokemonEffortValue()</a></li><li><a href="#getpokemonindividualvalue">getPokemonIndividualValue()</a></li><li><a href="#getpokemonhappiness">getPokemonHappiness()</a></li><li><a href="#getpokemonregion">getPokemonRegion()</a></li><li><a href="#getpokemonoriginaltrainer">getPokemonOriginalTrainer()</a></li><li><a href="#getpokemongender">getPokemonGender()</a></li><li><a href="#getpokemontype">getPokemonType()</a></li><li><a href="#getdamagemultiplier">getDamageMultiplier()</a></li><li><a href="#ispokemonusable">isPokemonUsable()</a></li><li><a href="#getusablepokemoncount">getUsablePokemonCount()</a></li><li><a href="#hasmove">hasMove()</a></li><li><a href="#haspokemoninteam">hasPokemonInTeam()</a></li><li><a href="#isteamsortedbylevelascending">isTeamSortedByLevelAscending()</a></li><li><a href="#isteamsortedbyleveldescending">isTeamSortedByLevelDescending()</a></li><li><a href="#isteamrangesortedbylevelascending">isTeamRangeSortedByLevelAscending()</a></li><li><a href="#isteamrangesortedbyleveldescending">isTeamRangeSortedByLevelDescending()</a></li></ul></li><li class="nav-tag"><a href="#items-and-shop">Items and shop</a><ul><li><a href="#hasitem">hasItem()</a></li><li><a href="#getitemquantity">getItemQuantity()</a></li><li><a href="#hasitemid">hasItemId()</a></li><li><a href="#getitemquantityid">getItemQuantityId()</a></li><li><a href="#buyitem">buyItem()</a></li><li><a href="#hasshopitem">hasShopItem()</a></li><li><a href="#giveitemtopokemon">giveItemToPokemon()</a></li><li><a href="#takeitemfrompokemon">takeItemFromPokemon()</a></li><li><a href="#useitem">useItem()</a></li><li><a href="#useitemonpokemon">useItemOnPokemon()</a></li></ul></li><li class="nav-tag"><a href="#pc-storage">PC storage</a><ul><li><a href="#getcurrentpcboxid">getCurrentPCBoxId()</a></li><li><a href="#ispcopen">isPCOpen()</a></li><li><a href="#getcurrentpcboxsize">getCurrentPCBoxSize()</a></li><li><a href="#getpcboxcount">getPCBoxCount()</a></li><li><a href="#getpcpokemoncount">getPCPokemonCount()</a></li><li><a href="#getpokemonidfrompc">getPokemonIdFromPC()</a></li><li><a href="#getpokemonnamefrompc">getPokemonNameFromPC()</a></li><li><a href="#getpokemonhealthfrompc">getPokemonHealthFromPC()</a></li><li><a href="#getpokemonhealthpercentfrompc">getPokemonHealthPercentFromPC()</a></li><li><a href="#getpokemonmaxhealthfrompc">getPokemonMaxHealthFromPC()</a></li><li><a href="#getpokemonlevelfrompc">getPokemonLevelFromPC()</a></li><li><a href="#getpokemontotalexperiencefrompc">getPokemonTotalExperienceFromPC()</a></li><li><a href="#getpokemonremainingexperiencefrompc">getPokemonRemainingExperienceFromPC()</a></li><li><a href="#getpokemonstatusfrompc">getPokemonStatusFromPC()</a></li><li><a href="#getpokemontypefrompc">getPokemonTypeFromPC()</a></li><li><a href="#getpokemonhelditemfrompc">getPokemonHeldItemFromPC()</a></li><li><a href="#getpokemonuniqueidfrompc">getPokemonUniqueIdFromPC()</a></li><li><a href="#getpokemonremainingpowerpointsfrompc">getPokemonRemainingPowerPointsFromPC()</a></li><li><a href="#getpokemonmaxpowerpointsfrompc">getPokemonMaxPowerPointsFromPC()</a></li><li><a href="#ispokemonfrompcshiny">isPokemonFromPCShiny()</a></li><li><a href="#getpokemonmovenamefrompc">getPokemonMoveNameFromPC()</a></li><li><a href="#getpokemonmoveaccuracyfrompc">getPokemonMoveAccuracyFromPC()</a></li><li><a href="#getpokemonmovepowerfrompc">getPokemonMovePowerFromPC()</a></li><li><a href="#getpokemonmovetypefrompc">getPokemonMoveTypeFromPC()</a></li><li><a href="#getpokemonmovedamagetypefrompc">getPokemonMoveDamageTypeFromPC()</a></li><li><a href="#getpokemonmovestatusfrompc">getPokemonMoveStatusFromPC()</a></li><li><a href="#getpokemonnaturefrompc">getPokemonNatureFromPC()</a></li><li><a href="#getpokemonabilityfrompc">getPokemonAbilityFromPC()</a></li><li><a href="#getpokemonstatfrompc">getPokemonStatFromPC()</a></li><li><a href="#getpokemoneffortvaluefrompc">getPokemonEffortValueFromPC()</a></li><li><a href="#getpokemonindividualvaluefrompc">getPokemonIndividualValueFromPC()</a></li><li><a href="#getpokemonhappinessfrompc">getPokemonHappinessFromPC()</a></li><li><a href="#getpokemonregionfrompc">getPokemonRegionFromPC()</a></li><li><a href="#getpokemonoriginaltrainerfrompc">getPokemonOriginalTrainerFromPC()</a></li><li><a href="#getpokemongenderfrompc">getPokemonGenderFromPC()</a></li><li><a href="#getpokemonformfrompc">getPokemonFormFromPC()</a></li><li><a href="#usepc">usePC()</a></li><li><a href="#openpcbox">openPCBox()</a></li><li><a href="#depositpokemontopc">depositPokemonToPC()</a></li><li><a href="#withdrawpokemonfrompc">withdrawPokemonFromPC()</a></li><li><a href="#swappokemonfrompc">swapPokemonFromPC()</a></li><li><a href="#swappokemonwithinpc">swapPokemonWithinPC()</a></li><li><a href="#releasepokemonfrompc">releasePokemonFromPC()</a></li><li><a href="#refreshpcbox">refreshPCBox()</a></li></ul></li><li class="nav-tag"><a href="#battle-state">Battle state</a><ul><li><a href="#isopponentshiny">isOpponentShiny()</a></li><li><a href="#isalreadycaught">isAlreadyCaught()</a></li><li><a href="#iswildbattle">isWildBattle()</a></li><li><a href="#getactivepokemonnumber">getActivePokemonNumber()</a></li><li><a href="#getopponentid">getOpponentId()</a></li><li><a href="#getopponentname">getOpponentName()</a></li><li><a href="#getopponenthealth">getOpponentHealth()</a></li><li><a href="#getopponentmaxhealth">getOpponentMaxHealth()</a></li><li><a href="#getopponenthealthpercent">getOpponentHealthPercent()</a></li><li><a href="#getopponentlevel">getOpponentLevel()</a></li><li><a href="#getopponentstatus">getOpponentStatus()</a></li><li><a href="#getopponentform">getOpponentForm()</a></li><li><a href="#isopponenteffortvalue">isOpponentEffortValue()</a></li><li><a href="#getopponenteffortvalue">getOpponentEffortValue()</a></li><li><a href="#getopponenttype">getOpponentType()</a></li></ul></li><li class="nav-tag"><a href="#path-actions">Path actions</a><ul><li><a href="#movetocell">moveToCell()</a></li><li><a href="#movetolistcell">moveToListCell()</a></li><li><a href="#movetomap">moveToMap()</a></li><li><a href="#movetorectangle">moveToRectangle()</a></li><li><a href="#movetonormalground">moveToNormalGround()</a></li><li><a href="#movetograss">moveToGrass()</a></li><li><a href="#movetowater">moveToWater()</a></li><li><a href="#movenearexit">moveNearExit()</a></li><li><a href="#talktonpc">talkToNpc()</a></li><li><a href="#talktonpconcell">talkToNpcOnCell()</a></li><li><a href="#usepokecenter">usePokecenter()</a></li><li><a href="#swappokemon">swapPokemon()</a></li><li><a href="#swappokemonwithleader">swapPokemonWithLeader()</a></li><li><a href="#sortteambylevelascending">sortTeamByLevelAscending()</a></li><li><a href="#sortteambyleveldescending">sortTeamByLevelDescending()</a></li><li><a href="#sortteamrangebylevelascending">sortTeamRangeByLevelAscending()</a></li><li><a href="#sortteamrangebyleveldescending">sortTeamRangeByLevelDescending()</a></li><li><a href="#relearnmove">relearnMove()</a></li><li><a href="#releasepokemonfromteam">releasePokemonFromTeam()</a></li><li><a href="#enableprivatemessage">enablePrivateMessage()</a></li><li><a href="#disableprivatemessage">disablePrivateMessage()</a></li><li><a href="#enablepartyinspection">enablePartyInspection()</a></li><li><a href="#disablepartyinspection">disablePartyInspection()</a></li><li><a href="#enableautoevolve">enableAutoEvolve()</a></li><li><a href="#disableautoevolve">disableAutoEvolve()</a></li><li><a href="#enablenpcinteractions">enableNpcInteractions()</a></li><li><a href="#disablenpcinteractions">disableNpcInteractions()</a></li></ul></li><li class="nav-tag"><a href="#dialog-functions">Dialog functions</a><ul><li><a href="#pushdialoganswer">pushDialogAnswer()</a></li></ul></li><li class="nav-tag"><a href="#battle-actions">Battle actions</a><ul><li><a href="#attack">attack()</a></li><li><a href="#weakattack">weakAttack()</a></li><li><a href="#run">run()</a></li><li><a href="#sendusablepokemon">sendUsablePokemon()</a></li><li><a href="#sendanypokemon">sendAnyPokemon()</a></li><li><a href="#sendpokemon">sendPokemon()</a></li><li><a href="#usemove">useMove()</a></li><li><a href="#useanymove">useAnyMove()</a></li></ul></li><li class="nav-tag"><a href="#bot-configuration">Bot configuration</a><ul><li><a href="#setafk">setAfk()</a></li><li><a href="#setafktimeout">setAfkTimeout()</a></li></ul></li><li class="nav-tag"><a href="#move-learning-actions">Move learning actions</a><ul><li><a href="#forgetmove">forgetMove()</a></li><li><a href="#forgetanymoveexcept">forgetAnyMoveExcept()</a></li></ul></li><li class="nav-tag"><a href="#custom-options">Custom options</a><ul><li><a href="#setoption">setOption()</a></li><li><a href="#getoption">getOption()</a></li><li><a href="#setoptionname">setOptionName()</a></li><li><a href="#setoptiondescription">setOptionDescription()</a></li><li><a href="#removeoption">removeOption()</a></li><li><a href="#settextoption">setTextOption()</a></li><li><a href="#gettextoption">getTextOption()</a></li><li><a href="#settextoptionname">setTextOptionName()</a></li><li><a href="#settextoptiondescription">setTextOptionDescription()</a></li><li><a href="#removetextoption">removeTextOption()</a></li></ul></li><li class="nav-tag"><a href="#file-apis">File APIs</a><ul><li><a href="#writetofile">writeToFile()</a></li><li><a href="#logtofile">logToFile()</a></li><li><a href="#readlinesfromfile">readLinesFromFile()</a></li><li><a href="#tradegivemoney">tradeGiveMoney()</a></li><li><a href="#tradeacceptmoney">tradeAcceptMoney()</a></li></ul></li><li class="nav-tag"><a href="#chat">Chat</a><ul><li><a href="#closechannel">closeChannel()</a></li></ul></li><li class="nav-tag"><a href="#notifications">Notifications</a><ul><li><a href="#sendnotification">sendNotification()</a></li><li><a href="#sendnotificationwith">sendNotificationWith()</a></li><li><a href="#sendnotificationto">sendNotificationTo()</a></li><li><a href="#sendnotificationwithto">sendNotificationWithTo()</a></li><li><a href="#notify">notify()</a></li><li><a href="#setnotifyvar">setNotifyVar()</a></li><li><a href="#clearnotifyvars">clearNotifyVars()</a></li></ul></li><li class="nav-tag"><a href="#legacy-special-actions">Legacy special actions</a><ul><li><a href="#usesurf">useSurf()</a></li></ul></li></ul></aside><main class="content"><section class="intro" id="introduction"><h1>Introduction</h1>
+<body><aside class="sidebar"><div class="brand"><div class="dex-top"><span class="dex-lens" aria-hidden="true"></span><span class="dex-leds" aria-hidden="true"><i></i><i></i><i></i></span></div><div class="brand-row"><span class="pokeball" aria-hidden="true"></span><h1>PROCatchem<br>Lua API</h1></div><p class="brand-sub">Trainer’s Field Manual<span class="ver">v1.0.102</span></p></div><div class="search"><input id="search" placeholder="Search functions…"></div><ul class="nav"><li class="nav-tag"><a href="#script-metadata">Script metadata</a><ul><li><a href="#name">name()</a></li><li><a href="#author">author()</a></li><li><a href="#description">description()</a></li></ul></li><li class="nav-tag"><a href="#lifecycle-callbacks">Lifecycle callbacks</a><ul><li><a href="#onstart">onStart()</a></li><li><a href="#onstop">onStop()</a></li><li><a href="#onpause">onPause()</a></li><li><a href="#onresume">onResume()</a></li><li><a href="#onpathaction">onPathAction()</a></li><li><a href="#onbattleaction">onBattleAction()</a></li><li><a href="#ondialogmessage">onDialogMessage()</a></li><li><a href="#onbattlemessage">onBattleMessage()</a></li><li><a href="#onsystemmessage">onSystemMessage()</a></li><li><a href="#onwarningmessage">onWarningMessage()</a></li><li><a href="#onlearningmove">onLearningMove()</a></li></ul></li><li class="nav-tag"><a href="#core-utilities">Core utilities</a><ul><li><a href="#log">log()</a></li><li><a href="#fatal">fatal()</a></li><li><a href="#logout">logout()</a></li><li><a href="#relog">relog()</a></li><li><a href="#restart">restart()</a></li><li><a href="#stringcontains">stringContains()</a></li><li><a href="#playsound">playSound()</a></li><li><a href="#registerhook">registerHook()</a></li></ul></li><li class="nav-tag"><a href="#map-and-npc">Map and NPC</a><ul><li><a href="#getplayerx">getPlayerX()</a></li><li><a href="#getplayery">getPlayerY()</a></li><li><a href="#getmapname">getMapName()</a></li><li><a href="#getactivebattlers">getActiveBattlers()</a></li><li><a href="#getactivedigspots">getActiveDigSpots()</a></li><li><a href="#getactiveheadbutttrees">getActiveHeadbuttTrees()</a></li><li><a href="#getactiveberrytrees">getActiveBerryTrees()</a></li><li><a href="#getdiscoverableitems">getDiscoverableItems()</a></li><li><a href="#getdiscoverablepokestops">getDiscoverablePokestops()</a></li><li><a href="#getdiscoverableabandonedpokemon">getDiscoverableAbandonedPokemon()</a></li><li><a href="#getnpcdata">getNpcData()</a></li><li><a href="#getmaplinks">getMapLinks()</a></li><li><a href="#getmapwidth">getMapWidth()</a></li><li><a href="#getmapheight">getMapHeight()</a></li><li><a href="#getcelltype">getCellType()</a></li><li><a href="#isnpcvisible">isNpcVisible()</a></li><li><a href="#isnpconcell">isNpcOnCell()</a></li><li><a href="#isinarea">isInArea()</a></li></ul></li><li class="nav-tag"><a href="#general-state">General state</a><ul><li><a href="#getaccountname">getAccountName()</a></li><li><a href="#getpokedexowned">getPokedexOwned()</a></li><li><a href="#getpokedexseen">getPokedexSeen()</a></li><li><a href="#getpokedexevolved">getPokedexEvolved()</a></li><li><a href="#getteamsize">getTeamSize()</a></li><li><a href="#isgamescriptactive">isGameScriptActive()</a></li><li><a href="#isaccountmember">isAccountMember()</a></li><li><a href="#getremainingpowerpoints">getRemainingPowerPoints()</a></li><li><a href="#isshopopen">isShopOpen()</a></li><li><a href="#isrelearningmoves">isRelearningMoves()</a></li><li><a href="#getmoney">getMoney()</a></li><li><a href="#ismounted">isMounted()</a></li><li><a href="#issurfing">isSurfing()</a></li><li><a href="#isprivatemessageenabled">isPrivateMessageEnabled()</a></li><li><a href="#ispartyinspectionenabled">isPartyInspectionEnabled()</a></li><li><a href="#isnpcinteractionsenabled">isNpcInteractionsEnabled()</a></li><li><a href="#gettime">getTime()</a></li><li><a href="#ismorning">isMorning()</a></li><li><a href="#isnoon">isNoon()</a></li><li><a href="#isnight">isNight()</a></li><li><a href="#isoutside">isOutside()</a></li><li><a href="#isautoevolve">isAutoEvolve()</a></li><li><a href="#setmount">setMount()</a></li><li><a href="#setwatermount">setWaterMount()</a></li><li><a href="#iscurrentpcboxrefreshed">isCurrentPCBoxRefreshed()</a></li><li><a href="#getserver">getServer()</a></li></ul></li><li class="nav-tag"><a href="#team-pok-mon">Team Pokémon</a><ul><li><a href="#getpokemonid">getPokemonId()</a></li><li><a href="#getpokemonname">getPokemonName()</a></li><li><a href="#getpokemonhealth">getPokemonHealth()</a></li><li><a href="#getpokemonhealthpercent">getPokemonHealthPercent()</a></li><li><a href="#getpokemonmaxhealth">getPokemonMaxHealth()</a></li><li><a href="#getpokemonlevel">getPokemonLevel()</a></li><li><a href="#getpokemontotalexperience">getPokemonTotalExperience()</a></li><li><a href="#getpokemonremainingexperience">getPokemonRemainingExperience()</a></li><li><a href="#getpokemonstatus">getPokemonStatus()</a></li><li><a href="#getpokemonform">getPokemonForm()</a></li><li><a href="#getpokemonhelditem">getPokemonHeldItem()</a></li><li><a href="#getpokemonuniqueid">getPokemonUniqueId()</a></li><li><a href="#getpokemonmaxpowerpoints">getPokemonMaxPowerPoints()</a></li><li><a href="#ispokemonshiny">isPokemonShiny()</a></li><li><a href="#getpokemonmovename">getPokemonMoveName()</a></li><li><a href="#getpokemonmoveaccuracy">getPokemonMoveAccuracy()</a></li><li><a href="#getpokemonmovepower">getPokemonMovePower()</a></li><li><a href="#getpokemonmovetype">getPokemonMoveType()</a></li><li><a href="#getpokemonmovedamagetype">getPokemonMoveDamageType()</a></li><li><a href="#getpokemonmovestatus">getPokemonMoveStatus()</a></li><li><a href="#getpokemonnature">getPokemonNature()</a></li><li><a href="#getpokemonability">getPokemonAbility()</a></li><li><a href="#getpokemonstat">getPokemonStat()</a></li><li><a href="#getpokemoneffortvalue">getPokemonEffortValue()</a></li><li><a href="#getpokemonindividualvalue">getPokemonIndividualValue()</a></li><li><a href="#getpokemonhappiness">getPokemonHappiness()</a></li><li><a href="#getpokemonregion">getPokemonRegion()</a></li><li><a href="#getpokemonoriginaltrainer">getPokemonOriginalTrainer()</a></li><li><a href="#getpokemongender">getPokemonGender()</a></li><li><a href="#getpokemontype">getPokemonType()</a></li><li><a href="#getdamagemultiplier">getDamageMultiplier()</a></li><li><a href="#ispokemonusable">isPokemonUsable()</a></li><li><a href="#getusablepokemoncount">getUsablePokemonCount()</a></li><li><a href="#hasmove">hasMove()</a></li><li><a href="#haspokemoninteam">hasPokemonInTeam()</a></li><li><a href="#isteamsortedbylevelascending">isTeamSortedByLevelAscending()</a></li><li><a href="#isteamsortedbyleveldescending">isTeamSortedByLevelDescending()</a></li><li><a href="#isteamrangesortedbylevelascending">isTeamRangeSortedByLevelAscending()</a></li><li><a href="#isteamrangesortedbyleveldescending">isTeamRangeSortedByLevelDescending()</a></li></ul></li><li class="nav-tag"><a href="#items-and-shop">Items and shop</a><ul><li><a href="#hasitem">hasItem()</a></li><li><a href="#getitemquantity">getItemQuantity()</a></li><li><a href="#hasitemid">hasItemId()</a></li><li><a href="#getitemquantityid">getItemQuantityId()</a></li><li><a href="#buyitem">buyItem()</a></li><li><a href="#hasshopitem">hasShopItem()</a></li><li><a href="#giveitemtopokemon">giveItemToPokemon()</a></li><li><a href="#takeitemfrompokemon">takeItemFromPokemon()</a></li><li><a href="#useitem">useItem()</a></li><li><a href="#useitemonpokemon">useItemOnPokemon()</a></li></ul></li><li class="nav-tag"><a href="#pc-storage">PC storage</a><ul><li><a href="#getcurrentpcboxid">getCurrentPCBoxId()</a></li><li><a href="#ispcopen">isPCOpen()</a></li><li><a href="#getcurrentpcboxsize">getCurrentPCBoxSize()</a></li><li><a href="#getpcboxcount">getPCBoxCount()</a></li><li><a href="#getpcpokemoncount">getPCPokemonCount()</a></li><li><a href="#getpokemonidfrompc">getPokemonIdFromPC()</a></li><li><a href="#getpokemonnamefrompc">getPokemonNameFromPC()</a></li><li><a href="#getpokemonhealthfrompc">getPokemonHealthFromPC()</a></li><li><a href="#getpokemonhealthpercentfrompc">getPokemonHealthPercentFromPC()</a></li><li><a href="#getpokemonmaxhealthfrompc">getPokemonMaxHealthFromPC()</a></li><li><a href="#getpokemonlevelfrompc">getPokemonLevelFromPC()</a></li><li><a href="#getpokemontotalexperiencefrompc">getPokemonTotalExperienceFromPC()</a></li><li><a href="#getpokemonremainingexperiencefrompc">getPokemonRemainingExperienceFromPC()</a></li><li><a href="#getpokemonstatusfrompc">getPokemonStatusFromPC()</a></li><li><a href="#getpokemontypefrompc">getPokemonTypeFromPC()</a></li><li><a href="#getpokemonhelditemfrompc">getPokemonHeldItemFromPC()</a></li><li><a href="#getpokemonuniqueidfrompc">getPokemonUniqueIdFromPC()</a></li><li><a href="#getpokemonremainingpowerpointsfrompc">getPokemonRemainingPowerPointsFromPC()</a></li><li><a href="#getpokemonmaxpowerpointsfrompc">getPokemonMaxPowerPointsFromPC()</a></li><li><a href="#ispokemonfrompcshiny">isPokemonFromPCShiny()</a></li><li><a href="#getpokemonmovenamefrompc">getPokemonMoveNameFromPC()</a></li><li><a href="#getpokemonmoveaccuracyfrompc">getPokemonMoveAccuracyFromPC()</a></li><li><a href="#getpokemonmovepowerfrompc">getPokemonMovePowerFromPC()</a></li><li><a href="#getpokemonmovetypefrompc">getPokemonMoveTypeFromPC()</a></li><li><a href="#getpokemonmovedamagetypefrompc">getPokemonMoveDamageTypeFromPC()</a></li><li><a href="#getpokemonmovestatusfrompc">getPokemonMoveStatusFromPC()</a></li><li><a href="#getpokemonnaturefrompc">getPokemonNatureFromPC()</a></li><li><a href="#getpokemonabilityfrompc">getPokemonAbilityFromPC()</a></li><li><a href="#getpokemonstatfrompc">getPokemonStatFromPC()</a></li><li><a href="#getpokemoneffortvaluefrompc">getPokemonEffortValueFromPC()</a></li><li><a href="#getpokemonindividualvaluefrompc">getPokemonIndividualValueFromPC()</a></li><li><a href="#getpokemonhappinessfrompc">getPokemonHappinessFromPC()</a></li><li><a href="#getpokemonregionfrompc">getPokemonRegionFromPC()</a></li><li><a href="#getpokemonoriginaltrainerfrompc">getPokemonOriginalTrainerFromPC()</a></li><li><a href="#getpokemongenderfrompc">getPokemonGenderFromPC()</a></li><li><a href="#getpokemonformfrompc">getPokemonFormFromPC()</a></li><li><a href="#usepc">usePC()</a></li><li><a href="#openpcbox">openPCBox()</a></li><li><a href="#depositpokemontopc">depositPokemonToPC()</a></li><li><a href="#withdrawpokemonfrompc">withdrawPokemonFromPC()</a></li><li><a href="#swappokemonfrompc">swapPokemonFromPC()</a></li><li><a href="#swappokemonwithinpc">swapPokemonWithinPC()</a></li><li><a href="#releasepokemonfrompc">releasePokemonFromPC()</a></li><li><a href="#refreshpcbox">refreshPCBox()</a></li></ul></li><li class="nav-tag"><a href="#battle-state">Battle state</a><ul><li><a href="#isopponentshiny">isOpponentShiny()</a></li><li><a href="#isalreadycaught">isAlreadyCaught()</a></li><li><a href="#iswildbattle">isWildBattle()</a></li><li><a href="#getactivepokemonnumber">getActivePokemonNumber()</a></li><li><a href="#getopponentid">getOpponentId()</a></li><li><a href="#getopponentname">getOpponentName()</a></li><li><a href="#getopponenthealth">getOpponentHealth()</a></li><li><a href="#getopponentmaxhealth">getOpponentMaxHealth()</a></li><li><a href="#getopponenthealthpercent">getOpponentHealthPercent()</a></li><li><a href="#getopponentlevel">getOpponentLevel()</a></li><li><a href="#getopponentstatus">getOpponentStatus()</a></li><li><a href="#getopponentform">getOpponentForm()</a></li><li><a href="#isopponenteffortvalue">isOpponentEffortValue()</a></li><li><a href="#getopponenteffortvalue">getOpponentEffortValue()</a></li><li><a href="#getopponenttype">getOpponentType()</a></li></ul></li><li class="nav-tag"><a href="#path-actions">Path actions</a><ul><li><a href="#movetocell">moveToCell()</a></li><li><a href="#movetolistcell">moveToListCell()</a></li><li><a href="#movetomap">moveToMap()</a></li><li><a href="#movetorectangle">moveToRectangle()</a></li><li><a href="#movetonormalground">moveToNormalGround()</a></li><li><a href="#movetograss">moveToGrass()</a></li><li><a href="#movetowater">moveToWater()</a></li><li><a href="#movenearexit">moveNearExit()</a></li><li><a href="#talktonpc">talkToNpc()</a></li><li><a href="#talktonpconcell">talkToNpcOnCell()</a></li><li><a href="#usepokecenter">usePokecenter()</a></li><li><a href="#swappokemon">swapPokemon()</a></li><li><a href="#swappokemonwithleader">swapPokemonWithLeader()</a></li><li><a href="#sortteambylevelascending">sortTeamByLevelAscending()</a></li><li><a href="#sortteambyleveldescending">sortTeamByLevelDescending()</a></li><li><a href="#sortteamrangebylevelascending">sortTeamRangeByLevelAscending()</a></li><li><a href="#sortteamrangebyleveldescending">sortTeamRangeByLevelDescending()</a></li><li><a href="#relearnmove">relearnMove()</a></li><li><a href="#releasepokemonfromteam">releasePokemonFromTeam()</a></li><li><a href="#enableprivatemessage">enablePrivateMessage()</a></li><li><a href="#disableprivatemessage">disablePrivateMessage()</a></li><li><a href="#enablepartyinspection">enablePartyInspection()</a></li><li><a href="#disablepartyinspection">disablePartyInspection()</a></li><li><a href="#enableautoevolve">enableAutoEvolve()</a></li><li><a href="#disableautoevolve">disableAutoEvolve()</a></li><li><a href="#enablenpcinteractions">enableNpcInteractions()</a></li><li><a href="#disablenpcinteractions">disableNpcInteractions()</a></li></ul></li><li class="nav-tag"><a href="#dialog-functions">Dialog functions</a><ul><li><a href="#pushdialoganswer">pushDialogAnswer()</a></li></ul></li><li class="nav-tag"><a href="#battle-actions">Battle actions</a><ul><li><a href="#attack">attack()</a></li><li><a href="#weakattack">weakAttack()</a></li><li><a href="#run">run()</a></li><li><a href="#sendusablepokemon">sendUsablePokemon()</a></li><li><a href="#sendanypokemon">sendAnyPokemon()</a></li><li><a href="#sendpokemon">sendPokemon()</a></li><li><a href="#usemove">useMove()</a></li><li><a href="#useanymove">useAnyMove()</a></li></ul></li><li class="nav-tag"><a href="#bot-configuration">Bot configuration</a><ul><li><a href="#setafk">setAfk()</a></li><li><a href="#setafktimeout">setAfkTimeout()</a></li></ul></li><li class="nav-tag"><a href="#move-learning-actions">Move learning actions</a><ul><li><a href="#forgetmove">forgetMove()</a></li><li><a href="#forgetanymoveexcept">forgetAnyMoveExcept()</a></li></ul></li><li class="nav-tag"><a href="#custom-options">Custom options</a><ul><li><a href="#setoption">setOption()</a></li><li><a href="#getoption">getOption()</a></li><li><a href="#setoptionname">setOptionName()</a></li><li><a href="#setoptiondescription">setOptionDescription()</a></li><li><a href="#removeoption">removeOption()</a></li><li><a href="#settextoption">setTextOption()</a></li><li><a href="#gettextoption">getTextOption()</a></li><li><a href="#settextoptionname">setTextOptionName()</a></li><li><a href="#settextoptiondescription">setTextOptionDescription()</a></li><li><a href="#removetextoption">removeTextOption()</a></li></ul></li><li class="nav-tag"><a href="#file-apis">File APIs</a><ul><li><a href="#writetofile">writeToFile()</a></li><li><a href="#logtofile">logToFile()</a></li><li><a href="#readlinesfromfile">readLinesFromFile()</a></li><li><a href="#tradegivemoney">tradeGiveMoney()</a></li><li><a href="#tradeacceptmoney">tradeAcceptMoney()</a></li></ul></li><li class="nav-tag"><a href="#chat">Chat</a><ul><li><a href="#closechannel">closeChannel()</a></li></ul></li><li class="nav-tag"><a href="#notifications">Notifications</a><ul><li><a href="#sendnotification">sendNotification()</a></li><li><a href="#sendnotificationwith">sendNotificationWith()</a></li><li><a href="#sendnotificationto">sendNotificationTo()</a></li><li><a href="#sendnotificationwithto">sendNotificationWithTo()</a></li><li><a href="#notify">notify()</a></li><li><a href="#setnotifyvar">setNotifyVar()</a></li><li><a href="#clearnotifyvars">clearNotifyVars()</a></li></ul></li><li class="nav-tag"><a href="#legacy-special-actions">Legacy special actions</a><ul><li><a href="#usesurf">useSurf()</a></li></ul></li></ul></aside><main class="content"><section class="intro" id="introduction"><div class="hero"><p class="hero-eyebrow">Trainer’s Field Manual</p><h1>PROCatchem <span>Lua API</span></h1><p class="hero-tag">Every global function and callback for your capture scripts — sorted by type, rendered on an LCD screen, and ready to copy straight into your next route.</p><div class="hero-stats"><div class="stat"><b id="stat-fn">–</b><span>Functions</span></div><div class="stat"><b id="stat-cat">–</b><span>Categories</span></div><div class="stat"><b id="stat-cb">–</b><span>Callbacks</span></div></div><div class="hp"><span class="hp-label">Docs coverage</span><span class="hp-track"><i id="hp-fill"></i></span><b class="hp-val" id="hp-val">–</b></div></div><h2 class="intro-h">Introduction</h2>
 <p>PROCatchem exposes a Lua API for script authors. This Slate-style page documents every Lua global function and callback from the current API description.</p>
 <p>These are <strong>Lua functions</strong>, not HTTP endpoints. The included <code>openapi.yaml</code> is retained as source metadata.</p>
 <pre><code class="language-lua">name = &quot;Example Script&quot;
@@ -434,5 +651,120 @@ end
       if(parentTag){setCollapsed(parentTag,false,true);}
     }
   }
+})();
+</script><script>
+(function(){
+  var TYPES={
+    'script-metadata':['Normal','#A8A878'],
+    'lifecycle-callbacks':['Psychic','#F85888'],
+    'core-utilities':['Steel','#B8B8D0'],
+    'map-and-npc':['Ground','#E0C068'],
+    'general-state':['Ice','#98D8D8'],
+    'team-pok-mon':['Grass','#78C850'],
+    'items-and-shop':['Fairy','#EE99AC'],
+    'pc-storage':['Electric','#F8D030'],
+    'battle-state':['Fighting','#C03028'],
+    'path-actions':['Flying','#A890F0'],
+    'dialog-functions':['Water','#6890F0'],
+    'battle-actions':['Fire','#F08030'],
+    'bot-configuration':['Dark','#705848'],
+    'move-learning-actions':['Dragon','#7038F8'],
+    'custom-options':['Poison','#A040A0'],
+    'file-apis':['Rock','#B8A038'],
+    'chat':['Bug','#A8B820'],
+    'notifications':['Ghost','#705898'],
+    'legacy-special-actions':['???','#68A090']
+  };
+  function typeFor(id){return TYPES[id]||['Normal','#A8A878'];}
+
+  document.querySelectorAll('.tag-section').forEach(function(sec){
+    var h=sec.querySelector('h1');if(!h)return;
+    var t=typeFor(h.id);
+    sec.style.setProperty('--type',t[1]);
+    var chip=document.createElement('span');
+    chip.className='type-chip';chip.textContent=t[0];
+    h.insertBefore(chip,h.firstChild);
+  });
+  document.querySelectorAll('.nav-tag').forEach(function(tag){
+    var a=tag.querySelector('a');if(!a)return;
+    tag.style.setProperty('--type',typeFor((a.getAttribute('href')||'').slice(1))[1]);
+  });
+
+  document.querySelectorAll('.source-key').forEach(function(p){
+    var m=p.textContent.trim().match(/^(GET|POST|PUT|DELETE|PATCH)\s+(.*)$/);
+    if(!m)return;
+    p.textContent='';p.classList.add('src-row');
+    var b=document.createElement('b');
+    b.className='method method-'+m[1].toLowerCase();b.textContent=m[1];
+    var c=document.createElement('code');
+    c.className='src-path';c.textContent=m[2];
+    p.appendChild(b);p.appendChild(c);
+  });
+
+  var RX=/(--\[\[[\s\S]*?\]\]|--[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\b\d+(?:\.\d+)?\b)|(\b(?:local|function|end|if|then|else|elseif|for|while|do|return|true|false|nil|and|or|not|in|repeat|until|break)\b)|([A-Za-z_][A-Za-z0-9_]*)(?=\s*\()/g;
+  document.querySelectorAll('code.language-lua').forEach(function(code){
+    var src=code.textContent,frag=document.createDocumentFragment(),last=0,m;
+    RX.lastIndex=0;
+    while((m=RX.exec(src))){
+      if(m.index>last)frag.appendChild(document.createTextNode(src.slice(last,m.index)));
+      var sp=document.createElement('span');
+      sp.className=m[1]?'tok-c':m[2]?'tok-s':m[3]?'tok-n':m[4]?'tok-k':'tok-f';
+      sp.textContent=m[0];frag.appendChild(sp);
+      last=m.index+m[0].length;
+    }
+    frag.appendChild(document.createTextNode(src.slice(last)));
+    code.textContent='';code.appendChild(frag);
+  });
+
+  function fallbackCopy(text){
+    var ta=document.createElement('textarea');
+    ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');}catch(_){/* noop */}
+    document.body.removeChild(ta);
+  }
+  document.querySelectorAll('main pre').forEach(function(pre){
+    var btn=document.createElement('button');
+    btn.type='button';btn.className='copy-btn';btn.textContent='COPY';
+    btn.addEventListener('click',function(){
+      var codeEl=pre.querySelector('code');
+      var text=(codeEl?codeEl.textContent:pre.textContent).trim();
+      var done=function(){
+        btn.textContent='COPIED!';btn.classList.add('copied');
+        setTimeout(function(){btn.textContent='COPY';btn.classList.remove('copied');},1200);
+      };
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done,function(){fallbackCopy(text);done();});
+      }else{fallbackCopy(text);done();}
+    });
+    pre.appendChild(btn);
+  });
+
+  var fns=document.querySelectorAll('.operation').length;
+  var cats=document.querySelectorAll('.tag-section').length;
+  var cbs=0,cbH=document.getElementById('lifecycle-callbacks');
+  if(cbH){var cbSec=cbH.closest('.tag-section');cbs=cbSec?cbSec.querySelectorAll('.operation').length:0;}
+  function put(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+  put('stat-fn',fns);put('stat-cat',cats);put('stat-cb',cbs);put('hp-val',fns+'/'+fns);
+  var fill=document.getElementById('hp-fill');
+  if(fill){requestAnimationFrame(function(){requestAnimationFrame(function(){fill.style.width='100%';});});}
+
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduce&&'IntersectionObserver' in window){
+    var ro=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');ro.unobserve(en.target);}});
+    },{rootMargin:'0px 0px -8% 0px'});
+    document.querySelectorAll('.operation').forEach(function(op){op.classList.add('rv');ro.observe(op);});
+  }
+
+  var top=document.createElement('button');
+  top.type='button';top.className='to-top';top.setAttribute('aria-label','Back to top');
+  top.innerHTML='<span class="tb" aria-hidden="true"></span>';
+  top.addEventListener('click',function(){
+    window.scrollTo({top:0,behavior:reduce?'auto':'smooth'});
+  });
+  document.body.appendChild(top);
+  function onScroll(){top.classList.toggle('show',window.scrollY>600);}
+  addEventListener('scroll',onScroll,{passive:true});onScroll();
 })();
 </script></body></html>
