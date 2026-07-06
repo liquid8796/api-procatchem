@@ -1,5 +1,27 @@
 # Changelog
 
+## PROCatchem content — v1.0.104
+
+*July 6, 2026*
+
+**Changed:**
+
+- `runWorkflow`: **removed the parallel mode** — it is now sequential-only.
+- Simplified the syntax to `runWorkflow(steps [, options])` with `{ "name", function }` step pairs; dropped `mode`/`actions` and the `workflowYield` helper from the docs.
+- Updated `source/index.md`, `LUA_API_SLATE.md` and `openapi.yaml` (`/lua/workflow/run-workflow` request body: `steps` + `options`, no `mode`).
+
+
+## PROCatchem content — v1.0.103
+
+*July 6, 2026*
+
+**Added:**
+
+- New `# Workflow` category documenting `runWorkflow(spec)` (sequential/parallel composition of other Lua APIs) in `source/index.md` and `LUA_API_SLATE.md`.
+- `openapi.yaml`: `/lua/workflow/run-workflow` path and `Workflow` tag.
+- Regenerate `index.html` / `dist/index.html` via `npm run build` to surface the new section in the static pages.
+
+
 ## Version 1.2
 
 *June 20, 2015*

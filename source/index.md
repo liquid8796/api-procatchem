@@ -765,6 +765,66 @@ Calls the specified function when the specified event occurs.
 <small>Source key: `POST /lua/core-utilities/registerhook`</small>
 
 
+# Workflow
+
+
+## runWorkflow()
+
+~~~ lua
+-- Run steps in order. Each step is { "name", function }; it stops cleanly at the first bot action.
+function onPathAction()
+    local result = runWorkflow({
+        { "check team", function() log("checking team...") end },
+        { "heal",       function() if getUsablePokemonCount() == 0 then usePokecenter() end end },
+        { "hunt",       function() moveToGrass() end },
+    })
+
+    -- A bot action can only run once per frame; if the workflow stopped on one, resume next frame.
+    if result.stoppedForAction then
+        log("did " .. result.completed .. "/" .. result.total ..
+            " step(s); resume next frame at step " .. tostring(result.nextIndex))
+    end
+end
+
+-- Steps can also be bare functions, and options go in a second table.
+runWorkflow(
+    { function() log("a") end, function() log("b") end },
+    { stopOnError = false, logProgress = true }
+)
+~~~
+
+**Signature**
+
+`runWorkflow(steps [, options])`
+
+Runs `steps` in order, as one action, on the bot thread. Each element of `steps` is one of:
+
+* a bare function — `function() ... end`
+* a named pair — `{ "name", function }`
+* an explicit table — `{ name = "...", run = function ... end, args = { ... }, continueOnError = true }`
+
+Because the bot performs at most one **action** (`moveToCell`, `attack`, ...) per frame, `runWorkflow` stops running further steps as soon as a step performs a bot action while `stopOnAction` is `true` (the default), so a workflow never trips the one-action-per-frame guard. Chain multi-action flows across frames by calling `runWorkflow` again next frame starting at the returned `nextIndex`. Pure query / logging / notification / file steps have no such limit and can all run in a single call.
+
+### Parameters
+
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+
+| `steps` | `table` | yes | Array of steps. Each element is a function, a `{ "name", function }` pair, or a table `{ name?, run, args?, continueOnError? }`. |
+| `options` | `table` | no | `{ stopOnError = bool (default true), stopOnAction = bool (default true), logProgress = bool (default false) }`. |
+
+
+### Returns
+
+
+`table` — `{ ok, total, completed, actionPerformed, stoppedForAction, stoppedForError, nextIndex?, elapsedMs, results }`. `results` is an array of per-step tables `{ index, name, ok, action, elapsedMs, error?, result? }`. `nextIndex` is the 1-based step to resume from next frame, and is absent when the workflow ran to the end.
+
+
+
+<small>Source key: `POST /lua/workflow/run-workflow`</small>
+
+
 # Map and NPC
 
 

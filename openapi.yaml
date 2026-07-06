@@ -31,6 +31,8 @@ tags:
   description: Functions implemented by your script and called by the bot runtime.
 - name: Core utilities
   description: Logging, relog/restart helpers, hooks and utility helpers.
+- name: Workflow
+  description: Compose other Lua APIs into one ordered action.
 - name: Map and NPC
   description: Map, cell, NPC, discoverable object and position helpers.
 - name: General state
@@ -868,6 +870,62 @@ paths:
       x-codeSamples:
       - lang: Lua
         source: registerHook("value", {})
+  /lua/workflow/run-workflow:
+    post:
+      tags:
+      - Workflow
+      operationId: runWorkflow
+      summary: runWorkflow()
+      description: '**Lua global function**
+
+
+        ```lua
+
+        runWorkflow(steps, options)
+
+        ```
+
+
+        Runs a list of steps (other Lua functions/APIs) as one ordered action. Each step is a
+        function, a `{ "name", function }` pair, or a `{ name, run, args, continueOnError }` table.
+        Honours the one-bot-action-per-frame rule via `stopOnAction` (default true): it stops at the
+        first step that performs a bot action and returns `nextIndex` to resume next frame.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                steps:
+                  type: array
+                  items:
+                    type: object
+                options:
+                  type: object
+                  properties:
+                    stopOnError:
+                      type: boolean
+                      default: true
+                    stopOnAction:
+                      type: boolean
+                      default: true
+                    logProgress:
+                      type: boolean
+                      default: false
+              required:
+              - steps
+            example:
+              steps: []
+              options:
+                stopOnAction: true
+      responses:
+        '200':
+          description: Result table { ok, total, completed, actionPerformed, stoppedForAction, stoppedForError, nextIndex?, elapsedMs, results }.
+      x-lua-signature: runWorkflow(steps, options)
+      x-codeSamples:
+      - lang: Lua
+        source: runWorkflow({ { "step 1", function() log("step 1") end } })
   /lua/map-and-npc/getplayerx:
     post:
       tags:
