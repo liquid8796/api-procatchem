@@ -1,5 +1,16 @@
 # Changelog
 
+## PROCatchem content — v1.0.105
+
+*July 6, 2026*
+
+**Changed:**
+
+- Renamed the Lua workflow API `runWorkflow` -> `executeSteps` across `source/index.md`, `LUA_API_SLATE.md` and `openapi.yaml`.
+- Renamed the OpenAPI path `/lua/workflow/run-workflow` -> `/lua/workflow/execute-steps` (operationId, summary, signature, code sample, and the Slate "Source key").
+- Signature is now `executeSteps(steps [, options])`; behaviour is unchanged.
+
+
 ## PROCatchem content — v1.0.104
 
 *July 6, 2026*

@@ -870,18 +870,18 @@ paths:
       x-codeSamples:
       - lang: Lua
         source: registerHook("value", {})
-  /lua/workflow/run-workflow:
+  /lua/workflow/execute-steps:
     post:
       tags:
       - Workflow
-      operationId: runWorkflow
-      summary: runWorkflow()
+      operationId: executeSteps
+      summary: executeSteps()
       description: '**Lua global function**
 
 
         ```lua
 
-        runWorkflow(steps, options)
+        executeSteps(steps, options)
 
         ```
 
@@ -922,10 +922,10 @@ paths:
       responses:
         '200':
           description: Result table { ok, total, completed, actionPerformed, stoppedForAction, stoppedForError, nextIndex?, elapsedMs, results }.
-      x-lua-signature: runWorkflow(steps, options)
+      x-lua-signature: executeSteps(steps, options)
       x-codeSamples:
       - lang: Lua
-        source: runWorkflow({ { "step 1", function() log("step 1") end } })
+        source: executeSteps({ { "step 1", function() log("step 1") end } })
   /lua/map-and-npc/getplayerx:
     post:
       tags:

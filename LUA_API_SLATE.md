@@ -768,12 +768,12 @@ Calls the specified function when the specified event occurs.
 # Workflow
 
 
-## runWorkflow()
+## executeSteps()
 
 ~~~ lua
 -- Run steps in order. Each step is { "name", function }; it stops cleanly at the first bot action.
 function onPathAction()
-    local result = runWorkflow({
+    local result = executeSteps({
         { "check team", function() log("checking team...") end },
         { "heal",       function() if getUsablePokemonCount() == 0 then usePokecenter() end end },
         { "hunt",       function() moveToGrass() end },
@@ -787,7 +787,7 @@ function onPathAction()
 end
 
 -- Steps can also be bare functions, and options go in a second table.
-runWorkflow(
+executeSteps(
     { function() log("a") end, function() log("b") end },
     { stopOnError = false, logProgress = true }
 )
@@ -795,7 +795,7 @@ runWorkflow(
 
 **Signature**
 
-`runWorkflow(steps [, options])`
+`executeSteps(steps [, options])`
 
 Runs `steps` in order, as one action, on the bot thread. Each element of `steps` is one of:
 
@@ -803,7 +803,7 @@ Runs `steps` in order, as one action, on the bot thread. Each element of `steps`
 * a named pair — `{ "name", function }`
 * an explicit table — `{ name = "...", run = function ... end, args = { ... }, continueOnError = true }`
 
-Because the bot performs at most one **action** (`moveToCell`, `attack`, ...) per frame, `runWorkflow` stops running further steps as soon as a step performs a bot action while `stopOnAction` is `true` (the default), so a workflow never trips the one-action-per-frame guard. Chain multi-action flows across frames by calling `runWorkflow` again next frame starting at the returned `nextIndex`. Pure query / logging / notification / file steps have no such limit and can all run in a single call.
+Because the bot performs at most one **action** (`moveToCell`, `attack`, ...) per frame, `executeSteps` stops running further steps as soon as a step performs a bot action while `stopOnAction` is `true` (the default), so a workflow never trips the one-action-per-frame guard. Chain multi-action flows across frames by calling `executeSteps` again next frame starting at the returned `nextIndex`. Pure query / logging / notification / file steps have no such limit and can all run in a single call.
 
 ### Parameters
 
@@ -822,7 +822,7 @@ Because the bot performs at most one **action** (`moveToCell`, `attack`, ...) pe
 
 
 
-<small>Source key: `POST /lua/workflow/run-workflow`</small>
+<small>Source key: `POST /lua/workflow/execute-steps`</small>
 
 
 # Map and NPC
