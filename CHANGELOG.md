@@ -1,5 +1,14 @@
 # Changelog
 
+## PROCatchem content — v1.0.106
+
+*July 6, 2026*
+
+**Fixed:**
+
+- The `executeSteps` (Workflow) section was only in the Slate markdown source (`source/index.md`, `LUA_API_SLATE.md`); the served static pages did not show it. Rendered it directly into `index.html` and `dist/index.html`: a `Workflow` sidebar category, the `executeSteps()` content section, and a `Workflow -> Flow (#00B5AD)` entry in the type-color map. The DOM-computed dashboard counters (functions/categories) pick it up automatically.
+
+
 ## PROCatchem content — v1.0.105
 
 *July 6, 2026*

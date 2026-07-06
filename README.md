@@ -23,13 +23,14 @@ The static docs now ship with a vivid, Pokémon-game-inspired template:
 
 No build-pipeline changes: the theme lives entirely in `index.html` (CSS + a progressive-enhancement script), so `npm run build` still just copies static assets into `dist/`.
 
-## Workflow API (v1.0.105)
+## Workflow API (v1.0.106)
 
 A **Workflow** category documents `executeSteps(steps [, options])` — a Lua global that runs a list of other Lua APIs/functions as one **ordered** action. Each step is a bare function, a `{ "name", function }` pair, or an explicit `{ name, run, args, continueOnError }` table; `options` is `{ stopOnError, stopOnAction, logProgress }`. It honours the engine's one-action-per-frame rule (stops at the first bot action and returns `nextIndex` to resume next frame) and returns a result table (`ok`, `completed`, `stoppedForAction`, `nextIndex`, per-step `results`, ...).
 
 - Added to `source/index.md` and `LUA_API_SLATE.md` (the `# Workflow` section), and to `openapi.yaml` (`/lua/workflow/execute-steps` path + `Workflow` tag).
 - **v1.0.104:** the parallel mode was removed — `executeSteps` is now sequential-only and the syntax was simplified (`executeSteps(steps [, options])`, `{ "name", function }` step pairs).
 - **v1.0.105:** renamed `runWorkflow` → `executeSteps` (and the OpenAPI path `/lua/workflow/run-workflow` → `/lua/workflow/execute-steps`).
+- **v1.0.106:** rendered the `executeSteps` section into the static `index.html` / `dist/index.html` (sidebar nav entry, content section, and `Workflow` type color) so it appears without a Slate/Middleman rebuild.
 - The static `index.html` / `dist/index.html` are pre-rendered snapshots; regenerate them with `npm run build` (or `npm run slate:build`) to surface the section in the static pages.
 
 ## Files
@@ -62,6 +63,6 @@ npm run slate:build
 
 Vercel uses the default `npm run build` static build to avoid failing when Bundler gems are not installed.
 
-Version: `1.0.105`.
+Version: `1.0.106`.
 
 - Sidebar categories are collapsed by default on first landing. Clicking either the category label or the chevron toggles collapse/expand; function links still scroll to their API sections.
