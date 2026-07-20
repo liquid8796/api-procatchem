@@ -8,6 +8,7 @@ toc_footers:
   - <a href='openapi.yaml'>OpenAPI YAML</a>
   - <a href='examples/basic-script.lua'>Basic script example</a>
   - <a href='examples/notification-script.lua'>Notification example</a>
+  - <a href='examples/opponent-gender-and-dismount.lua'>Gender + dismount example</a>
 
 search: true
 ---
@@ -15,7 +16,7 @@ search: true
 
 # Introduction
 
-PROCatchem exposes a Lua API for script authors. This Slate version documents every Lua global function and script callback from the current API description.
+PROCatchem exposes a Lua API for script authors. Every entry now includes a practical scenario showing where the API belongs in a real script.
 
 These are **Lua functions**, not HTTP endpoints. The included `openapi.yaml` is retained only as source metadata for tooling.
 
@@ -39,42 +40,42 @@ end
 
 ## Action rule
 
-A script should execute at most one path or battle action per frame. Query/helper functions can be called freely.
+A script should execute at most one path or battle action per frame. Query/helper functions can be called freely. The examples explicitly `return` after actions where this matters.
 
 ## PC storage note
 
 PC storage updates are asynchronous. After deposit, withdraw, swap, internal box swap, or release, wait for the server update and re-check PC/team state before issuing the next dependent action.
 
+## Battle-only note
+
+Opponent APIs such as `getOpponentGender()` are valid only during battle. Calling them outside battle follows the tool's fatal Lua error contract.
+
 
 # Script metadata
-
 
 ## name()
 
 ~~~ lua
-local result = name()
+name = "Viridian Training Route"
 ~~~
 
 **Signature**
 
 `result = name()`
 
-**Callback**
-
-```lua
-result = name()
-```
-
 Script display name shown in the tool.
 
+**Practical scenario**
+
+Set this metadata once at the top of the Lua file so the Scripts tab displays a recognizable name.
+
+```lua
+name = "Viridian Training Route"
+```
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `GET /lua/metadata/name`</small>
 
@@ -82,29 +83,26 @@ Script display name shown in the tool.
 ## author()
 
 ~~~ lua
-local result = author()
+author = "Iron Stark"
 ~~~
 
 **Signature**
 
 `result = author()`
 
-**Callback**
-
-```lua
-result = author()
-```
-
 Script author displayed in the tool.
 
+**Practical scenario**
+
+Set this metadata once at the top of the Lua file so users know who maintains the script.
+
+```lua
+author = "Iron Stark"
+```
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `GET /lua/metadata/author`</small>
 
@@ -112,61 +110,66 @@ Script author displayed in the tool.
 ## description()
 
 ~~~ lua
-local result = description()
+description = "Trains in Viridian Forest and returns to the Pokécenter below 25% HP."
 ~~~
 
 **Signature**
 
 `result = description()`
 
-**Callback**
-
-```lua
-result = description()
-```
-
 Short script description displayed in the tool.
 
+**Practical scenario**
+
+Use this metadata to explain the route, requirements, and intended behavior before the script starts.
+
+```lua
+description = "Trains in Viridian Forest and returns to the Pokécenter below 25% HP."
+```
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `GET /lua/metadata/description`</small>
 
 
-# Lifecycle callbacks
 
+# Lifecycle callbacks
 
 ## onStart()
 
 ~~~ lua
-onStart()
+local encounters = 0
+
+function onStart()
+    encounters = 0
+    log("Training script started on " .. getMapName())
+end
 ~~~
 
 **Signature**
 
 `onStart()`
 
-**Callback**
-
-```lua
-onStart()
-```
-
 Called when the script starts.
 
+**Practical scenario**
+
+Initialize counters and log the starting state when the user starts the script.
+
+```lua
+local encounters = 0
+
+function onStart()
+    encounters = 0
+    log("Training script started on " .. getMapName())
+end
+```
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/callbacks/onStart`</small>
 
@@ -174,28 +177,30 @@ Called when the script starts.
 ## onStop()
 
 ~~~ lua
-onStop()
+function onStop()
+    log("Script stopped safely.")
+end
 ~~~
 
 **Signature**
 
 `onStop()`
 
-**Callback**
-
-```lua
-onStop()
-```
-
 Called when the script stops.
 
+**Practical scenario**
+
+Persist or report final state before the runtime finishes the script.
+
+```lua
+function onStop()
+    log("Script stopped safely.")
+end
+```
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/callbacks/onStop`</small>
 
@@ -203,28 +208,30 @@ Called when the script stops.
 ## onPause()
 
 ~~~ lua
-onPause()
+function onPause()
+    log("Lua automation paused.")
+end
 ~~~
 
 **Signature**
 
 `onPause()`
 
-**Callback**
-
-```lua
-onPause()
-```
-
 Called when the script is paused.
 
+**Practical scenario**
+
+Use this callback for status logging or pausing your own timers.
+
+```lua
+function onPause()
+    log("Lua automation paused.")
+end
+```
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/callbacks/onPause`</small>
 
@@ -232,28 +239,30 @@ Called when the script is paused.
 ## onResume()
 
 ~~~ lua
-onResume()
+function onResume()
+    log("Lua automation resumed on " .. getMapName())
+end
 ~~~
 
 **Signature**
 
 `onResume()`
 
-**Callback**
-
-```lua
-onResume()
-```
-
 Called when the script resumes.
 
+**Practical scenario**
+
+Re-check game state because the player may have moved or changed the team while paused.
+
+```lua
+function onResume()
+    log("Lua automation resumed on " .. getMapName())
+end
+```
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/callbacks/onResume`</small>
 
@@ -261,28 +270,40 @@ Called when the script resumes.
 ## onPathAction()
 
 ~~~ lua
-onPathAction()
+function onPathAction()
+    if getPokemonHealthPercent(1) < 25 then
+        usePokecenter()
+        return
+    end
+
+    moveToGrass()
+end
 ~~~
 
 **Signature**
 
 `onPathAction()`
 
-**Callback**
-
-```lua
-onPathAction()
-```
-
 Called repeatedly while the player is outside battle. Execute at most one path action per frame.
 
+**Practical scenario**
+
+This is the main overworld decision callback. Perform no more than one path action per call.
+
+```lua
+function onPathAction()
+    if getPokemonHealthPercent(1) < 25 then
+        usePokecenter()
+        return
+    end
+
+    moveToGrass()
+end
+```
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/callbacks/onPathAction`</small>
 
@@ -290,28 +311,40 @@ Called repeatedly while the player is outside battle. Execute at most one path a
 ## onBattleAction()
 
 ~~~ lua
-onBattleAction()
+function onBattleAction()
+    if isOpponentShiny() or not isAlreadyCaught() then
+        weakAttack()
+        return
+    end
+
+    attack()
+end
 ~~~
 
 **Signature**
 
 `onBattleAction()`
 
-**Callback**
-
-```lua
-onBattleAction()
-```
-
 Called repeatedly while the player is in battle. Execute at most one battle action per frame.
 
+**Practical scenario**
+
+This is the main battle decision callback. Perform no more than one battle action per call.
+
+```lua
+function onBattleAction()
+    if isOpponentShiny() or not isAlreadyCaught() then
+        weakAttack()
+        return
+    end
+
+    attack()
+end
+```
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/callbacks/onBattleAction`</small>
 
@@ -319,36 +352,40 @@ Called repeatedly while the player is in battle. Execute at most one battle acti
 ## onDialogMessage()
 
 ~~~ lua
-onDialogMessage("Hello from PROCatchem script.")
+function onDialogMessage(message)
+    if stringContains(message, "badge") then
+        log("Badge requirement detected: " .. message)
+    end
+end
 ~~~
 
 **Signature**
 
 `onDialogMessage(message)`
 
-**Callback**
+Called when a dialog message is received.
+
+**Practical scenario**
+
+Inspect NPC text to track quests or diagnose unexpected dialog branches.
 
 ```lua
-onDialogMessage(message)
+function onDialogMessage(message)
+    if stringContains(message, "badge") then
+        log("Badge requirement detected: " .. message)
+    end
+end
 ```
-
-Called when a dialog message is received.
 
 ### Parameters
 
-
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `message` | `string` | yes |  |
-
+| `message` | `string` | yes | Message text provided by the game or sent by the script. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/callbacks/onDialogMessage`</small>
 
@@ -356,36 +393,40 @@ Called when a dialog message is received.
 ## onBattleMessage()
 
 ~~~ lua
-onBattleMessage("Hello from PROCatchem script.")
+function onBattleMessage(message)
+    if stringContains(message, "fainted") then
+        log("A Pokémon fainted: " .. message)
+    end
+end
 ~~~
 
 **Signature**
 
 `onBattleMessage(message)`
 
-**Callback**
+Called when a battle message is received.
+
+**Practical scenario**
+
+Inspect battle text for events that are not exposed as dedicated state helpers.
 
 ```lua
-onBattleMessage(message)
+function onBattleMessage(message)
+    if stringContains(message, "fainted") then
+        log("A Pokémon fainted: " .. message)
+    end
+end
 ```
-
-Called when a battle message is received.
 
 ### Parameters
 
-
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `message` | `string` | yes |  |
-
+| `message` | `string` | yes | Message text provided by the game or sent by the script. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/callbacks/onBattleMessage`</small>
 
@@ -393,36 +434,36 @@ Called when a battle message is received.
 ## onSystemMessage()
 
 ~~~ lua
-onSystemMessage("Hello from PROCatchem script.")
+function onSystemMessage(message)
+    log("SYSTEM: " .. message)
+end
 ~~~
 
 **Signature**
 
 `onSystemMessage(message)`
 
-**Callback**
+Called when a system message is received.
+
+**Practical scenario**
+
+Use system messages to confirm server-side actions such as catches, releases, or item usage.
 
 ```lua
-onSystemMessage(message)
+function onSystemMessage(message)
+    log("SYSTEM: " .. message)
+end
 ```
-
-Called when a system message is received.
 
 ### Parameters
 
-
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `message` | `string` | yes |  |
-
+| `message` | `string` | yes | Message text provided by the game or sent by the script. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/callbacks/onSystemMessage`</small>
 
@@ -430,38 +471,37 @@ Called when a system message is received.
 ## onWarningMessage()
 
 ~~~ lua
-onWarningMessage(true, 1)
+function onWarningMessage(message)
+    logToFile("logs/warnings.txt", message)
+end
 ~~~
 
 **Signature**
 
 `onWarningMessage(differentMap, distance)`
 
-**Callback**
+Called when a warning message is received; distance can be -1 when unavailable.
+
+**Practical scenario**
+
+Record warnings so a long-running script can be diagnosed later.
 
 ```lua
-onWarningMessage(differentMap, distance)
+function onWarningMessage(message)
+    logToFile("logs/warnings.txt", message)
+end
 ```
-
-Called when a warning message is received; distance can be -1 when unavailable.
 
 ### Parameters
 
-
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `differentMap` | `boolean` | yes |  |
-
-| `distance` | `integer` | yes |  |
-
+| `differentMap` | `boolean` | yes | Value passed to the `differentMap` parameter. |
+| `distance` | `integer` | yes | Value passed to the `distance` parameter. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/callbacks/onWarningMessage`</small>
 
@@ -469,49 +509,58 @@ Called when a warning message is received; distance can be -1 when unavailable.
 ## onLearningMove()
 
 ~~~ lua
-onLearningMove("Tackle", 1)
+function onLearningMove(moveName, pokemonIndex)
+    if moveName == "Thunderbolt" then
+        forgetAnyMoveExcept("Thunderbolt")
+    else
+        forgetMove(1)
+    end
+end
 ~~~
 
 **Signature**
 
 `onLearningMove(moveName, pokemonIndex)`
 
-**Callback**
+Called when a Pokémon is learning a move.
+
+**Practical scenario**
+
+Choose which move to forget when the game asks a Pokémon to learn a new move.
 
 ```lua
-onLearningMove(moveName, pokemonIndex)
+function onLearningMove(moveName, pokemonIndex)
+    if moveName == "Thunderbolt" then
+        forgetAnyMoveExcept("Thunderbolt")
+    else
+        forgetMove(1)
+    end
+end
 ```
-
-Called when a Pokémon is learning a move.
 
 ### Parameters
 
-
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `moveName` | `string` | yes |  |
-
-| `pokemonIndex` | `integer` | yes |  |
-
+| `moveName` | `string` | yes | Exact move name as shown by the game. |
+| `pokemonIndex` | `integer` | yes | One-based Pokémon index in the current team. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/callbacks/onLearningMove`</small>
 
 
-# Core utilities
 
+# Core utilities
 
 ## log()
 
 ~~~ lua
-log("Hello from PROCatchem script.")
+function onStart()
+    log("Script started on " .. getMapName())
+end
 ~~~
 
 **Signature**
@@ -520,21 +569,25 @@ log("Hello from PROCatchem script.")
 
 Displays the specified message to the message log.
 
-### Parameters
+**Practical scenario**
 
+Write concise diagnostics that identify the current map, Pokémon, or decision branch.
+
+```lua
+function onStart()
+    log("Script started on " .. getMapName())
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `message` | `string` | yes |  |
-
+| `message` | `string` | yes | Message text provided by the game or sent by the script. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/core-utilities/log`</small>
 
@@ -542,7 +595,11 @@ Displays the specified message to the message log.
 ## fatal()
 
 ~~~ lua
-fatal("Hello from PROCatchem script.")
+function onStart()
+    if getTeamSize() == 0 then
+        fatal("A Pokémon team is required before this script can run.")
+    end
+end
 ~~~
 
 **Signature**
@@ -551,21 +608,27 @@ fatal("Hello from PROCatchem script.")
 
 Displays the specified message to the message log and stop the bot.
 
-### Parameters
+**Practical scenario**
 
+Stop immediately when a required precondition is missing and explain how the user can fix it.
+
+```lua
+function onStart()
+    if getTeamSize() == 0 then
+        fatal("A Pokémon team is required before this script can run.")
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `message` | `string` | yes |  |
-
+| `message` | `string` | yes | Message text provided by the game or sent by the script. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/core-utilities/fatal`</small>
 
@@ -573,7 +636,12 @@ Displays the specified message to the message log and stop the bot.
 ## logout()
 
 ~~~ lua
-logout("Hello from PROCatchem script.")
+function onPathAction()
+    if getMoney() < 100 then
+        logout("Stopping: not enough money to continue safely.")
+        return
+    end
+end
 ~~~
 
 **Signature**
@@ -582,21 +650,28 @@ logout("Hello from PROCatchem script.")
 
 Displays the specified message to the message log and logs out.
 
-### Parameters
+**Practical scenario**
 
+Use a guarded condition so the script does not request logout on every frame.
+
+```lua
+function onPathAction()
+    if getMoney() < 100 then
+        logout("Stopping: not enough money to continue safely.")
+        return
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `message` | `string` | yes |  |
-
+| `message` | `string` | yes | Message text provided by the game or sent by the script. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/core-utilities/logout`</small>
 
@@ -604,7 +679,11 @@ Displays the specified message to the message log and logs out.
 ## relog()
 
 ~~~ lua
-relog(15, "Hello from PROCatchem script.")
+function onWarningMessage(differentMap, distance)
+    if differentMap then
+        relog(15, "Map synchronization failed; reconnecting.")
+    end
+end
 ~~~
 
 **Signature**
@@ -613,23 +692,28 @@ relog(15, "Hello from PROCatchem script.")
 
 Logs out and logs back in after the specified number of seconds.
 
-### Parameters
+**Practical scenario**
 
+Schedule a reconnect only from a guarded branch, such as recovering from a known server state.
+
+```lua
+function onWarningMessage(differentMap, distance)
+    if differentMap then
+        relog(15, "Map synchronization failed; reconnecting.")
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `delay` | `number` | yes |  |
-
-| `message` | `string` | yes |  |
-
+| `delay` | `number` | yes | Value passed to the `delay` parameter. |
+| `message` | `string` | yes | Message text provided by the game or sent by the script. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/core-utilities/relog`</small>
 
@@ -637,7 +721,11 @@ Logs out and logs back in after the specified number of seconds.
 ## restart()
 
 ~~~ lua
-restart(15, "Hello from PROCatchem script.")
+function onWarningMessage(differentMap, distance)
+    if distance > 10 then
+        restart(5, "Player position is too far from the expected route.")
+    end
+end
 ~~~
 
 **Signature**
@@ -646,23 +734,28 @@ restart(15, "Hello from PROCatchem script.")
 
 Start the script.
 
-### Parameters
+**Practical scenario**
 
+Restart a script only after detecting a state that cannot be recovered inside the current run.
+
+```lua
+function onWarningMessage(differentMap, distance)
+    if distance > 10 then
+        restart(5, "Player position is too far from the expected route.")
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `delay` | `integer` | yes |  |
-
-| `message` | `string` | yes |  |
-
+| `delay` | `integer` | yes | Value passed to the `delay` parameter. |
+| `message` | `string` | yes | Message text provided by the game or sent by the script. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/core-utilities/restart`</small>
 
@@ -670,7 +763,11 @@ Start the script.
 ## stringContains()
 
 ~~~ lua
-local result = stringContains("value", "value")
+function onDialogMessage(message)
+    if stringContains(message, "other badges") then
+        log("This NPC is blocking progress until more badges are earned.")
+    end
+end
 ~~~
 
 **Signature**
@@ -679,24 +776,28 @@ local result = stringContains("value", "value")
 
 Returns true if the string contains the specified part, ignoring the case.
 
-### Parameters
+**Practical scenario**
 
+Use case-insensitive message checks to recognize dialog, battle, or system text.
+
+```lua
+function onDialogMessage(message)
+    if stringContains(message, "other badges") then
+        log("This NPC is blocking progress until more badges are earned.")
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `haystack` | `string` | yes |  |
-
-| `needle` | `string` | yes |  |
-
+| `haystack` | `string` | yes | Value passed to the `haystack` parameter. |
+| `needle` | `string` | yes | Value passed to the `needle` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/core-utilities/stringcontains`</small>
 
@@ -704,7 +805,11 @@ Returns true if the string contains the specified part, ignoring the case.
 ## playSound()
 
 ~~~ lua
-playSound("logs/script.txt")
+function onStart()
+    function onStart()
+    playSound("logs/script.txt")
+end
+end
 ~~~
 
 **Signature**
@@ -713,21 +818,27 @@ playSound("logs/script.txt")
 
 Returns playing a custom sound.
 
-### Parameters
+**Practical scenario**
 
+Use this helper for diagnostics or lifecycle control. Avoid calling restart/logout helpers repeatedly every frame.
+
+```lua
+function onStart()
+    function onStart()
+    playSound("logs/script.txt")
+end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `file` | `string` | yes |  |
-
+| `file` | `string` | yes | Path relative to the script/tool data directory. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/core-utilities/playsound`</small>
 
@@ -735,7 +846,11 @@ Returns playing a custom sound.
 ## registerHook()
 
 ~~~ lua
-registerHook("value", {})
+function onStart()
+    registerHook("battle", function(message)
+        log("Battle hook: " .. tostring(message))
+    end)
+end
 ~~~
 
 **Signature**
@@ -744,94 +859,100 @@ registerHook("value", {})
 
 Calls the specified function when the specified event occurs.
 
-### Parameters
+**Practical scenario**
 
+Register a callback once, usually from `onStart`, rather than registering it every frame.
+
+```lua
+function onStart()
+    registerHook("battle", function(message)
+        log("Battle hook: " .. tostring(message))
+    end)
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `eventName` | `string` | yes |  |
-
-| `callback` | `object` | yes | Any Lua value. |
-
+| `eventName` | `string` | yes | Value passed to the `eventName` parameter. |
+| `callback` | `LuaValue` | yes | Any Lua value. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/core-utilities/registerhook`</small>
 
 
-# Workflow
 
+# Workflow
 
 ## executeSteps()
 
 ~~~ lua
--- Run steps in order. Each step is { "name", function }; it stops cleanly at the first bot action.
+local nextStep = 1
+
 function onPathAction()
     local result = executeSteps({
-        { "check team", function() log("checking team...") end },
-        { "heal",       function() if getUsablePokemonCount() == 0 then usePokecenter() end end },
-        { "hunt",       function() moveToGrass() end },
-    })
+        { "log map", function() log(getMapName()) end },
+        { "move", moveToGrass }
+    }, { stopOnAction = true, logProgress = true, startIndex = nextStep })
 
-    -- A bot action can only run once per frame; if the workflow stopped on one, resume next frame.
-    if result.stoppedForAction then
-        log("did " .. result.completed .. "/" .. result.total ..
-            " step(s); resume next frame at step " .. tostring(result.nextIndex))
-    end
+    nextStep = result.nextIndex or 1
 end
-
--- Steps can also be bare functions, and options go in a second table.
-executeSteps(
-    { function() log("a") end, function() log("b") end },
-    { stopOnError = false, logProgress = true }
-)
 ~~~
 
 **Signature**
 
-`executeSteps(steps [, options])`
+`executeSteps(steps, options)`
 
-Runs `steps` in order, as one action, on the bot thread. Each element of `steps` is one of:
+Runs a list of steps (other Lua functions/APIs) as one ordered action. Each step is a function, a `{ "name", function }` pair, or a `{ name, run, args, continueOnError }` table. Honours the one-bot-action-per-frame rule via `stopOnAction` (default true): it stops at the first step that performs a bot action and returns `nextIndex` to resume next frame.
 
-* a bare function — `function() ... end`
-* a named pair — `{ "name", function }`
-* an explicit table — `{ name = "...", run = function ... end, args = { ... }, continueOnError = true }`
+**Practical scenario**
 
-Because the bot performs at most one **action** (`moveToCell`, `attack`, ...) per frame, `executeSteps` stops running further steps as soon as a step performs a bot action while `stopOnAction` is `true` (the default), so a workflow never trips the one-action-per-frame guard. Chain multi-action flows across frames by calling `executeSteps` again next frame starting at the returned `nextIndex`. Pure query / logging / notification / file steps have no such limit and can all run in a single call.
+Group query/helper work and stop at the first real bot action, then resume from `nextIndex` on a later frame.
+
+```lua
+local nextStep = 1
+
+function onPathAction()
+    local result = executeSteps({
+        { "log map", function() log(getMapName()) end },
+        { "move", moveToGrass }
+    }, { stopOnAction = true, logProgress = true, startIndex = nextStep })
+
+    nextStep = result.nextIndex or 1
+end
+```
 
 ### Parameters
 
-
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `steps` | `table` | yes | Array of steps. Each element is a function, a `{ "name", function }` pair, or a table `{ name?, run, args?, continueOnError? }`. |
-| `options` | `table` | no | `{ stopOnError = bool (default true), stopOnAction = bool (default true), logProgress = bool (default false) }`. |
-
+| `steps` | `array<object>` | yes | Ordered Lua functions/step descriptors to execute. |
+| `options` | `object` | no | Optional execution settings table. |
 
 ### Returns
 
-
-`table` — `{ ok, total, completed, actionPerformed, stoppedForAction, stoppedForError, nextIndex?, elapsedMs, results }`. `results` is an array of per-step tables `{ index, name, ok, action, elapsedMs, error?, result? }`. `nextIndex` is the 1-based step to resume from next frame, and is absent when the workflow ran to the end.
-
-
+`object`
 
 <small>Source key: `POST /lua/workflow/execute-steps`</small>
 
 
-# Map and NPC
 
+# Map and NPC
 
 ## getPlayerX()
 
 ~~~ lua
-local result = getPlayerX()
+function onPathAction()
+    function onPathAction()
+    local result = getPlayerX()
+    log("getPlayerX: " .. tostring(result))
+end
+    log("getPlayerX: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -840,14 +961,23 @@ local result = getPlayerX()
 
 Returns the X-coordinate of the current cell.
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPlayerX()
+    log("getPlayerX: " .. tostring(result))
+end
+    log("getPlayerX: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/map-and-npc/getplayerx`</small>
 
@@ -855,7 +985,13 @@ Returns the X-coordinate of the current cell.
 ## getPlayerY()
 
 ~~~ lua
-local result = getPlayerY()
+function onPathAction()
+    function onPathAction()
+    local result = getPlayerY()
+    log("getPlayerY: " .. tostring(result))
+end
+    log("getPlayerY: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -864,14 +1000,23 @@ local result = getPlayerY()
 
 Returns the Y-coordinate of the current cell.
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPlayerY()
+    log("getPlayerY: " .. tostring(result))
+end
+    log("getPlayerY: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/map-and-npc/getplayery`</small>
 
@@ -879,7 +1024,13 @@ Returns the Y-coordinate of the current cell.
 ## getMapName()
 
 ~~~ lua
-local result = getMapName()
+function onPathAction()
+    function onPathAction()
+    local result = getMapName()
+    log("getMapName: " .. tostring(result))
+end
+    log("getMapName: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -888,14 +1039,23 @@ local result = getMapName()
 
 Returns the name of the current map.
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getMapName()
+    log("getMapName: " .. tostring(result))
+end
+    log("getMapName: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/map-and-npc/getmapname`</small>
 
@@ -903,7 +1063,13 @@ Returns the name of the current map.
 ## getActiveBattlers()
 
 ~~~ lua
-local result = getActiveBattlers()
+function onPathAction()
+    function onPathAction()
+    local result = getActiveBattlers()
+    log("getActiveBattlers: " .. tostring(result))
+end
+    log("getActiveBattlers: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -912,14 +1078,23 @@ local result = getActiveBattlers()
 
 API return an array of all NPCs that can be challenged on the current map. format : {"npcName" = {"x" = x, "y" = y}}
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getActiveBattlers()
+    log("getActiveBattlers: " .. tostring(result))
+end
+    log("getActiveBattlers: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`object`
- — example: `{}`
-
-
+`object` — example: `{}`
 
 <small>Source key: `POST /lua/map-and-npc/getactivebattlers`</small>
 
@@ -927,7 +1102,13 @@ API return an array of all NPCs that can be challenged on the current map. forma
 ## getActiveDigSpots()
 
 ~~~ lua
-local result = getActiveDigSpots()
+function onPathAction()
+    function onPathAction()
+    local result = getActiveDigSpots()
+    log("getActiveDigSpots: " .. tostring(result))
+end
+    log("getActiveDigSpots: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -936,14 +1117,23 @@ local result = getActiveDigSpots()
 
 API return an array of all usable Dig Spots on the currrent map. format : {index = {"x" = x, "y" = y}}
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getActiveDigSpots()
+    log("getActiveDigSpots: " .. tostring(result))
+end
+    log("getActiveDigSpots: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`array<object>`
- — example: `{}`
-
-
+`array<object>` — example: `{}`
 
 <small>Source key: `POST /lua/map-and-npc/getactivedigspots`</small>
 
@@ -951,7 +1141,13 @@ API return an array of all usable Dig Spots on the currrent map. format : {index
 ## getActiveHeadbuttTrees()
 
 ~~~ lua
-local result = getActiveHeadbuttTrees()
+function onPathAction()
+    function onPathAction()
+    local result = getActiveHeadbuttTrees()
+    log("getActiveHeadbuttTrees: " .. tostring(result))
+end
+    log("getActiveHeadbuttTrees: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -960,14 +1156,23 @@ local result = getActiveHeadbuttTrees()
 
 API return an array of all usable Headbutt trees on the currrent map. format : {index = {"x" = x, "y" = y}}
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getActiveHeadbuttTrees()
+    log("getActiveHeadbuttTrees: " .. tostring(result))
+end
+    log("getActiveHeadbuttTrees: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`array<object>`
- — example: `{}`
-
-
+`array<object>` — example: `{}`
 
 <small>Source key: `POST /lua/map-and-npc/getactiveheadbutttrees`</small>
 
@@ -975,7 +1180,13 @@ API return an array of all usable Headbutt trees on the currrent map. format : {
 ## getActiveBerryTrees()
 
 ~~~ lua
-local result = getActiveBerryTrees()
+function onPathAction()
+    function onPathAction()
+    local result = getActiveBerryTrees()
+    log("getActiveBerryTrees: " .. tostring(result))
+end
+    log("getActiveBerryTrees: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -984,14 +1195,23 @@ local result = getActiveBerryTrees()
 
 API return an array of all harvestable berry trees on the currrent map. format : {index = {"x" = x, "y" = y}}
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getActiveBerryTrees()
+    log("getActiveBerryTrees: " .. tostring(result))
+end
+    log("getActiveBerryTrees: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`array<object>`
- — example: `{}`
-
-
+`array<object>` — example: `{}`
 
 <small>Source key: `POST /lua/map-and-npc/getactiveberrytrees`</small>
 
@@ -999,7 +1219,13 @@ API return an array of all harvestable berry trees on the currrent map. format :
 ## getDiscoverableItems()
 
 ~~~ lua
-local result = getDiscoverableItems()
+function onPathAction()
+    function onPathAction()
+    local result = getDiscoverableItems()
+    log("getDiscoverableItems: " .. tostring(result))
+end
+    log("getDiscoverableItems: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1008,14 +1234,23 @@ local result = getDiscoverableItems()
 
 API return an array of all discoverable items on the currrent map. format : {index = {"x" = x, "y" = y}}
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getDiscoverableItems()
+    log("getDiscoverableItems: " .. tostring(result))
+end
+    log("getDiscoverableItems: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`array<object>`
- — example: `{}`
-
-
+`array<object>` — example: `{}`
 
 <small>Source key: `POST /lua/map-and-npc/getdiscoverableitems`</small>
 
@@ -1023,7 +1258,13 @@ API return an array of all discoverable items on the currrent map. format : {ind
 ## getDiscoverablePokestops()
 
 ~~~ lua
-local result = getDiscoverablePokestops()
+function onPathAction()
+    function onPathAction()
+    local result = getDiscoverablePokestops()
+    log("getDiscoverablePokestops: " .. tostring(result))
+end
+    log("getDiscoverablePokestops: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1032,14 +1273,23 @@ local result = getDiscoverablePokestops()
 
 API return an array of all pokestops on the current map. format : {index = {"x" = x, "y" = y}}
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getDiscoverablePokestops()
+    log("getDiscoverablePokestops: " .. tostring(result))
+end
+    log("getDiscoverablePokestops: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`array<object>`
- — example: `{}`
-
-
+`array<object>` — example: `{}`
 
 <small>Source key: `POST /lua/map-and-npc/getdiscoverablepokestops`</small>
 
@@ -1047,7 +1297,13 @@ API return an array of all pokestops on the current map. format : {index = {"x" 
 ## getDiscoverableAbandonedPokemon()
 
 ~~~ lua
-local result = getDiscoverableAbandonedPokemon()
+function onPathAction()
+    function onPathAction()
+    local result = getDiscoverableAbandonedPokemon()
+    log("getDiscoverableAbandonedPokemon: " .. tostring(result))
+end
+    log("getDiscoverableAbandonedPokemon: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1056,14 +1312,23 @@ local result = getDiscoverableAbandonedPokemon()
 
 API return an array of all Abandoned Pokemon on the current map. format : {index = {"x" = x, "y" = y}}
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getDiscoverableAbandonedPokemon()
+    log("getDiscoverableAbandonedPokemon: " .. tostring(result))
+end
+    log("getDiscoverableAbandonedPokemon: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`array<object>`
- — example: `{}`
-
-
+`array<object>` — example: `{}`
 
 <small>Source key: `POST /lua/map-and-npc/getdiscoverableabandonedpokemon`</small>
 
@@ -1071,7 +1336,13 @@ API return an array of all Abandoned Pokemon on the current map. format : {index
 ## getNpcData()
 
 ~~~ lua
-local result = getNpcData()
+function onPathAction()
+    function onPathAction()
+    local result = getNpcData()
+    log("getNpcData: " .. tostring(result))
+end
+    log("getNpcData: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1080,14 +1351,23 @@ local result = getNpcData()
 
 Returns npc data on current map, format : { { "x" = x , "y" = y, "type" = type }, {...}, ... }
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getNpcData()
+    log("getNpcData: " .. tostring(result))
+end
+    log("getNpcData: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`array<object>`
- — example: `{}`
-
-
+`array<object>` — example: `{}`
 
 <small>Source key: `POST /lua/map-and-npc/getnpcdata`</small>
 
@@ -1095,7 +1375,13 @@ Returns npc data on current map, format : { { "x" = x , "y" = y, "type" = type }
 ## getMapLinks()
 
 ~~~ lua
-local result = getMapLinks()
+function onPathAction()
+    function onPathAction()
+    local result = getMapLinks()
+    log("getMapLinks: " .. tostring(result))
+end
+    log("getMapLinks: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1104,14 +1390,23 @@ local result = getMapLinks()
 
 Lua function `getMapLinks`.
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getMapLinks()
+    log("getMapLinks: " .. tostring(result))
+end
+    log("getMapLinks: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`array<object>`
- — example: `{}`
-
-
+`array<object>` — example: `{}`
 
 <small>Source key: `POST /lua/map-and-npc/getmaplinks`</small>
 
@@ -1119,7 +1414,13 @@ Lua function `getMapLinks`.
 ## getMapWidth()
 
 ~~~ lua
-local result = getMapWidth()
+function onPathAction()
+    function onPathAction()
+    local result = getMapWidth()
+    log("getMapWidth: " .. tostring(result))
+end
+    log("getMapWidth: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1128,14 +1429,23 @@ local result = getMapWidth()
 
 The number of cells on the current map in the x direction.
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getMapWidth()
+    log("getMapWidth: " .. tostring(result))
+end
+    log("getMapWidth: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/map-and-npc/getmapwidth`</small>
 
@@ -1143,7 +1453,13 @@ The number of cells on the current map in the x direction.
 ## getMapHeight()
 
 ~~~ lua
-local result = getMapHeight()
+function onPathAction()
+    function onPathAction()
+    local result = getMapHeight()
+    log("getMapHeight: " .. tostring(result))
+end
+    log("getMapHeight: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1152,14 +1468,23 @@ local result = getMapHeight()
 
 The number of cells on the current map in the y direction.
 
+**Practical scenario**
+
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getMapHeight()
+    log("getMapHeight: " .. tostring(result))
+end
+    log("getMapHeight: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/map-and-npc/getmapheight`</small>
 
@@ -1167,7 +1492,13 @@ The number of cells on the current map in the y direction.
 ## getCellType()
 
 ~~~ lua
-local result = getCellType(10, 15)
+function onPathAction()
+    function onPathAction()
+    local result = getCellType(10, 15)
+    log("getCellType: " .. tostring(result))
+end
+    log("getCellType: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1176,24 +1507,30 @@ local result = getCellType(10, 15)
 
 Returns the cell type of the specified cell on the current map.
 
-### Parameters
+**Practical scenario**
 
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getCellType(10, 15)
+    log("getCellType: " .. tostring(result))
+end
+    log("getCellType: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `x` | `integer` | yes |  |
-
-| `y` | `integer` | yes |  |
-
+| `x` | `integer` | yes | Map X coordinate. |
+| `y` | `integer` | yes | Map Y coordinate. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/map-and-npc/getcelltype`</small>
 
@@ -1201,7 +1538,13 @@ Returns the cell type of the specified cell on the current map.
 ## isNpcVisible()
 
 ~~~ lua
-local result = isNpcVisible("Nurse Joy")
+function onPathAction()
+    function onPathAction()
+    local result = isNpcVisible("Nurse Joy")
+    log("isNpcVisible: " .. tostring(result))
+end
+    log("isNpcVisible: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1210,22 +1553,29 @@ local result = isNpcVisible("Nurse Joy")
 
 Returns true if there is a visible NPC with the specified name on the map.
 
-### Parameters
+**Practical scenario**
 
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isNpcVisible("Nurse Joy")
+    log("isNpcVisible: " .. tostring(result))
+end
+    log("isNpcVisible: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `npcName` | `string` | yes |  |
-
+| `npcName` | `string` | yes | Exact or documented NPC name. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/map-and-npc/isnpcvisible`</small>
 
@@ -1233,7 +1583,13 @@ Returns true if there is a visible NPC with the specified name on the map.
 ## isNpcOnCell()
 
 ~~~ lua
-local result = isNpcOnCell(10, 15)
+function onPathAction()
+    function onPathAction()
+    local result = isNpcOnCell(10, 15)
+    log("isNpcOnCell: " .. tostring(result))
+end
+    log("isNpcOnCell: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1242,24 +1598,30 @@ local result = isNpcOnCell(10, 15)
 
 Returns true if there is a visible NPC the specified coordinates.
 
-### Parameters
+**Practical scenario**
 
+Use this query in overworld logic to choose a safe destination or NPC interaction.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isNpcOnCell(10, 15)
+    log("isNpcOnCell: " .. tostring(result))
+end
+    log("isNpcOnCell: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `cellX` | `integer` | yes |  |
-
-| `cellY` | `integer` | yes |  |
-
+| `cellX` | `integer` | yes | Value passed to the `cellX` parameter. |
+| `cellY` | `integer` | yes | Value passed to the `cellY` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/map-and-npc/isnpconcell`</small>
 
@@ -1267,7 +1629,13 @@ Returns true if there is a visible NPC the specified coordinates.
 ## isInArea()
 
 ~~~ lua
-local result = isInArea("value")
+function onPathAction()
+    local insideRoute = isInArea(">=:10->=:15?&&,<=:20-<=:25?&&")
+    if insideRoute then
+        moveToGrass()
+        return
+    end
+end
 ~~~
 
 **Signature**
@@ -1276,33 +1644,46 @@ local result = isInArea("value")
 
 Check condition list cell
 
-### Parameters
+**Practical scenario**
 
+Use the condition-string syntax expected by the tool to test whether the current coordinates satisfy a route region.
+
+```lua
+function onPathAction()
+    local insideRoute = isInArea(">=:10->=:15?&&,<=:20-<=:25?&&")
+    if insideRoute then
+        moveToGrass()
+        return
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `text` | `string` | yes |  |
-
+| `text` | `string` | yes | Value passed to the `text` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/map-and-npc/isinarea`</small>
 
 
-# General state
 
+# General state
 
 ## getAccountName()
 
 ~~~ lua
-local result = getAccountName()
+function onPathAction()
+    function onPathAction()
+    local result = getAccountName()
+    log("getAccountName: " .. tostring(result))
+end
+    log("getAccountName: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1311,14 +1692,23 @@ local result = getAccountName()
 
 Returns current account name.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getAccountName()
+    log("getAccountName: " .. tostring(result))
+end
+    log("getAccountName: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/general-state/getaccountname`</small>
 
@@ -1326,7 +1716,13 @@ Returns current account name.
 ## getPokedexOwned()
 
 ~~~ lua
-local result = getPokedexOwned()
+function onPathAction()
+    function onPathAction()
+    local result = getPokedexOwned()
+    log("getPokedexOwned: " .. tostring(result))
+end
+    log("getPokedexOwned: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1335,14 +1731,23 @@ local result = getPokedexOwned()
 
 Returns Owned Entry of the pokedex
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokedexOwned()
+    log("getPokedexOwned: " .. tostring(result))
+end
+    log("getPokedexOwned: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/general-state/getpokedexowned`</small>
 
@@ -1350,7 +1755,13 @@ Returns Owned Entry of the pokedex
 ## getPokedexSeen()
 
 ~~~ lua
-local result = getPokedexSeen()
+function onPathAction()
+    function onPathAction()
+    local result = getPokedexSeen()
+    log("getPokedexSeen: " .. tostring(result))
+end
+    log("getPokedexSeen: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1359,14 +1770,23 @@ local result = getPokedexSeen()
 
 Returns Seen Entry of the pokedex
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokedexSeen()
+    log("getPokedexSeen: " .. tostring(result))
+end
+    log("getPokedexSeen: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/general-state/getpokedexseen`</small>
 
@@ -1374,7 +1794,13 @@ Returns Seen Entry of the pokedex
 ## getPokedexEvolved()
 
 ~~~ lua
-local result = getPokedexEvolved()
+function onPathAction()
+    function onPathAction()
+    local result = getPokedexEvolved()
+    log("getPokedexEvolved: " .. tostring(result))
+end
+    log("getPokedexEvolved: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1383,14 +1809,23 @@ local result = getPokedexEvolved()
 
 Returns Evolved Entry of the pokedex
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokedexEvolved()
+    log("getPokedexEvolved: " .. tostring(result))
+end
+    log("getPokedexEvolved: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/general-state/getpokedexevolved`</small>
 
@@ -1398,7 +1833,13 @@ Returns Evolved Entry of the pokedex
 ## getTeamSize()
 
 ~~~ lua
-local result = getTeamSize()
+function onPathAction()
+    function onPathAction()
+    local result = getTeamSize()
+    log("getTeamSize: " .. tostring(result))
+end
+    log("getTeamSize: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1407,14 +1848,23 @@ local result = getTeamSize()
 
 Returns the amount of pokémon in the team.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getTeamSize()
+    log("getTeamSize: " .. tostring(result))
+end
+    log("getTeamSize: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/general-state/getteamsize`</small>
 
@@ -1422,7 +1872,13 @@ Returns the amount of pokémon in the team.
 ## isGameScriptActive()
 
 ~~~ lua
-local result = isGameScriptActive()
+function onPathAction()
+    function onPathAction()
+    local result = isGameScriptActive()
+    log("isGameScriptActive: " .. tostring(result))
+end
+    log("isGameScriptActive: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1431,14 +1887,23 @@ local result = isGameScriptActive()
 
 Lua function `isGameScriptActive`.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isGameScriptActive()
+    log("isGameScriptActive: " .. tostring(result))
+end
+    log("isGameScriptActive: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/isgamescriptactive`</small>
 
@@ -1446,7 +1911,13 @@ Lua function `isGameScriptActive`.
 ## isAccountMember()
 
 ~~~ lua
-local result = isAccountMember()
+function onPathAction()
+    function onPathAction()
+    local result = isAccountMember()
+    log("isAccountMember: " .. tostring(result))
+end
+    log("isAccountMember: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1455,14 +1926,23 @@ local result = isAccountMember()
 
 Returns current account's membership status.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isAccountMember()
+    log("isAccountMember: " .. tostring(result))
+end
+    log("isAccountMember: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/isaccountmember`</small>
 
@@ -1470,7 +1950,13 @@ Returns current account's membership status.
 ## getRemainingPowerPoints()
 
 ~~~ lua
-local result = getRemainingPowerPoints(1, "Tackle")
+function onPathAction()
+    function onPathAction()
+    local result = getRemainingPowerPoints(1, "Tackle")
+    log("getRemainingPowerPoints: " .. tostring(result))
+end
+    log("getRemainingPowerPoints: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1479,24 +1965,30 @@ local result = getRemainingPowerPoints(1, "Tackle")
 
 Returns the remaining power points of the specified move of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getRemainingPowerPoints(1, "Tackle")
+    log("getRemainingPowerPoints: " .. tostring(result))
+end
+    log("getRemainingPowerPoints: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `pokemonIndex` | `integer` | yes |  |
-
-| `moveName` | `string` | yes |  |
-
+| `pokemonIndex` | `integer` | yes | One-based Pokémon index in the current team. |
+| `moveName` | `string` | yes | Exact move name as shown by the game. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/general-state/getremainingpowerpoints`</small>
 
@@ -1504,7 +1996,13 @@ Returns the remaining power points of the specified move of the specified pokém
 ## isShopOpen()
 
 ~~~ lua
-local result = isShopOpen()
+function onPathAction()
+    function onPathAction()
+    local result = isShopOpen()
+    log("isShopOpen: " .. tostring(result))
+end
+    log("isShopOpen: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1513,14 +2011,23 @@ local result = isShopOpen()
 
 Returns true if there is a shop opened.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isShopOpen()
+    log("isShopOpen: " .. tostring(result))
+end
+    log("isShopOpen: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/isshopopen`</small>
 
@@ -1528,7 +2035,13 @@ Returns true if there is a shop opened.
 ## isRelearningMoves()
 
 ~~~ lua
-local result = isRelearningMoves()
+function onPathAction()
+    function onPathAction()
+    local result = isRelearningMoves()
+    log("isRelearningMoves: " .. tostring(result))
+end
+    log("isRelearningMoves: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1537,14 +2050,23 @@ local result = isRelearningMoves()
 
 Returns true if the player is relearning the move of a Pokemon from an NPC.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isRelearningMoves()
+    log("isRelearningMoves: " .. tostring(result))
+end
+    log("isRelearningMoves: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/isrelearningmoves`</small>
 
@@ -1552,7 +2074,13 @@ Returns true if the player is relearning the move of a Pokemon from an NPC.
 ## getMoney()
 
 ~~~ lua
-local result = getMoney()
+function onPathAction()
+    function onPathAction()
+    local result = getMoney()
+    log("getMoney: " .. tostring(result))
+end
+    log("getMoney: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1561,14 +2089,23 @@ local result = getMoney()
 
 Returns the amount of money in the inventory.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getMoney()
+    log("getMoney: " .. tostring(result))
+end
+    log("getMoney: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/general-state/getmoney`</small>
 
@@ -1576,7 +2113,13 @@ Returns the amount of money in the inventory.
 ## isMounted()
 
 ~~~ lua
-local result = isMounted()
+function onPathAction()
+    function onPathAction()
+    local result = isMounted()
+    log("isMounted: " .. tostring(result))
+end
+    log("isMounted: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1585,14 +2128,23 @@ local result = isMounted()
 
 Returns true if the player is riding a mount or the bicycle.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isMounted()
+    log("isMounted: " .. tostring(result))
+end
+    log("isMounted: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/ismounted`</small>
 
@@ -1600,7 +2152,13 @@ Returns true if the player is riding a mount or the bicycle.
 ## isSurfing()
 
 ~~~ lua
-local result = isSurfing()
+function onPathAction()
+    function onPathAction()
+    local result = isSurfing()
+    log("isSurfing: " .. tostring(result))
+end
+    log("isSurfing: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1609,14 +2167,23 @@ local result = isSurfing()
 
 Returns true if the player is surfing
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isSurfing()
+    log("isSurfing: " .. tostring(result))
+end
+    log("isSurfing: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/issurfing`</small>
 
@@ -1624,7 +2191,13 @@ Returns true if the player is surfing
 ## isPrivateMessageEnabled()
 
 ~~~ lua
-local result = isPrivateMessageEnabled()
+function onPathAction()
+    function onPathAction()
+    local result = isPrivateMessageEnabled()
+    log("isPrivateMessageEnabled: " .. tostring(result))
+end
+    log("isPrivateMessageEnabled: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1633,14 +2206,23 @@ local result = isPrivateMessageEnabled()
 
 Check if the private message from normal users are blocked.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isPrivateMessageEnabled()
+    log("isPrivateMessageEnabled: " .. tostring(result))
+end
+    log("isPrivateMessageEnabled: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/isprivatemessageenabled`</small>
 
@@ -1648,7 +2230,13 @@ Check if the private message from normal users are blocked.
 ## isPartyInspectionEnabled()
 
 ~~~ lua
-local result = isPartyInspectionEnabled()
+function onPathAction()
+    function onPathAction()
+    local result = isPartyInspectionEnabled()
+    log("isPartyInspectionEnabled: " .. tostring(result))
+end
+    log("isPartyInspectionEnabled: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1657,14 +2245,23 @@ local result = isPartyInspectionEnabled()
 
 Check if party inspections are turned on.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isPartyInspectionEnabled()
+    log("isPartyInspectionEnabled: " .. tostring(result))
+end
+    log("isPartyInspectionEnabled: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/ispartyinspectionenabled`</small>
 
@@ -1672,7 +2269,13 @@ Check if party inspections are turned on.
 ## isNpcInteractionsEnabled()
 
 ~~~ lua
-local result = isNpcInteractionsEnabled()
+function onPathAction()
+    function onPathAction()
+    local result = isNpcInteractionsEnabled()
+    log("isNpcInteractionsEnabled: " .. tostring(result))
+end
+    log("isNpcInteractionsEnabled: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1681,14 +2284,23 @@ local result = isNpcInteractionsEnabled()
 
 Returns true if the bot is checking for npc interactions.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isNpcInteractionsEnabled()
+    log("isNpcInteractionsEnabled: " .. tostring(result))
+end
+    log("isNpcInteractionsEnabled: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/isnpcinteractionsenabled`</small>
 
@@ -1696,7 +2308,15 @@ Returns true if the bot is checking for npc interactions.
 ## getTime()
 
 ~~~ lua
-local hour, minute = getTime()
+function onPathAction()
+    local hour, minute = getTime()
+
+    if hour >= 20 or hour < 5 then
+        log(string.format("Night route active at %02d:%02d", hour, minute))
+        moveToGrass()
+        return
+    end
+end
 ~~~
 
 **Signature**
@@ -1705,17 +2325,25 @@ local hour, minute = getTime()
 
 Return the current in game hour and minute.
 
+**Practical scenario**
+
+Read both return values when a route should run only during a specific in-game time window.
+
+```lua
+function onPathAction()
+    local hour, minute = getTime()
+
+    if hour >= 20 or hour < 5 then
+        log(string.format("Night route active at %02d:%02d", hour, minute))
+        moveToGrass()
+        return
+    end
+end
+```
 
 ### Returns
 
-
-`object`
- — example: `{"hour": 12, "minute": 34}`
-
-
-Lua return values.
-
-
+`object` — example: `{"hour": 12, "minute": 34}`
 
 <small>Source key: `POST /lua/general-state/gettime`</small>
 
@@ -1723,7 +2351,13 @@ Lua return values.
 ## isMorning()
 
 ~~~ lua
-local result = isMorning()
+function onPathAction()
+    function onPathAction()
+    local result = isMorning()
+    log("isMorning: " .. tostring(result))
+end
+    log("isMorning: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1732,14 +2366,23 @@ local result = isMorning()
 
 Return true if morning time.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isMorning()
+    log("isMorning: " .. tostring(result))
+end
+    log("isMorning: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/ismorning`</small>
 
@@ -1747,7 +2390,13 @@ Return true if morning time.
 ## isNoon()
 
 ~~~ lua
-local result = isNoon()
+function onPathAction()
+    function onPathAction()
+    local result = isNoon()
+    log("isNoon: " .. tostring(result))
+end
+    log("isNoon: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1756,14 +2405,23 @@ local result = isNoon()
 
 Return true if noon time.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isNoon()
+    log("isNoon: " .. tostring(result))
+end
+    log("isNoon: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/isnoon`</small>
 
@@ -1771,7 +2429,13 @@ Return true if noon time.
 ## isNight()
 
 ~~~ lua
-local result = isNight()
+function onPathAction()
+    function onPathAction()
+    local result = isNight()
+    log("isNight: " .. tostring(result))
+end
+    log("isNight: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1780,14 +2444,23 @@ local result = isNight()
 
 Return true if night time.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isNight()
+    log("isNight: " .. tostring(result))
+end
+    log("isNight: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/isnight`</small>
 
@@ -1795,7 +2468,13 @@ Return true if night time.
 ## isOutside()
 
 ~~~ lua
-local result = isOutside()
+function onPathAction()
+    function onPathAction()
+    local result = isOutside()
+    log("isOutside: " .. tostring(result))
+end
+    log("isOutside: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1804,14 +2483,23 @@ local result = isOutside()
 
 Return true if the character is outside.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isOutside()
+    log("isOutside: " .. tostring(result))
+end
+    log("isOutside: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/isoutside`</small>
 
@@ -1819,7 +2507,13 @@ Return true if the character is outside.
 ## isAutoEvolve()
 
 ~~~ lua
-local result = isAutoEvolve()
+function onPathAction()
+    function onPathAction()
+    local result = isAutoEvolve()
+    log("isAutoEvolve: " .. tostring(result))
+end
+    log("isAutoEvolve: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1828,14 +2522,23 @@ local result = isAutoEvolve()
 
 Return the state Auto Evolve
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isAutoEvolve()
+    log("isAutoEvolve: " .. tostring(result))
+end
+    log("isAutoEvolve: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/isautoevolve`</small>
 
@@ -1843,7 +2546,13 @@ Return the state Auto Evolve
 ## setMount()
 
 ~~~ lua
-local result = setMount("Arcanine Mount")
+function onStart()
+    function onStart()
+    local result = setMount("Arcanine Mount")
+    log("Configured setMount.")
+end
+    log("Configured setMount.")
+end
 ~~~
 
 **Signature**
@@ -1852,30 +2561,84 @@ local result = setMount("Arcanine Mount")
 
 Configure the ground mount or bike item that the bot should use while moving on outside ground maps. Pass the exact item name, for example `Arcanine Mount` or `Blue Bicycle`. Pass an empty string to clear the configured ground mount. The function only configures the item; the tool uses it automatically before movement when appropriate.
 
-### Parameters
+**Practical scenario**
 
+Configure this state deliberately and verify the related query before issuing further movement.
+
+```lua
+function onStart()
+    function onStart()
+    local result = setMount("Arcanine Mount")
+    log("Configured setMount.")
+end
+    log("Configured setMount.")
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `mount` | `string` | yes |  |
-
+| `mount` | `string` | yes | Exact mount or bicycle item name; an empty string clears the configuration. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/setmount`</small>
+
+
+## disMount()
+
+~~~ lua
+function onPathAction()
+    if isMounted() and not isSurfing() then
+        disMount()
+        return
+    end
+
+    moveToCell(10, 15)
+end
+~~~
+
+**Signature**
+
+`result = disMount()`
+
+Disables automatic ground mounting and dismounts the currently active ground mount by toggling the official mount item packet. It affects ground mounts and bicycles only; it does not cancel Surf. The configured ground mount is cleared, so call `setMount()` again before expecting automatic ground mounting later. Returns `true` when the configured mount was cleared or a dismount packet was sent, otherwise `false` when there was nothing to change.
+
+**Practical scenario**
+
+Use this before entering an area where a ground mount is unwanted. It also clears automatic ground-mount configuration.
+
+```lua
+function onPathAction()
+    if isMounted() and not isSurfing() then
+        disMount()
+        return
+    end
+
+    moveToCell(10, 15)
+end
+```
+
+### Returns
+
+`boolean` — example: `true`
+
+<small>Source key: `POST /lua/general-state/dismount`</small>
 
 
 ## setWaterMount()
 
 ~~~ lua
-local result = setWaterMount("Lapras Mount")
+function onStart()
+    function onStart()
+    local result = setWaterMount("Lapras Mount")
+    log("Configured setWaterMount.")
+end
+    log("Configured setWaterMount.")
+end
 ~~~
 
 **Signature**
@@ -1884,22 +2647,29 @@ local result = setWaterMount("Lapras Mount")
 
 Configure an optional water mount item that should be used when the bot needs to start surfing. Call this before a path that may enter water. Most scripts can leave it unset; without a water mount, `useSurf()` and pathfinding use the normal `/surf` flow. Pass an empty string to clear the configured water mount.
 
-### Parameters
+**Practical scenario**
 
+Configure this state deliberately and verify the related query before issuing further movement.
+
+```lua
+function onStart()
+    function onStart()
+    local result = setWaterMount("Lapras Mount")
+    log("Configured setWaterMount.")
+end
+    log("Configured setWaterMount.")
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `mount` | `string` | yes |  |
-
+| `mount` | `string` | yes | Exact mount or bicycle item name; an empty string clears the configuration. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/setwatermount`</small>
 
@@ -1907,7 +2677,13 @@ Configure an optional water mount item that should be used when the bot needs to
 ## isCurrentPCBoxRefreshed()
 
 ~~~ lua
-local result = isCurrentPCBoxRefreshed()
+function onPathAction()
+    function onPathAction()
+    local result = isCurrentPCBoxRefreshed()
+    log("isCurrentPCBoxRefreshed: " .. tostring(result))
+end
+    log("isCurrentPCBoxRefreshed: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1916,14 +2692,23 @@ local result = isCurrentPCBoxRefreshed()
 
 Returns true when the latest requested PC box action has completed or there is no pending PC box refresh. Use this after `usePC()`, `openPCBox()`, or `refreshPCBox()` before reading PC Pokémon data.
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isCurrentPCBoxRefreshed()
+    log("isCurrentPCBoxRefreshed: " .. tostring(result))
+end
+    log("isCurrentPCBoxRefreshed: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/general-state/iscurrentpcboxrefreshed`</small>
 
@@ -1931,7 +2716,13 @@ Returns true when the latest requested PC box action has completed or there is n
 ## getServer()
 
 ~~~ lua
-local result = getServer()
+function onPathAction()
+    function onPathAction()
+    local result = getServer()
+    log("getServer: " .. tostring(result))
+end
+    log("getServer: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1940,25 +2731,40 @@ local result = getServer()
 
 Returns the connected server
 
+**Practical scenario**
+
+Use this query as a guard before an action that depends on the current global state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getServer()
+    log("getServer: " .. tostring(result))
+end
+    log("getServer: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/general-state/getserver`</small>
 
 
-# Team Pokémon
 
+# Team Pokémon
 
 ## getPokemonId()
 
 ~~~ lua
-local result = getPokemonId(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonId(1)
+    log("getPokemonId: " .. tostring(result))
+end
+    log("getPokemonId: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1967,22 +2773,29 @@ local result = getPokemonId(1)
 
 Returns the ID of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonId(1)
+    log("getPokemonId: " .. tostring(result))
+end
+    log("getPokemonId: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonid`</small>
 
@@ -1990,7 +2803,13 @@ Returns the ID of the specified pokémon in the team.
 ## getPokemonName()
 
 ~~~ lua
-local result = getPokemonName(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonName(1)
+    log("getPokemonName: " .. tostring(result))
+end
+    log("getPokemonName: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -1999,22 +2818,29 @@ local result = getPokemonName(1)
 
 Returns the name of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonName(1)
+    log("getPokemonName: " .. tostring(result))
+end
+    log("getPokemonName: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonname`</small>
 
@@ -2022,7 +2848,13 @@ Returns the name of the specified pokémon in the team.
 ## getPokemonHealth()
 
 ~~~ lua
-local result = getPokemonHealth(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonHealth(1)
+    log("getPokemonHealth: " .. tostring(result))
+end
+    log("getPokemonHealth: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2031,22 +2863,29 @@ local result = getPokemonHealth(1)
 
 Returns the current health of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonHealth(1)
+    log("getPokemonHealth: " .. tostring(result))
+end
+    log("getPokemonHealth: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonhealth`</small>
 
@@ -2054,7 +2893,13 @@ Returns the current health of the specified pokémon in the team.
 ## getPokemonHealthPercent()
 
 ~~~ lua
-local result = getPokemonHealthPercent(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonHealthPercent(1)
+    log("getPokemonHealthPercent: " .. tostring(result))
+end
+    log("getPokemonHealthPercent: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2063,22 +2908,29 @@ local result = getPokemonHealthPercent(1)
 
 Returns the percentage of remaining health of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonHealthPercent(1)
+    log("getPokemonHealthPercent: " .. tostring(result))
+end
+    log("getPokemonHealthPercent: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonhealthpercent`</small>
 
@@ -2086,7 +2938,13 @@ Returns the percentage of remaining health of the specified pokémon in the team
 ## getPokemonMaxHealth()
 
 ~~~ lua
-local result = getPokemonMaxHealth(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMaxHealth(1)
+    log("getPokemonMaxHealth: " .. tostring(result))
+end
+    log("getPokemonMaxHealth: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2095,22 +2953,29 @@ local result = getPokemonMaxHealth(1)
 
 Returns the maximum health of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMaxHealth(1)
+    log("getPokemonMaxHealth: " .. tostring(result))
+end
+    log("getPokemonMaxHealth: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonmaxhealth`</small>
 
@@ -2118,7 +2983,13 @@ Returns the maximum health of the specified pokémon in the team.
 ## getPokemonLevel()
 
 ~~~ lua
-local result = getPokemonLevel(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonLevel(1)
+    log("getPokemonLevel: " .. tostring(result))
+end
+    log("getPokemonLevel: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2127,22 +2998,29 @@ local result = getPokemonLevel(1)
 
 Returns the level of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonLevel(1)
+    log("getPokemonLevel: " .. tostring(result))
+end
+    log("getPokemonLevel: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonlevel`</small>
 
@@ -2150,7 +3028,13 @@ Returns the level of the specified pokémon in the team.
 ## getPokemonTotalExperience()
 
 ~~~ lua
-local result = getPokemonTotalExperience(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonTotalExperience(1)
+    log("getPokemonTotalExperience: " .. tostring(result))
+end
+    log("getPokemonTotalExperience: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2159,22 +3043,29 @@ local result = getPokemonTotalExperience(1)
 
 Returns the experience total of a pokemon level.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonTotalExperience(1)
+    log("getPokemonTotalExperience: " .. tostring(result))
+end
+    log("getPokemonTotalExperience: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemontotalexperience`</small>
 
@@ -2182,7 +3073,13 @@ Returns the experience total of a pokemon level.
 ## getPokemonRemainingExperience()
 
 ~~~ lua
-local result = getPokemonRemainingExperience(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonRemainingExperience(1)
+    log("getPokemonRemainingExperience: " .. tostring(result))
+end
+    log("getPokemonRemainingExperience: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2191,22 +3088,29 @@ local result = getPokemonRemainingExperience(1)
 
 Returns the remaining experience of a pokemon before next level.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonRemainingExperience(1)
+    log("getPokemonRemainingExperience: " .. tostring(result))
+end
+    log("getPokemonRemainingExperience: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonremainingexperience`</small>
 
@@ -2214,7 +3118,13 @@ Returns the remaining experience of a pokemon before next level.
 ## getPokemonStatus()
 
 ~~~ lua
-local result = getPokemonStatus(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonStatus(1)
+    log("getPokemonStatus: " .. tostring(result))
+end
+    log("getPokemonStatus: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2223,22 +3133,29 @@ local result = getPokemonStatus(1)
 
 Returns the status of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonStatus(1)
+    log("getPokemonStatus: " .. tostring(result))
+end
+    log("getPokemonStatus: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonstatus`</small>
 
@@ -2246,7 +3163,13 @@ Returns the status of the specified pokémon in the team.
 ## getPokemonForm()
 
 ~~~ lua
-local result = getPokemonForm(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonForm(1)
+    log("getPokemonForm: " .. tostring(result))
+end
+    log("getPokemonForm: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2255,22 +3178,29 @@ local result = getPokemonForm(1)
 
 Returns the form of the specified pokémon in the team (0 if no form).
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonForm(1)
+    log("getPokemonForm: " .. tostring(result))
+end
+    log("getPokemonForm: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonform`</small>
 
@@ -2278,7 +3208,13 @@ Returns the form of the specified pokémon in the team (0 if no form).
 ## getPokemonHeldItem()
 
 ~~~ lua
-local result = getPokemonHeldItem(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonHeldItem(1)
+    log("getPokemonHeldItem: " .. tostring(result))
+end
+    log("getPokemonHeldItem: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2287,22 +3223,29 @@ local result = getPokemonHeldItem(1)
 
 Returns the item held by the specified pokemon in the team, null if empty.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonHeldItem(1)
+    log("getPokemonHeldItem: " .. tostring(result))
+end
+    log("getPokemonHeldItem: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonhelditem`</small>
 
@@ -2310,7 +3253,13 @@ Returns the item held by the specified pokemon in the team, null if empty.
 ## getPokemonUniqueId()
 
 ~~~ lua
-local result = getPokemonUniqueId(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonUniqueId(1)
+    log("getPokemonUniqueId: " .. tostring(result))
+end
+    log("getPokemonUniqueId: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2319,22 +3268,29 @@ local result = getPokemonUniqueId(1)
 
 PROCatchem unique ID of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonUniqueId(1)
+    log("getPokemonUniqueId: " .. tostring(result))
+end
+    log("getPokemonUniqueId: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `pokemonUid` | `integer` | yes |  |
-
+| `pokemonUid` | `integer` | yes | Stable Pokémon database/unique identifier returned by the corresponding query API. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonuniqueid`</small>
 
@@ -2342,7 +3298,13 @@ PROCatchem unique ID of the pokemon of the current box matching the ID.
 ## getPokemonMaxPowerPoints()
 
 ~~~ lua
-local result = getPokemonMaxPowerPoints(1, "Tackle")
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMaxPowerPoints(1, "Tackle")
+    log("getPokemonMaxPowerPoints: " .. tostring(result))
+end
+    log("getPokemonMaxPowerPoints: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2351,24 +3313,30 @@ local result = getPokemonMaxPowerPoints(1, "Tackle")
 
 Max move PP of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMaxPowerPoints(1, "Tackle")
+    log("getPokemonMaxPowerPoints: " .. tostring(result))
+end
+    log("getPokemonMaxPowerPoints: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonmaxpowerpoints`</small>
 
@@ -2376,7 +3344,13 @@ Max move PP of the pokemon of the current box matching the ID.
 ## isPokemonShiny()
 
 ~~~ lua
-local result = isPokemonShiny(1)
+function onPathAction()
+    function onPathAction()
+    local result = isPokemonShiny(1)
+    log("isPokemonShiny: " .. tostring(result))
+end
+    log("isPokemonShiny: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2385,22 +3359,29 @@ local result = isPokemonShiny(1)
 
 Returns the shyniness of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isPokemonShiny(1)
+    log("isPokemonShiny: " .. tostring(result))
+end
+    log("isPokemonShiny: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/team-pok-mon/ispokemonshiny`</small>
 
@@ -2408,7 +3389,13 @@ Returns the shyniness of the specified pokémon in the team.
 ## getPokemonMoveName()
 
 ~~~ lua
-local result = getPokemonMoveName(1, "Tackle")
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMoveName(1, "Tackle")
+    log("getPokemonMoveName: " .. tostring(result))
+end
+    log("getPokemonMoveName: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2417,24 +3404,30 @@ local result = getPokemonMoveName(1, "Tackle")
 
 Returns the move of the specified pokémon in the team at the specified index.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMoveName(1, "Tackle")
+    log("getPokemonMoveName: " .. tostring(result))
+end
+    log("getPokemonMoveName: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonmovename`</small>
 
@@ -2442,7 +3435,13 @@ Returns the move of the specified pokémon in the team at the specified index.
 ## getPokemonMoveAccuracy()
 
 ~~~ lua
-local result = getPokemonMoveAccuracy(1, "Tackle")
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMoveAccuracy(1, "Tackle")
+    log("getPokemonMoveAccuracy: " .. tostring(result))
+end
+    log("getPokemonMoveAccuracy: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2451,24 +3450,30 @@ local result = getPokemonMoveAccuracy(1, "Tackle")
 
 Returns the move accuracy of the specified pokémon in the team at the specified index.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMoveAccuracy(1, "Tackle")
+    log("getPokemonMoveAccuracy: " .. tostring(result))
+end
+    log("getPokemonMoveAccuracy: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonmoveaccuracy`</small>
 
@@ -2476,7 +3481,13 @@ Returns the move accuracy of the specified pokémon in the team at the specified
 ## getPokemonMovePower()
 
 ~~~ lua
-local result = getPokemonMovePower(1, "Tackle")
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMovePower(1, "Tackle")
+    log("getPokemonMovePower: " .. tostring(result))
+end
+    log("getPokemonMovePower: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2485,24 +3496,30 @@ local result = getPokemonMovePower(1, "Tackle")
 
 Returns the move power of the specified pokémon in the team at the specified index.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMovePower(1, "Tackle")
+    log("getPokemonMovePower: " .. tostring(result))
+end
+    log("getPokemonMovePower: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonmovepower`</small>
 
@@ -2510,7 +3527,13 @@ Returns the move power of the specified pokémon in the team at the specified in
 ## getPokemonMoveType()
 
 ~~~ lua
-local result = getPokemonMoveType(1, "Tackle")
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMoveType(1, "Tackle")
+    log("getPokemonMoveType: " .. tostring(result))
+end
+    log("getPokemonMoveType: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2519,24 +3542,30 @@ local result = getPokemonMoveType(1, "Tackle")
 
 Returns the move type of the specified pokémon in the team at the specified index.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMoveType(1, "Tackle")
+    log("getPokemonMoveType: " .. tostring(result))
+end
+    log("getPokemonMoveType: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonmovetype`</small>
 
@@ -2544,7 +3573,13 @@ Returns the move type of the specified pokémon in the team at the specified ind
 ## getPokemonMoveDamageType()
 
 ~~~ lua
-local result = getPokemonMoveDamageType(1, "Tackle")
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMoveDamageType(1, "Tackle")
+    log("getPokemonMoveDamageType: " .. tostring(result))
+end
+    log("getPokemonMoveDamageType: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2553,24 +3588,30 @@ local result = getPokemonMoveDamageType(1, "Tackle")
 
 Returns the move damage type of the specified pokémon in the team at the specified index.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMoveDamageType(1, "Tackle")
+    log("getPokemonMoveDamageType: " .. tostring(result))
+end
+    log("getPokemonMoveDamageType: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonmovedamagetype`</small>
 
@@ -2578,7 +3619,13 @@ Returns the move damage type of the specified pokémon in the team at the specif
 ## getPokemonMoveStatus()
 
 ~~~ lua
-local result = getPokemonMoveStatus(1, "Tackle")
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMoveStatus(1, "Tackle")
+    log("getPokemonMoveStatus: " .. tostring(result))
+end
+    log("getPokemonMoveStatus: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2587,24 +3634,30 @@ local result = getPokemonMoveStatus(1, "Tackle")
 
 Returns true if the move of the specified pokémon in the team at the specified index can apply a status .
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonMoveStatus(1, "Tackle")
+    log("getPokemonMoveStatus: " .. tostring(result))
+end
+    log("getPokemonMoveStatus: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonmovestatus`</small>
 
@@ -2612,7 +3665,13 @@ Returns true if the move of the specified pokémon in the team at the specified 
 ## getPokemonNature()
 
 ~~~ lua
-local result = getPokemonNature(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonNature(1)
+    log("getPokemonNature: " .. tostring(result))
+end
+    log("getPokemonNature: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2621,22 +3680,29 @@ local result = getPokemonNature(1)
 
 Nature of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonNature(1)
+    log("getPokemonNature: " .. tostring(result))
+end
+    log("getPokemonNature: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonnature`</small>
 
@@ -2644,7 +3710,13 @@ Nature of the pokemon of the current box matching the ID.
 ## getPokemonAbility()
 
 ~~~ lua
-local result = getPokemonAbility(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonAbility(1)
+    log("getPokemonAbility: " .. tostring(result))
+end
+    log("getPokemonAbility: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2653,22 +3725,29 @@ local result = getPokemonAbility(1)
 
 Ability of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonAbility(1)
+    log("getPokemonAbility: " .. tostring(result))
+end
+    log("getPokemonAbility: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonability`</small>
 
@@ -2676,7 +3755,10 @@ Ability of the pokemon of the current box matching the ID.
 ## getPokemonStat()
 
 ~~~ lua
-local result = getPokemonStat(1, "value")
+function onPathAction()
+    local speed = getPokemonStat(1, "SPE")
+    log("Lead Pokémon Speed: " .. tostring(speed))
+end
 ~~~
 
 **Signature**
@@ -2685,24 +3767,27 @@ local result = getPokemonStat(1, "value")
 
 Returns the value for the specified stat of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Read a current team stat by its documented stat key.
+
+```lua
+function onPathAction()
+    local speed = getPokemonStat(1, "SPE")
+    log("Lead Pokémon Speed: " .. tostring(speed))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `pokemonIndex` | `integer` | yes |  |
-
-| `statType` | `string` | yes |  |
-
+| `pokemonIndex` | `integer` | yes | One-based Pokémon index in the current team. |
+| `statType` | `string` | yes | Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonstat`</small>
 
@@ -2710,7 +3795,12 @@ Returns the value for the specified stat of the specified pokémon in the team.
 ## getPokemonEffortValue()
 
 ~~~ lua
-local result = getPokemonEffortValue(1, "value")
+function onPathAction()
+    local attackEV = getPokemonEffortValue(1, "ATK")
+    if attackEV >= 252 then
+        log("Attack EV training is complete.")
+    end
+end
 ~~~
 
 **Signature**
@@ -2719,24 +3809,29 @@ local result = getPokemonEffortValue(1, "value")
 
 Returns the effort value for the specified stat of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Inspect a team Pokémon EV before deciding whether to keep training that stat.
+
+```lua
+function onPathAction()
+    local attackEV = getPokemonEffortValue(1, "ATK")
+    if attackEV >= 252 then
+        log("Attack EV training is complete.")
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `pokemonIndex` | `integer` | yes |  |
-
-| `statType` | `string` | yes |  |
-
+| `pokemonIndex` | `integer` | yes | One-based Pokémon index in the current team. |
+| `statType` | `string` | yes | Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemoneffortvalue`</small>
 
@@ -2744,7 +3839,10 @@ Returns the effort value for the specified stat of the specified pokémon in the
 ## getPokemonIndividualValue()
 
 ~~~ lua
-local result = getPokemonIndividualValue(1, "value")
+function onPathAction()
+    local speedIV = getPokemonIndividualValue(1, "SPE")
+    log("Lead Pokémon Speed IV: " .. tostring(speedIV))
+end
 ~~~
 
 **Signature**
@@ -2753,24 +3851,27 @@ local result = getPokemonIndividualValue(1, "value")
 
 Returns the individual value for the specified stat of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Inspect a team Pokémon IV when filtering catches or selecting a lead.
+
+```lua
+function onPathAction()
+    local speedIV = getPokemonIndividualValue(1, "SPE")
+    log("Lead Pokémon Speed IV: " .. tostring(speedIV))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `pokemonIndex` | `integer` | yes |  |
-
-| `statType` | `string` | yes |  |
-
+| `pokemonIndex` | `integer` | yes | One-based Pokémon index in the current team. |
+| `statType` | `string` | yes | Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonindividualvalue`</small>
 
@@ -2778,7 +3879,13 @@ Returns the individual value for the specified stat of the specified pokémon in
 ## getPokemonHappiness()
 
 ~~~ lua
-local result = getPokemonHappiness(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonHappiness(1)
+    log("getPokemonHappiness: " .. tostring(result))
+end
+    log("getPokemonHappiness: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2787,22 +3894,29 @@ local result = getPokemonHappiness(1)
 
 Returns the happiness of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonHappiness(1)
+    log("getPokemonHappiness: " .. tostring(result))
+end
+    log("getPokemonHappiness: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonhappiness`</small>
 
@@ -2810,7 +3924,13 @@ Returns the happiness of the specified pokémon in the team.
 ## getPokemonRegion()
 
 ~~~ lua
-local result = getPokemonRegion(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonRegion(1)
+    log("getPokemonRegion: " .. tostring(result))
+end
+    log("getPokemonRegion: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2819,22 +3939,29 @@ local result = getPokemonRegion(1)
 
 Returns the region of capture of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonRegion(1)
+    log("getPokemonRegion: " .. tostring(result))
+end
+    log("getPokemonRegion: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonregion`</small>
 
@@ -2842,7 +3969,13 @@ Returns the region of capture of the specified pokémon in the team.
 ## getPokemonOriginalTrainer()
 
 ~~~ lua
-local result = getPokemonOriginalTrainer(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonOriginalTrainer(1)
+    log("getPokemonOriginalTrainer: " .. tostring(result))
+end
+    log("getPokemonOriginalTrainer: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2851,22 +3984,29 @@ local result = getPokemonOriginalTrainer(1)
 
 Returns the original trainer of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonOriginalTrainer(1)
+    log("getPokemonOriginalTrainer: " .. tostring(result))
+end
+    log("getPokemonOriginalTrainer: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemonoriginaltrainer`</small>
 
@@ -2874,7 +4014,13 @@ Returns the original trainer of the specified pokémon in the team.
 ## getPokemonGender()
 
 ~~~ lua
-local result = getPokemonGender(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonGender(1)
+    log("getPokemonGender: " .. tostring(result))
+end
+    log("getPokemonGender: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2883,22 +4029,29 @@ local result = getPokemonGender(1)
 
 Returns the gender of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonGender(1)
+    log("getPokemonGender: " .. tostring(result))
+end
+    log("getPokemonGender: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemongender`</small>
 
@@ -2906,7 +4059,13 @@ Returns the gender of the specified pokémon in the team.
 ## getPokemonType()
 
 ~~~ lua
-local result = getPokemonType(1)
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonType(1)
+    log("getPokemonType: " .. tostring(result))
+end
+    log("getPokemonType: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2915,22 +4074,29 @@ local result = getPokemonType(1)
 
 Returns the type of the specified pokémon in the team as an array of length 2.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getPokemonType(1)
+    log("getPokemonType: " .. tostring(result))
+end
+    log("getPokemonType: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`array<string>`
- — example: `[]`
-
-
+`array<string>` — example: `[]`
 
 <small>Source key: `POST /lua/team-pok-mon/getpokemontype`</small>
 
@@ -2938,7 +4104,16 @@ Returns the type of the specified pokémon in the team as an array of length 2.
 ## getDamageMultiplier()
 
 ~~~ lua
-local result = getDamageMultiplier("value", 1, 2)
+function onBattleAction()
+    local opponentTypes = getOpponentType()
+    local multiplier = getDamageMultiplier("ELECTRIC", opponentTypes)
+
+    if multiplier >= 2 then
+        useMove("Thunderbolt")
+    else
+        attack()
+    end
+end
 ~~~
 
 **Signature**
@@ -2947,24 +4122,33 @@ local result = getDamageMultiplier("value", 1, 2)
 
 Returns the multiplier of the damage type between an attacking type and one or two defending types.
 
-### Parameters
+**Practical scenario**
 
+Compare one attacking type against the opponent's one or two defending types.
+
+```lua
+function onBattleAction()
+    local opponentTypes = getOpponentType()
+    local multiplier = getDamageMultiplier("ELECTRIC", opponentTypes)
+
+    if multiplier >= 2 then
+        useMove("Thunderbolt")
+    else
+        attack()
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `attacker` | `string` | yes |  |
-
-| `defender` | `array<object>` | yes |  |
-
+| `attacker` | `string` | yes | Value passed to the `attacker` parameter. |
+| `defender` | `array<LuaValue>` | yes | Value passed to the `defender` parameter. |
 
 ### Returns
 
-
-`number`
- — example: `1.0`
-
-
+`number` — example: `1.0`
 
 <small>Source key: `POST /lua/team-pok-mon/getdamagemultiplier`</small>
 
@@ -2972,7 +4156,13 @@ Returns the multiplier of the damage type between an attacking type and one or t
 ## isPokemonUsable()
 
 ~~~ lua
-local result = isPokemonUsable(1)
+function onPathAction()
+    function onPathAction()
+    local result = isPokemonUsable(1)
+    log("isPokemonUsable: " .. tostring(result))
+end
+    log("isPokemonUsable: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -2981,22 +4171,29 @@ local result = isPokemonUsable(1)
 
 Returns true if the specified pokémon has is alive and has an offensive attack available.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isPokemonUsable(1)
+    log("isPokemonUsable: " .. tostring(result))
+end
+    log("isPokemonUsable: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/team-pok-mon/ispokemonusable`</small>
 
@@ -3004,7 +4201,13 @@ Returns true if the specified pokémon has is alive and has an offensive attack 
 ## getUsablePokemonCount()
 
 ~~~ lua
-local result = getUsablePokemonCount()
+function onPathAction()
+    function onPathAction()
+    local result = getUsablePokemonCount()
+    log("getUsablePokemonCount: " .. tostring(result))
+end
+    log("getUsablePokemonCount: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3013,14 +4216,23 @@ local result = getUsablePokemonCount()
 
 Returns the amount of usable pokémon in the team.
 
+**Practical scenario**
+
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getUsablePokemonCount()
+    log("getUsablePokemonCount: " .. tostring(result))
+end
+    log("getUsablePokemonCount: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/team-pok-mon/getusablepokemoncount`</small>
 
@@ -3028,7 +4240,13 @@ Returns the amount of usable pokémon in the team.
 ## hasMove()
 
 ~~~ lua
-local result = hasMove(1, "Tackle")
+function onPathAction()
+    function onPathAction()
+    local result = hasMove(1, "Tackle")
+    log("hasMove: " .. tostring(result))
+end
+    log("hasMove: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3037,24 +4255,30 @@ local result = hasMove(1, "Tackle")
 
 Returns true if the specified pokémon has a move with the specified name.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = hasMove(1, "Tackle")
+    log("hasMove: " .. tostring(result))
+end
+    log("hasMove: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `pokemonIndex` | `integer` | yes |  |
-
-| `moveName` | `string` | yes |  |
-
+| `pokemonIndex` | `integer` | yes | One-based Pokémon index in the current team. |
+| `moveName` | `string` | yes | Exact move name as shown by the game. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/team-pok-mon/hasmove`</small>
 
@@ -3062,7 +4286,14 @@ Returns true if the specified pokémon has a move with the specified name.
 ## hasPokemonInTeam()
 
 ~~~ lua
-local result = hasPokemonInTeam("value")
+function onPathAction()
+    if not hasPokemonInTeam("Pikachu") then
+        fatal("Put Pikachu in the team before starting this route.")
+        return
+    end
+
+    moveToGrass()
+end
 ~~~
 
 **Signature**
@@ -3071,22 +4302,30 @@ local result = hasPokemonInTeam("value")
 
 Returns true if the specified pokémon is present in the team.
 
-### Parameters
+**Practical scenario**
 
+Guard routes that require a specific Pokémon in the current team.
+
+```lua
+function onPathAction()
+    if not hasPokemonInTeam("Pikachu") then
+        fatal("Put Pikachu in the team before starting this route.")
+        return
+    end
+
+    moveToGrass()
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `pokemonName` | `string` | yes |  |
-
+| `pokemonName` | `string` | yes | Value passed to the `pokemonName` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/team-pok-mon/haspokemoninteam`</small>
 
@@ -3094,7 +4333,13 @@ Returns true if the specified pokémon is present in the team.
 ## isTeamSortedByLevelAscending()
 
 ~~~ lua
-local result = isTeamSortedByLevelAscending()
+function onPathAction()
+    function onPathAction()
+    local result = isTeamSortedByLevelAscending()
+    log("isTeamSortedByLevelAscending: " .. tostring(result))
+end
+    log("isTeamSortedByLevelAscending: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3103,14 +4348,23 @@ local result = isTeamSortedByLevelAscending()
 
 Returns true if the team is sorted by level in ascending order.
 
+**Practical scenario**
+
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isTeamSortedByLevelAscending()
+    log("isTeamSortedByLevelAscending: " .. tostring(result))
+end
+    log("isTeamSortedByLevelAscending: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/team-pok-mon/isteamsortedbylevelascending`</small>
 
@@ -3118,7 +4372,13 @@ Returns true if the team is sorted by level in ascending order.
 ## isTeamSortedByLevelDescending()
 
 ~~~ lua
-local result = isTeamSortedByLevelDescending()
+function onPathAction()
+    function onPathAction()
+    local result = isTeamSortedByLevelDescending()
+    log("isTeamSortedByLevelDescending: " .. tostring(result))
+end
+    log("isTeamSortedByLevelDescending: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3127,14 +4387,23 @@ local result = isTeamSortedByLevelDescending()
 
 Returns true if the team is sorted by level in descending order.
 
+**Practical scenario**
+
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isTeamSortedByLevelDescending()
+    log("isTeamSortedByLevelDescending: " .. tostring(result))
+end
+    log("isTeamSortedByLevelDescending: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/team-pok-mon/isteamsortedbyleveldescending`</small>
 
@@ -3142,7 +4411,13 @@ Returns true if the team is sorted by level in descending order.
 ## isTeamRangeSortedByLevelAscending()
 
 ~~~ lua
-local result = isTeamRangeSortedByLevelAscending(10, 10)
+function onPathAction()
+    function onPathAction()
+    local result = isTeamRangeSortedByLevelAscending(10, 10)
+    log("isTeamRangeSortedByLevelAscending: " .. tostring(result))
+end
+    log("isTeamRangeSortedByLevelAscending: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3151,24 +4426,30 @@ local result = isTeamRangeSortedByLevelAscending(10, 10)
 
 Returns true if the specified part of the team is sorted by level in ascending order.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isTeamRangeSortedByLevelAscending(10, 10)
+    log("isTeamRangeSortedByLevelAscending: " .. tostring(result))
+end
+    log("isTeamRangeSortedByLevelAscending: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `fromIndex` | `integer` | yes |  |
-
-| `toIndex` | `integer` | yes |  |
-
+| `fromIndex` | `integer` | yes | Value passed to the `fromIndex` parameter. |
+| `toIndex` | `integer` | yes | Value passed to the `toIndex` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/team-pok-mon/isteamrangesortedbylevelascending`</small>
 
@@ -3176,7 +4457,13 @@ Returns true if the specified part of the team is sorted by level in ascending o
 ## isTeamRangeSortedByLevelDescending()
 
 ~~~ lua
-local result = isTeamRangeSortedByLevelDescending(10, 10)
+function onPathAction()
+    function onPathAction()
+    local result = isTeamRangeSortedByLevelDescending(10, 10)
+    log("isTeamRangeSortedByLevelDescending: " .. tostring(result))
+end
+    log("isTeamRangeSortedByLevelDescending: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3185,35 +4472,51 @@ local result = isTeamRangeSortedByLevelDescending(10, 10)
 
 Returns true if the specified part of the team the team is sorted by level in descending order.
 
-### Parameters
+**Practical scenario**
 
+Use this query to make team decisions before selecting a path or battle action.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = isTeamRangeSortedByLevelDescending(10, 10)
+    log("isTeamRangeSortedByLevelDescending: " .. tostring(result))
+end
+    log("isTeamRangeSortedByLevelDescending: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `fromIndex` | `integer` | yes |  |
-
-| `toIndex` | `integer` | yes |  |
-
+| `fromIndex` | `integer` | yes | Value passed to the `fromIndex` parameter. |
+| `toIndex` | `integer` | yes | Value passed to the `toIndex` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/team-pok-mon/isteamrangesortedbyleveldescending`</small>
 
 
-# Items and shop
 
+# Items and shop
 
 ## hasItem()
 
 ~~~ lua
-local result = hasItem("Potion")
+function onPathAction()
+    function onPathAction()
+    local result = hasItem("Potion")
+    if result then
+        log("hasItem condition is true")
+    end
+end
+    if result then
+        log("hasItem condition is true")
+    end
+end
 ~~~
 
 **Signature**
@@ -3222,22 +4525,33 @@ local result = hasItem("Potion")
 
 Returns true if the specified item is in the inventory.
 
-### Parameters
+**Practical scenario**
 
+Use this query to guard an item or shop action and avoid sending requests that cannot succeed.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = hasItem("Potion")
+    if result then
+        log("hasItem condition is true")
+    end
+end
+    if result then
+        log("hasItem condition is true")
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `itemName` | `string` | yes |  |
-
+| `itemName` | `string` | yes | Exact item name as shown in the inventory. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/items-and-shop/hasitem`</small>
 
@@ -3245,7 +4559,17 @@ Returns true if the specified item is in the inventory.
 ## getItemQuantity()
 
 ~~~ lua
-local result = getItemQuantity("Potion")
+function onPathAction()
+    function onPathAction()
+    local result = getItemQuantity("Potion")
+    if result then
+        log("getItemQuantity condition is true")
+    end
+end
+    if result then
+        log("getItemQuantity condition is true")
+    end
+end
 ~~~
 
 **Signature**
@@ -3254,22 +4578,33 @@ local result = getItemQuantity("Potion")
 
 Returns the quantity of the specified item in the inventory.
 
-### Parameters
+**Practical scenario**
 
+Use this query to guard an item or shop action and avoid sending requests that cannot succeed.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getItemQuantity("Potion")
+    if result then
+        log("getItemQuantity condition is true")
+    end
+end
+    if result then
+        log("getItemQuantity condition is true")
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `itemName` | `string` | yes |  |
-
+| `itemName` | `string` | yes | Exact item name as shown in the inventory. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/items-and-shop/getitemquantity`</small>
 
@@ -3277,7 +4612,17 @@ Returns the quantity of the specified item in the inventory.
 ## hasItemId()
 
 ~~~ lua
-local result = hasItemId("Potion")
+function onPathAction()
+    function onPathAction()
+    local result = hasItemId("Potion")
+    if result then
+        log("hasItemId condition is true")
+    end
+end
+    if result then
+        log("hasItemId condition is true")
+    end
+end
 ~~~
 
 **Signature**
@@ -3286,22 +4631,33 @@ local result = hasItemId("Potion")
 
 Returns true if the specified item is in the inventory.
 
-### Parameters
+**Practical scenario**
 
+Use this query to guard an item or shop action and avoid sending requests that cannot succeed.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = hasItemId("Potion")
+    if result then
+        log("hasItemId condition is true")
+    end
+end
+    if result then
+        log("hasItemId condition is true")
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `itemid` | `integer` | yes |  |
-
+| `itemid` | `integer` | yes | Value passed to the `itemid` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/items-and-shop/hasitemid`</small>
 
@@ -3309,7 +4665,17 @@ Returns true if the specified item is in the inventory.
 ## getItemQuantityId()
 
 ~~~ lua
-local result = getItemQuantityId("Potion")
+function onPathAction()
+    function onPathAction()
+    local result = getItemQuantityId("Potion")
+    if result then
+        log("getItemQuantityId condition is true")
+    end
+end
+    if result then
+        log("getItemQuantityId condition is true")
+    end
+end
 ~~~
 
 **Signature**
@@ -3318,22 +4684,33 @@ local result = getItemQuantityId("Potion")
 
 Returns the quantity of the specified item in the inventory.
 
-### Parameters
+**Practical scenario**
 
+Use this query to guard an item or shop action and avoid sending requests that cannot succeed.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getItemQuantityId("Potion")
+    if result then
+        log("getItemQuantityId condition is true")
+    end
+end
+    if result then
+        log("getItemQuantityId condition is true")
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `itemid` | `integer` | yes |  |
-
+| `itemid` | `integer` | yes | Value passed to the `itemid` parameter. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/items-and-shop/getitemquantityid`</small>
 
@@ -3341,7 +4718,13 @@ Returns the quantity of the specified item in the inventory.
 ## buyItem()
 
 ~~~ lua
-local result = buyItem("Potion", 15)
+function onPathAction()
+    function onPathAction()
+    local result = buyItem("Potion", 15)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -3350,24 +4733,30 @@ local result = buyItem("Potion", 15)
 
 Buys the specified item from the opened shop.
 
-### Parameters
+**Practical scenario**
 
+Check inventory/shop state first, perform this action once, then return so the server can update state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = buyItem("Potion", 15)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `itemName` | `string` | yes |  |
-
-| `quantity` | `integer` | yes |  |
-
+| `itemName` | `string` | yes | Exact item name as shown in the inventory. |
+| `quantity` | `integer` | yes | Value passed to the `quantity` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/items-and-shop/buyitem`</small>
 
@@ -3375,7 +4764,17 @@ Buys the specified item from the opened shop.
 ## hasShopItem()
 
 ~~~ lua
-local result = hasShopItem("Potion")
+function onPathAction()
+    function onPathAction()
+    local result = hasShopItem("Potion")
+    if result then
+        log("hasShopItem condition is true")
+    end
+end
+    if result then
+        log("hasShopItem condition is true")
+    end
+end
 ~~~
 
 **Signature**
@@ -3384,22 +4783,33 @@ local result = hasShopItem("Potion")
 
 Lua function `hasShopItem`.
 
-### Parameters
+**Practical scenario**
 
+Use this query to guard an item or shop action and avoid sending requests that cannot succeed.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = hasShopItem("Potion")
+    if result then
+        log("hasShopItem condition is true")
+    end
+end
+    if result then
+        log("hasShopItem condition is true")
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `itemName` | `string` | yes |  |
-
+| `itemName` | `string` | yes | Exact item name as shown in the inventory. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/items-and-shop/hasshopitem`</small>
 
@@ -3407,7 +4817,13 @@ Lua function `hasShopItem`.
 ## giveItemToPokemon()
 
 ~~~ lua
-local result = giveItemToPokemon("Potion", 1)
+function onPathAction()
+    function onPathAction()
+    local result = giveItemToPokemon("Potion", 1)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -3416,24 +4832,30 @@ local result = giveItemToPokemon("Potion", 1)
 
 Give the specified item on the specified pokemon.
 
-### Parameters
+**Practical scenario**
 
+Check inventory/shop state first, perform this action once, then return so the server can update state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = giveItemToPokemon("Potion", 1)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `itemName` | `string` | yes |  |
-
-| `pokemonIndex` | `integer` | yes |  |
-
+| `itemName` | `string` | yes | Exact item name as shown in the inventory. |
+| `pokemonIndex` | `integer` | yes | One-based Pokémon index in the current team. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/items-and-shop/giveitemtopokemon`</small>
 
@@ -3441,7 +4863,13 @@ Give the specified item on the specified pokemon.
 ## takeItemFromPokemon()
 
 ~~~ lua
-local result = takeItemFromPokemon(1)
+function onPathAction()
+    function onPathAction()
+    local result = takeItemFromPokemon(1)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -3450,22 +4878,29 @@ local result = takeItemFromPokemon(1)
 
 Take the held item from the specified pokemon.
 
-### Parameters
+**Practical scenario**
 
+Check inventory/shop state first, perform this action once, then return so the server can update state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = takeItemFromPokemon(1)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/items-and-shop/takeitemfrompokemon`</small>
 
@@ -3473,7 +4908,13 @@ Take the held item from the specified pokemon.
 ## useItem()
 
 ~~~ lua
-local result = useItem("Potion")
+function onPathAction()
+    function onPathAction()
+    local result = useItem("Potion")
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -3482,22 +4923,29 @@ local result = useItem("Potion")
 
 Uses the specified item.
 
-### Parameters
+**Practical scenario**
 
+Check inventory/shop state first, perform this action once, then return so the server can update state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = useItem("Potion")
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `itemName` | `string` | yes |  |
-
+| `itemName` | `string` | yes | Exact item name as shown in the inventory. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/items-and-shop/useitem`</small>
 
@@ -3505,7 +4953,13 @@ Uses the specified item.
 ## useItemOnPokemon()
 
 ~~~ lua
-local result = useItemOnPokemon("Potion", 1)
+function onPathAction()
+    function onPathAction()
+    local result = useItemOnPokemon("Potion", 1)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -3514,35 +4968,55 @@ local result = useItemOnPokemon("Potion", 1)
 
 Uses the specified item on the specified pokémon.
 
-### Parameters
+**Practical scenario**
 
+Check inventory/shop state first, perform this action once, then return so the server can update state.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = useItemOnPokemon("Potion", 1)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `itemName` | `string` | yes |  |
-
-| `pokemonIndex` | `integer` | yes |  |
-
+| `itemName` | `string` | yes | Exact item name as shown in the inventory. |
+| `pokemonIndex` | `integer` | yes | One-based Pokémon index in the current team. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/items-and-shop/useitemonpokemon`</small>
 
 
-# PC storage
 
+# PC storage
 
 ## getCurrentPCBoxId()
 
 ~~~ lua
-local result = getCurrentPCBoxId()
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getCurrentPCBoxId()
+    log("getCurrentPCBoxId: " .. tostring(result))
+end
+    log("getCurrentPCBoxId: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3551,14 +5025,31 @@ local result = getCurrentPCBoxId()
 
 Get the active PC Box.
 
+**Practical scenario**
+
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getCurrentPCBoxId()
+    log("getCurrentPCBoxId: " .. tostring(result))
+end
+    log("getCurrentPCBoxId: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getcurrentpcboxid`</small>
 
@@ -3566,7 +5057,21 @@ Get the active PC Box.
 ## isPCOpen()
 
 ~~~ lua
-local result = isPCOpen()
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = isPCOpen()
+    log("isPCOpen: " .. tostring(result))
+end
+    log("isPCOpen: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3575,14 +5080,31 @@ local result = isPCOpen()
 
 Check if the PC is open. Moving close the PC, usePC() opens it.
 
+**Practical scenario**
+
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = isPCOpen()
+    log("isPCOpen: " .. tostring(result))
+end
+    log("isPCOpen: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/pc-storage/ispcopen`</small>
 
@@ -3590,7 +5112,21 @@ Check if the PC is open. Moving close the PC, usePC() opens it.
 ## getCurrentPCBoxSize()
 
 ~~~ lua
-local result = getCurrentPCBoxSize()
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getCurrentPCBoxSize()
+    log("getCurrentPCBoxSize: " .. tostring(result))
+end
+    log("getCurrentPCBoxSize: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3599,14 +5135,31 @@ local result = getCurrentPCBoxSize()
 
 Returns the number of Pokémon currently cached in the visible PC box. PC boxes can hold up to 30 slots; use this as the safe upper bound for one-based `boxPokemonId` indexes after the box is refreshed.
 
+**Practical scenario**
+
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getCurrentPCBoxSize()
+    log("getCurrentPCBoxSize: " .. tostring(result))
+end
+    log("getCurrentPCBoxSize: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getcurrentpcboxsize`</small>
 
@@ -3614,7 +5167,21 @@ Returns the number of Pokémon currently cached in the visible PC box. PC boxes 
 ## getPCBoxCount()
 
 ~~~ lua
-local result = getPCBoxCount()
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPCBoxCount()
+    log("getPCBoxCount: " .. tostring(result))
+end
+    log("getPCBoxCount: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3623,14 +5190,31 @@ local result = getPCBoxCount()
 
 Return the number of non-empty boxes in the PC
 
+**Practical scenario**
+
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPCBoxCount()
+    log("getPCBoxCount: " .. tostring(result))
+end
+    log("getPCBoxCount: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpcboxcount`</small>
 
@@ -3638,7 +5222,21 @@ Return the number of non-empty boxes in the PC
 ## getPCPokemonCount()
 
 ~~~ lua
-local result = getPCPokemonCount()
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPCPokemonCount()
+    log("getPCPokemonCount: " .. tostring(result))
+end
+    log("getPCPokemonCount: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3647,14 +5245,31 @@ local result = getPCPokemonCount()
 
 Returns the latest known total Pokémon count for the current PC storage view. The value is read from server PC metadata when available and should not be inferred from internal slot IDs.
 
+**Practical scenario**
+
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPCPokemonCount()
+    log("getPCPokemonCount: " .. tostring(result))
+end
+    log("getPCPokemonCount: " .. tostring(result))
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpcpokemoncount`</small>
 
@@ -3662,7 +5277,21 @@ Returns the latest known total Pokémon count for the current PC storage view. T
 ## getPokemonIdFromPC()
 
 ~~~ lua
-local result = getPokemonIdFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonIdFromPC(1, 1)
+    log("getPokemonIdFromPC: " .. tostring(result))
+end
+    log("getPokemonIdFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3671,24 +5300,38 @@ local result = getPokemonIdFromPC(1, 1)
 
 Pokedex ID of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonIdFromPC(1, 1)
+    log("getPokemonIdFromPC: " .. tostring(result))
+end
+    log("getPokemonIdFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonidfrompc`</small>
 
@@ -3696,7 +5339,21 @@ Pokedex ID of the pokemon of the current box matching the ID.
 ## getPokemonNameFromPC()
 
 ~~~ lua
-local result = getPokemonNameFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonNameFromPC(1, 1)
+    log("getPokemonNameFromPC: " .. tostring(result))
+end
+    log("getPokemonNameFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3705,24 +5362,38 @@ local result = getPokemonNameFromPC(1, 1)
 
 Name of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonNameFromPC(1, 1)
+    log("getPokemonNameFromPC: " .. tostring(result))
+end
+    log("getPokemonNameFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonnamefrompc`</small>
 
@@ -3730,7 +5401,21 @@ Name of the pokemon of the current box matching the ID.
 ## getPokemonHealthFromPC()
 
 ~~~ lua
-local result = getPokemonHealthFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonHealthFromPC(1, 1)
+    log("getPokemonHealthFromPC: " .. tostring(result))
+end
+    log("getPokemonHealthFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3739,24 +5424,38 @@ local result = getPokemonHealthFromPC(1, 1)
 
 Current HP of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonHealthFromPC(1, 1)
+    log("getPokemonHealthFromPC: " .. tostring(result))
+end
+    log("getPokemonHealthFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonhealthfrompc`</small>
 
@@ -3764,7 +5463,21 @@ Current HP of the pokemon of the current box matching the ID.
 ## getPokemonHealthPercentFromPC()
 
 ~~~ lua
-local result = getPokemonHealthPercentFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonHealthPercentFromPC(1, 1)
+    log("getPokemonHealthPercentFromPC: " .. tostring(result))
+end
+    log("getPokemonHealthPercentFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3773,24 +5486,38 @@ local result = getPokemonHealthPercentFromPC(1, 1)
 
 Returns the percentage of remaining health of the specified pokémon in the team.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonHealthPercentFromPC(1, 1)
+    log("getPokemonHealthPercentFromPC: " .. tostring(result))
+end
+    log("getPokemonHealthPercentFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonhealthpercentfrompc`</small>
 
@@ -3798,7 +5525,21 @@ Returns the percentage of remaining health of the specified pokémon in the team
 ## getPokemonMaxHealthFromPC()
 
 ~~~ lua
-local result = getPokemonMaxHealthFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMaxHealthFromPC(1, 1)
+    log("getPokemonMaxHealthFromPC: " .. tostring(result))
+end
+    log("getPokemonMaxHealthFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3807,24 +5548,38 @@ local result = getPokemonMaxHealthFromPC(1, 1)
 
 Max HP of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMaxHealthFromPC(1, 1)
+    log("getPokemonMaxHealthFromPC: " .. tostring(result))
+end
+    log("getPokemonMaxHealthFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonmaxhealthfrompc`</small>
 
@@ -3832,7 +5587,21 @@ Max HP of the pokemon of the current box matching the ID.
 ## getPokemonLevelFromPC()
 
 ~~~ lua
-local result = getPokemonLevelFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonLevelFromPC(1, 1)
+    log("getPokemonLevelFromPC: " .. tostring(result))
+end
+    log("getPokemonLevelFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3841,24 +5610,38 @@ local result = getPokemonLevelFromPC(1, 1)
 
 Level of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonLevelFromPC(1, 1)
+    log("getPokemonLevelFromPC: " .. tostring(result))
+end
+    log("getPokemonLevelFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonlevelfrompc`</small>
 
@@ -3866,7 +5649,21 @@ Level of the pokemon of the current box matching the ID.
 ## getPokemonTotalExperienceFromPC()
 
 ~~~ lua
-local result = getPokemonTotalExperienceFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonTotalExperienceFromPC(1, 1)
+    log("getPokemonTotalExperienceFromPC: " .. tostring(result))
+end
+    log("getPokemonTotalExperienceFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3875,24 +5672,38 @@ local result = getPokemonTotalExperienceFromPC(1, 1)
 
 Total of experience cost of a level for the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonTotalExperienceFromPC(1, 1)
+    log("getPokemonTotalExperienceFromPC: " .. tostring(result))
+end
+    log("getPokemonTotalExperienceFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemontotalexperiencefrompc`</small>
 
@@ -3900,7 +5711,21 @@ Total of experience cost of a level for the pokemon of the current box matching 
 ## getPokemonRemainingExperienceFromPC()
 
 ~~~ lua
-local result = getPokemonRemainingExperienceFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonRemainingExperienceFromPC(1, 1)
+    log("getPokemonRemainingExperienceFromPC: " .. tostring(result))
+end
+    log("getPokemonRemainingExperienceFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3909,24 +5734,38 @@ local result = getPokemonRemainingExperienceFromPC(1, 1)
 
 Remaining experience before the next level of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonRemainingExperienceFromPC(1, 1)
+    log("getPokemonRemainingExperienceFromPC: " .. tostring(result))
+end
+    log("getPokemonRemainingExperienceFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonremainingexperiencefrompc`</small>
 
@@ -3934,7 +5773,21 @@ Remaining experience before the next level of the pokemon of the current box mat
 ## getPokemonStatusFromPC()
 
 ~~~ lua
-local result = getPokemonStatusFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonStatusFromPC(1, 1)
+    log("getPokemonStatusFromPC: " .. tostring(result))
+end
+    log("getPokemonStatusFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3943,24 +5796,38 @@ local result = getPokemonStatusFromPC(1, 1)
 
 Status of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonStatusFromPC(1, 1)
+    log("getPokemonStatusFromPC: " .. tostring(result))
+end
+    log("getPokemonStatusFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonstatusfrompc`</small>
 
@@ -3968,7 +5835,21 @@ Status of the pokemon of the current box matching the ID.
 ## getPokemonTypeFromPC()
 
 ~~~ lua
-local result = getPokemonTypeFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonTypeFromPC(1, 1)
+    log("getPokemonTypeFromPC: " .. tostring(result))
+end
+    log("getPokemonTypeFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -3977,24 +5858,38 @@ local result = getPokemonTypeFromPC(1, 1)
 
 Type of the pokemon of the current box matching the ID as an array of length 2.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonTypeFromPC(1, 1)
+    log("getPokemonTypeFromPC: " .. tostring(result))
+end
+    log("getPokemonTypeFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`array<string>`
- — example: `[]`
-
-
+`array<string>` — example: `[]`
 
 <small>Source key: `POST /lua/pc-storage/getpokemontypefrompc`</small>
 
@@ -4002,7 +5897,21 @@ Type of the pokemon of the current box matching the ID as an array of length 2.
 ## getPokemonHeldItemFromPC()
 
 ~~~ lua
-local result = getPokemonHeldItemFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonHeldItemFromPC(1, 1)
+    log("getPokemonHeldItemFromPC: " .. tostring(result))
+end
+    log("getPokemonHeldItemFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4011,24 +5920,38 @@ local result = getPokemonHeldItemFromPC(1, 1)
 
 Returns the item held by the specified pokemon in the PC, null if empty.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonHeldItemFromPC(1, 1)
+    log("getPokemonHeldItemFromPC: " .. tostring(result))
+end
+    log("getPokemonHeldItemFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonhelditemfrompc`</small>
 
@@ -4036,7 +5959,21 @@ Returns the item held by the specified pokemon in the PC, null if empty.
 ## getPokemonUniqueIdFromPC()
 
 ~~~ lua
-local result = getPokemonUniqueIdFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonUniqueIdFromPC(1, 1)
+    log("getPokemonUniqueIdFromPC: " .. tostring(result))
+end
+    log("getPokemonUniqueIdFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4045,24 +5982,38 @@ local result = getPokemonUniqueIdFromPC(1, 1)
 
 PROCatchem custom unique ID of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonUniqueIdFromPC(1, 1)
+    log("getPokemonUniqueIdFromPC: " .. tostring(result))
+end
+    log("getPokemonUniqueIdFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonuniqueidfrompc`</small>
 
@@ -4070,7 +6021,21 @@ PROCatchem custom unique ID of the pokemon of the current box matching the ID.
 ## getPokemonRemainingPowerPointsFromPC()
 
 ~~~ lua
-local result = getPokemonRemainingPowerPointsFromPC(1, 1, "Tackle")
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonRemainingPowerPointsFromPC(1, 1, "Tackle")
+    log("getPokemonRemainingPowerPointsFromPC: " .. tostring(result))
+end
+    log("getPokemonRemainingPowerPointsFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4079,26 +6044,39 @@ local result = getPokemonRemainingPowerPointsFromPC(1, 1, "Tackle")
 
 Current move PP of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonRemainingPowerPointsFromPC(1, 1, "Tackle")
+    log("getPokemonRemainingPowerPointsFromPC: " .. tostring(result))
+end
+    log("getPokemonRemainingPowerPointsFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonremainingpowerpointsfrompc`</small>
 
@@ -4106,7 +6084,21 @@ Current move PP of the pokemon of the current box matching the ID.
 ## getPokemonMaxPowerPointsFromPC()
 
 ~~~ lua
-local result = getPokemonMaxPowerPointsFromPC(1, 1, "Tackle")
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMaxPowerPointsFromPC(1, 1, "Tackle")
+    log("getPokemonMaxPowerPointsFromPC: " .. tostring(result))
+end
+    log("getPokemonMaxPowerPointsFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4115,26 +6107,39 @@ local result = getPokemonMaxPowerPointsFromPC(1, 1, "Tackle")
 
 Max move PP of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMaxPowerPointsFromPC(1, 1, "Tackle")
+    log("getPokemonMaxPowerPointsFromPC: " .. tostring(result))
+end
+    log("getPokemonMaxPowerPointsFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonmaxpowerpointsfrompc`</small>
 
@@ -4142,7 +6147,21 @@ Max move PP of the pokemon of the current box matching the ID.
 ## isPokemonFromPCShiny()
 
 ~~~ lua
-local result = isPokemonFromPCShiny(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = isPokemonFromPCShiny(1, 1)
+    log("isPokemonFromPCShiny: " .. tostring(result))
+end
+    log("isPokemonFromPCShiny: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4151,24 +6170,38 @@ local result = isPokemonFromPCShiny(1, 1)
 
 Shyniness of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = isPokemonFromPCShiny(1, 1)
+    log("isPokemonFromPCShiny: " .. tostring(result))
+end
+    log("isPokemonFromPCShiny: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/pc-storage/ispokemonfrompcshiny`</small>
 
@@ -4176,7 +6209,21 @@ Shyniness of the pokemon of the current box matching the ID.
 ## getPokemonMoveNameFromPC()
 
 ~~~ lua
-local result = getPokemonMoveNameFromPC(1, 1, "Tackle")
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMoveNameFromPC(1, 1, "Tackle")
+    log("getPokemonMoveNameFromPC: " .. tostring(result))
+end
+    log("getPokemonMoveNameFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4185,26 +6232,39 @@ local result = getPokemonMoveNameFromPC(1, 1, "Tackle")
 
 Move of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMoveNameFromPC(1, 1, "Tackle")
+    log("getPokemonMoveNameFromPC: " .. tostring(result))
+end
+    log("getPokemonMoveNameFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonmovenamefrompc`</small>
 
@@ -4212,7 +6272,21 @@ Move of the pokemon of the current box matching the ID.
 ## getPokemonMoveAccuracyFromPC()
 
 ~~~ lua
-local result = getPokemonMoveAccuracyFromPC(1, 1, "Tackle")
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMoveAccuracyFromPC(1, 1, "Tackle")
+    log("getPokemonMoveAccuracyFromPC: " .. tostring(result))
+end
+    log("getPokemonMoveAccuracyFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4221,26 +6295,39 @@ local result = getPokemonMoveAccuracyFromPC(1, 1, "Tackle")
 
 Returns the move accuracy of the specified pokémon in the box at the specified index.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMoveAccuracyFromPC(1, 1, "Tackle")
+    log("getPokemonMoveAccuracyFromPC: " .. tostring(result))
+end
+    log("getPokemonMoveAccuracyFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonmoveaccuracyfrompc`</small>
 
@@ -4248,7 +6335,21 @@ Returns the move accuracy of the specified pokémon in the box at the specified 
 ## getPokemonMovePowerFromPC()
 
 ~~~ lua
-local result = getPokemonMovePowerFromPC(1, 1, "Tackle")
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMovePowerFromPC(1, 1, "Tackle")
+    log("getPokemonMovePowerFromPC: " .. tostring(result))
+end
+    log("getPokemonMovePowerFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4257,26 +6358,39 @@ local result = getPokemonMovePowerFromPC(1, 1, "Tackle")
 
 Returns the move power of the specified pokémon in the box at the specified index.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMovePowerFromPC(1, 1, "Tackle")
+    log("getPokemonMovePowerFromPC: " .. tostring(result))
+end
+    log("getPokemonMovePowerFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonmovepowerfrompc`</small>
 
@@ -4284,7 +6398,21 @@ Returns the move power of the specified pokémon in the box at the specified ind
 ## getPokemonMoveTypeFromPC()
 
 ~~~ lua
-local result = getPokemonMoveTypeFromPC(1, 1, "Tackle")
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMoveTypeFromPC(1, 1, "Tackle")
+    log("getPokemonMoveTypeFromPC: " .. tostring(result))
+end
+    log("getPokemonMoveTypeFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4293,26 +6421,39 @@ local result = getPokemonMoveTypeFromPC(1, 1, "Tackle")
 
 Returns the move type of the specified pokémon in the box at the specified index.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMoveTypeFromPC(1, 1, "Tackle")
+    log("getPokemonMoveTypeFromPC: " .. tostring(result))
+end
+    log("getPokemonMoveTypeFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonmovetypefrompc`</small>
 
@@ -4320,7 +6461,21 @@ Returns the move type of the specified pokémon in the box at the specified inde
 ## getPokemonMoveDamageTypeFromPC()
 
 ~~~ lua
-local result = getPokemonMoveDamageTypeFromPC(1, 1, "Tackle")
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMoveDamageTypeFromPC(1, 1, "Tackle")
+    log("getPokemonMoveDamageTypeFromPC: " .. tostring(result))
+end
+    log("getPokemonMoveDamageTypeFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4329,26 +6484,39 @@ local result = getPokemonMoveDamageTypeFromPC(1, 1, "Tackle")
 
 Returns the move damage type of the specified pokémon in the box at the specified index.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMoveDamageTypeFromPC(1, 1, "Tackle")
+    log("getPokemonMoveDamageTypeFromPC: " .. tostring(result))
+end
+    log("getPokemonMoveDamageTypeFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonmovedamagetypefrompc`</small>
 
@@ -4356,7 +6524,21 @@ Returns the move damage type of the specified pokémon in the box at the specifi
 ## getPokemonMoveStatusFromPC()
 
 ~~~ lua
-local result = getPokemonMoveStatusFromPC(1, 1, "Tackle")
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMoveStatusFromPC(1, 1, "Tackle")
+    log("getPokemonMoveStatusFromPC: " .. tostring(result))
+end
+    log("getPokemonMoveStatusFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4365,26 +6547,39 @@ local result = getPokemonMoveStatusFromPC(1, 1, "Tackle")
 
 Returns true if the move of the specified pokémon in the box at the specified index can apply a status .
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonMoveStatusFromPC(1, 1, "Tackle")
+    log("getPokemonMoveStatusFromPC: " .. tostring(result))
+end
+    log("getPokemonMoveStatusFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
-| `moveId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
+| `moveId` | `integer` | yes | Value passed to the `moveId` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonmovestatusfrompc`</small>
 
@@ -4392,7 +6587,21 @@ Returns true if the move of the specified pokémon in the box at the specified i
 ## getPokemonNatureFromPC()
 
 ~~~ lua
-local result = getPokemonNatureFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonNatureFromPC(1, 1)
+    log("getPokemonNatureFromPC: " .. tostring(result))
+end
+    log("getPokemonNatureFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4401,24 +6610,38 @@ local result = getPokemonNatureFromPC(1, 1)
 
 Nature of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonNatureFromPC(1, 1)
+    log("getPokemonNatureFromPC: " .. tostring(result))
+end
+    log("getPokemonNatureFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonnaturefrompc`</small>
 
@@ -4426,7 +6649,21 @@ Nature of the pokemon of the current box matching the ID.
 ## getPokemonAbilityFromPC()
 
 ~~~ lua
-local result = getPokemonAbilityFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonAbilityFromPC(1, 1)
+    log("getPokemonAbilityFromPC: " .. tostring(result))
+end
+    log("getPokemonAbilityFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4435,24 +6672,38 @@ local result = getPokemonAbilityFromPC(1, 1)
 
 Ability of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonAbilityFromPC(1, 1)
+    log("getPokemonAbilityFromPC: " .. tostring(result))
+end
+    log("getPokemonAbilityFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonabilityfrompc`</small>
 
@@ -4460,7 +6711,14 @@ Ability of the pokemon of the current box matching the ID.
 ## getPokemonStatFromPC()
 
 ~~~ lua
-local result = getPokemonStatFromPC(1, 1, "value")
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local speed = getPokemonStatFromPC(1, 1, "SPE")
+    log("Box 1 slot 1 Speed: " .. tostring(speed))
+end
 ~~~
 
 **Signature**
@@ -4469,26 +6727,32 @@ local result = getPokemonStatFromPC(1, 1, "value")
 
 Returns the value for the specified stat of the specified pokémon in the PC.
 
-### Parameters
+**Practical scenario**
 
+Open and refresh the PC before reading a stored Pokémon stat.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local speed = getPokemonStatFromPC(1, 1, "SPE")
+    log("Box 1 slot 1 Speed: " .. tostring(speed))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
-| `statType` | `string` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
+| `statType` | `string` | yes | Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonstatfrompc`</small>
 
@@ -4496,7 +6760,14 @@ Returns the value for the specified stat of the specified pokémon in the PC.
 ## getPokemonEffortValueFromPC()
 
 ~~~ lua
-local result = getPokemonEffortValueFromPC(1, 1, "value")
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local attackEV = getPokemonEffortValueFromPC(1, 1, "ATK")
+    log("Stored Pokémon Attack EV: " .. tostring(attackEV))
+end
 ~~~
 
 **Signature**
@@ -4505,26 +6776,32 @@ local result = getPokemonEffortValueFromPC(1, 1, "value")
 
 Returns the effort value for the specified stat of the specified pokémon in the PC.
 
-### Parameters
+**Practical scenario**
 
+Read EVs from a refreshed PC entry before selecting a Pokémon to withdraw.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local attackEV = getPokemonEffortValueFromPC(1, 1, "ATK")
+    log("Stored Pokémon Attack EV: " .. tostring(attackEV))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
-| `statType` | `string` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
+| `statType` | `string` | yes | Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemoneffortvaluefrompc`</small>
 
@@ -4532,7 +6809,14 @@ Returns the effort value for the specified stat of the specified pokémon in the
 ## getPokemonIndividualValueFromPC()
 
 ~~~ lua
-local result = getPokemonIndividualValueFromPC(1, 1, "value")
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local speedIV = getPokemonIndividualValueFromPC(1, 1, "SPE")
+    log("Stored Pokémon Speed IV: " .. tostring(speedIV))
+end
 ~~~
 
 **Signature**
@@ -4541,26 +6825,32 @@ local result = getPokemonIndividualValueFromPC(1, 1, "value")
 
 Returns the individual value for the specified stat of the specified pokémon in the PC.
 
-### Parameters
+**Practical scenario**
 
+Read IVs from a refreshed PC entry when filtering stored catches.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local speedIV = getPokemonIndividualValueFromPC(1, 1, "SPE")
+    log("Stored Pokémon Speed IV: " .. tostring(speedIV))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
-| `statType` | `string` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
+| `statType` | `string` | yes | Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonindividualvaluefrompc`</small>
 
@@ -4568,7 +6858,21 @@ Returns the individual value for the specified stat of the specified pokémon in
 ## getPokemonHappinessFromPC()
 
 ~~~ lua
-local result = getPokemonHappinessFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonHappinessFromPC(1, 1)
+    log("getPokemonHappinessFromPC: " .. tostring(result))
+end
+    log("getPokemonHappinessFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4577,24 +6881,38 @@ local result = getPokemonHappinessFromPC(1, 1)
 
 Happiness of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonHappinessFromPC(1, 1)
+    log("getPokemonHappinessFromPC: " .. tostring(result))
+end
+    log("getPokemonHappinessFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonhappinessfrompc`</small>
 
@@ -4602,7 +6920,21 @@ Happiness of the pokemon of the current box matching the ID.
 ## getPokemonRegionFromPC()
 
 ~~~ lua
-local result = getPokemonRegionFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonRegionFromPC(1, 1)
+    log("getPokemonRegionFromPC: " .. tostring(result))
+end
+    log("getPokemonRegionFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4611,24 +6943,38 @@ local result = getPokemonRegionFromPC(1, 1)
 
 Region of capture of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonRegionFromPC(1, 1)
+    log("getPokemonRegionFromPC: " .. tostring(result))
+end
+    log("getPokemonRegionFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonregionfrompc`</small>
 
@@ -4636,7 +6982,21 @@ Region of capture of the pokemon of the current box matching the ID.
 ## getPokemonOriginalTrainerFromPC()
 
 ~~~ lua
-local result = getPokemonOriginalTrainerFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonOriginalTrainerFromPC(1, 1)
+    log("getPokemonOriginalTrainerFromPC: " .. tostring(result))
+end
+    log("getPokemonOriginalTrainerFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4645,24 +7005,38 @@ local result = getPokemonOriginalTrainerFromPC(1, 1)
 
 Original trainer of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonOriginalTrainerFromPC(1, 1)
+    log("getPokemonOriginalTrainerFromPC: " .. tostring(result))
+end
+    log("getPokemonOriginalTrainerFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonoriginaltrainerfrompc`</small>
 
@@ -4670,7 +7044,21 @@ Original trainer of the pokemon of the current box matching the ID.
 ## getPokemonGenderFromPC()
 
 ~~~ lua
-local result = getPokemonGenderFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonGenderFromPC(1, 1)
+    log("getPokemonGenderFromPC: " .. tostring(result))
+end
+    log("getPokemonGenderFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4679,24 +7067,38 @@ local result = getPokemonGenderFromPC(1, 1)
 
 Gender of the pokemon of the current box matching the ID.
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonGenderFromPC(1, 1)
+    log("getPokemonGenderFromPC: " .. tostring(result))
+end
+    log("getPokemonGenderFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/pc-storage/getpokemongenderfrompc`</small>
 
@@ -4704,7 +7106,21 @@ Gender of the pokemon of the current box matching the ID.
 ## getPokemonFormFromPC()
 
 ~~~ lua
-local result = getPokemonFormFromPC(1, 1)
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonFormFromPC(1, 1)
+    log("getPokemonFormFromPC: " .. tostring(result))
+end
+    log("getPokemonFormFromPC: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -4713,24 +7129,38 @@ local result = getPokemonFormFromPC(1, 1)
 
 Form of the pokémon in the current box matching the ID. (0 if no form)
 
-### Parameters
+**Practical scenario**
 
+Read this value only after the PC is open and the selected box is refreshed.
+
+```lua
+function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    function inspectPC()
+    if not isPCOpen() or not isCurrentPCBoxRefreshed() then
+        return
+    end
+
+    local result = getPokemonFormFromPC(1, 1)
+    log("getPokemonFormFromPC: " .. tostring(result))
+end
+    log("getPokemonFormFromPC: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/pc-storage/getpokemonformfrompc`</small>
 
@@ -4738,7 +7168,23 @@ Form of the pokémon in the current box matching the ID. (0 if no form)
 ## usePC()
 
 ~~~ lua
-local result = usePC()
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = usePC()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -4747,14 +7193,33 @@ local result = usePC()
 
 Move next to the map PC when needed, open Pokémon Storage, and request the current PC box. The PC opens using the official storage flow and remains open until closed by movement or another PC action. Use `isCurrentPCBoxRefreshed()` before relying on the refreshed box contents.
 
+**Practical scenario**
+
+PC actions are asynchronous. Issue one operation, return, and wait for the next server refresh before making a dependent change.
+
+```lua
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = usePC()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/pc-storage/usepc`</small>
 
@@ -4762,7 +7227,23 @@ Move next to the map PC when needed, open Pokémon Storage, and request the curr
 ## openPCBox()
 
 ~~~ lua
-local result = openPCBox(1)
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = openPCBox(1)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -4771,22 +7252,39 @@ local result = openPCBox(1)
 
 Open or refresh a PC box by its one-based box number. The visible box order uses one-based `boxPokemonId` indexes, while the tool internally tracks server database IDs and PC slot IDs. Wait for `isCurrentPCBoxRefreshed()` before reading the box immediately after opening it.
 
-### Parameters
+**Practical scenario**
 
+PC actions are asynchronous. Issue one operation, return, and wait for the next server refresh before making a dependent change.
+
+```lua
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = openPCBox(1)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/pc-storage/openpcbox`</small>
 
@@ -4794,7 +7292,23 @@ Open or refresh a PC box by its one-based box number. The visible box order uses
 ## depositPokemonToPC()
 
 ~~~ lua
-local result = depositPokemonToPC(2)
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = depositPokemonToPC(2)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -4803,22 +7317,39 @@ local result = depositPokemonToPC(2)
 
 Send the Pokémon at the one-based team index into the currently open PC box. The tool resolves the selected team Pokémon to its server database ID and waits for the server PC delta update instead of forcing an immediate full refresh. Re-check team/PC state before issuing a dependent action.
 
-### Parameters
+**Practical scenario**
 
+PC actions are asynchronous. Issue one operation, return, and wait for the next server refresh before making a dependent change.
+
+```lua
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = depositPokemonToPC(2)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `teamPokemonId` | `integer` | yes |  |
-
+| `teamPokemonId` | `integer` | yes | Value passed to the `teamPokemonId` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/pc-storage/depositpokemontopc`</small>
 
@@ -4826,7 +7357,23 @@ Send the Pokémon at the one-based team index into the currently open PC box. Th
 ## withdrawPokemonFromPC()
 
 ~~~ lua
-local result = withdrawPokemonFromPC(1, 1)
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = withdrawPokemonFromPC(1, 1)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -4835,24 +7382,40 @@ local result = withdrawPokemonFromPC(1, 1)
 
 Move the Pokémon at the one-based PC box index into the team. The tool resolves the selected PC Pokémon to its server database ID and waits for the normal team update plus PC delta remove response. The target `boxId` should match the visible/refreshed PC box.
 
-### Parameters
+**Practical scenario**
 
+PC actions are asynchronous. Issue one operation, return, and wait for the next server refresh before making a dependent change.
+
+```lua
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = withdrawPokemonFromPC(1, 1)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/pc-storage/withdrawpokemonfrompc`</small>
 
@@ -4860,7 +7423,23 @@ Move the Pokémon at the one-based PC box index into the team. The tool resolves
 ## swapPokemonFromPC()
 
 ~~~ lua
-local result = swapPokemonFromPC(1, 1, 2)
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = swapPokemonFromPC(1, 1, 2)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -4869,26 +7448,41 @@ local result = swapPokemonFromPC(1, 1, 2)
 
 Swap the Pokémon at the one-based team index with the Pokémon at the one-based index in the selected PC box. The tool sends the official database-ID swap packet and applies the server PC delta update, so the PC Pokémon can be at any position in the box, including the first slot.
 
-### Parameters
+**Practical scenario**
 
+PC actions are asynchronous. Issue one operation, return, and wait for the next server refresh before making a dependent change.
+
+```lua
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = swapPokemonFromPC(1, 1, 2)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
-| `teamPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
+| `teamPokemonId` | `integer` | yes | Value passed to the `teamPokemonId` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/pc-storage/swappokemonfrompc`</small>
 
@@ -4896,7 +7490,23 @@ Swap the Pokémon at the one-based team index with the Pokémon at the one-based
 ## swapPokemonWithinPC()
 
 ~~~ lua
-local result = swapPokemonWithinPC(1, 1, 2)
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = swapPokemonWithinPC(1, 1, 2)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -4905,26 +7515,41 @@ local result = swapPokemonWithinPC(1, 1, 2)
 
 Swap two Pokémon positions inside the same visible PC box. Both PC indexes are one-based. The server returns a position-pair delta, and the tool updates the cached PC slot order without refreshing the full box.
 
-### Parameters
+**Practical scenario**
 
+PC actions are asynchronous. Issue one operation, return, and wait for the next server refresh before making a dependent change.
+
+```lua
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = swapPokemonWithinPC(1, 1, 2)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `firstBoxPokemonId` | `integer` | yes |  |
-
-| `secondBoxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `firstBoxPokemonId` | `integer` | yes | Value passed to the `firstBoxPokemonId` parameter. |
+| `secondBoxPokemonId` | `integer` | yes | Value passed to the `secondBoxPokemonId` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/pc-storage/swappokemonwithinpc`</small>
 
@@ -4932,7 +7557,22 @@ Swap two Pokémon positions inside the same visible PC box. Both PC indexes are 
 ## releasePokemonFromPC()
 
 ~~~ lua
-local result = releasePokemonFromPC(1, 1)
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    if not isCurrentPCBoxRefreshed() then
+        refreshPCBox()
+        return
+    end
+
+    if getPokemonNameFromPC(1, 1) == "Rattata" then
+        releasePokemonFromPC(1, 1)
+        return
+    end
+end
 ~~~
 
 **Signature**
@@ -4941,24 +7581,39 @@ local result = releasePokemonFromPC(1, 1)
 
 Permanently release/delete the Pokémon at the one-based index in the selected PC box. This cannot be undone. The tool resolves the Pokémon database ID, sends the official release packet, and waits for the server PC delta remove update.
 
-### Parameters
+**Practical scenario**
 
+Release only after opening the correct box and validating the target. The operation is permanent and asynchronous.
+
+```lua
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    if not isCurrentPCBoxRefreshed() then
+        refreshPCBox()
+        return
+    end
+
+    if getPokemonNameFromPC(1, 1) == "Rattata" then
+        releasePokemonFromPC(1, 1)
+        return
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
-| `boxPokemonId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
+| `boxPokemonId` | `integer` | yes | One-based Pokémon position inside the selected PC box. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/pc-storage/releasepokemonfrompc`</small>
 
@@ -4966,7 +7621,23 @@ Permanently release/delete the Pokémon at the one-based index in the selected P
 ## refreshPCBox()
 
 ~~~ lua
-local result = refreshPCBox(1)
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = refreshPCBox(1)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -4975,33 +7646,58 @@ local result = refreshPCBox(1)
 
 Request a refresh for the specified PC box. The response can be a full box snapshot, a metadata-only update, or a delta update. Use `isCurrentPCBoxRefreshed()` before reading the refreshed contents immediately after this call.
 
-### Parameters
+**Practical scenario**
 
+PC actions are asynchronous. Issue one operation, return, and wait for the next server refresh before making a dependent change.
+
+```lua
+function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    function onPathAction()
+    if not isPCOpen() then
+        usePC()
+        return
+    end
+
+    local result = refreshPCBox(1)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `boxId` | `integer` | yes |  |
-
+| `boxId` | `integer` | yes | One-based PC box number. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/pc-storage/refreshpcbox`</small>
 
 
-# Battle state
 
+# Battle state
 
 ## isOpponentShiny()
 
 ~~~ lua
-local result = isOpponentShiny()
+function onBattleAction()
+    function onBattleAction()
+    local result = isOpponentShiny()
+    log("isOpponentShiny: " .. tostring(result))
+    attack()
+end
+    log("isOpponentShiny: " .. tostring(result))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5010,14 +7706,25 @@ local result = isOpponentShiny()
 
 Returns true if the opponent pokémon is shiny.
 
+**Practical scenario**
+
+Call this only from battle logic. It is a query and can be combined with one battle action in the same callback.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = isOpponentShiny()
+    log("isOpponentShiny: " .. tostring(result))
+    attack()
+end
+    log("isOpponentShiny: " .. tostring(result))
+    attack()
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/battle-state/isopponentshiny`</small>
 
@@ -5025,7 +7732,15 @@ Returns true if the opponent pokémon is shiny.
 ## isAlreadyCaught()
 
 ~~~ lua
-local result = isAlreadyCaught()
+function onBattleAction()
+    function onBattleAction()
+    local result = isAlreadyCaught()
+    log("isAlreadyCaught: " .. tostring(result))
+    attack()
+end
+    log("isAlreadyCaught: " .. tostring(result))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5034,14 +7749,25 @@ local result = isAlreadyCaught()
 
 Returns true if the opponent pokémon has already been caught and has a pokédex entry.
 
+**Practical scenario**
+
+Call this only from battle logic. It is a query and can be combined with one battle action in the same callback.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = isAlreadyCaught()
+    log("isAlreadyCaught: " .. tostring(result))
+    attack()
+end
+    log("isAlreadyCaught: " .. tostring(result))
+    attack()
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/battle-state/isalreadycaught`</small>
 
@@ -5049,7 +7775,15 @@ Returns true if the opponent pokémon has already been caught and has a pokédex
 ## isWildBattle()
 
 ~~~ lua
-local result = isWildBattle()
+function onBattleAction()
+    function onBattleAction()
+    local result = isWildBattle()
+    log("isWildBattle: " .. tostring(result))
+    attack()
+end
+    log("isWildBattle: " .. tostring(result))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5058,14 +7792,25 @@ local result = isWildBattle()
 
 Returns true if the current battle is against a wild pokémon.
 
+**Practical scenario**
+
+Call this only from battle logic. It is a query and can be combined with one battle action in the same callback.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = isWildBattle()
+    log("isWildBattle: " .. tostring(result))
+    attack()
+end
+    log("isWildBattle: " .. tostring(result))
+    attack()
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/battle-state/iswildbattle`</small>
 
@@ -5073,7 +7818,15 @@ Returns true if the current battle is against a wild pokémon.
 ## getActivePokemonNumber()
 
 ~~~ lua
-local result = getActivePokemonNumber()
+function onBattleAction()
+    function onBattleAction()
+    local result = getActivePokemonNumber()
+    log("getActivePokemonNumber: " .. tostring(result))
+    attack()
+end
+    log("getActivePokemonNumber: " .. tostring(result))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5082,14 +7835,25 @@ local result = getActivePokemonNumber()
 
 Returns the index of the active team pokémon in the current battle.
 
+**Practical scenario**
+
+Call this only from battle logic. It is a query and can be combined with one battle action in the same callback.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = getActivePokemonNumber()
+    log("getActivePokemonNumber: " .. tostring(result))
+    attack()
+end
+    log("getActivePokemonNumber: " .. tostring(result))
+    attack()
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/battle-state/getactivepokemonnumber`</small>
 
@@ -5097,7 +7861,15 @@ Returns the index of the active team pokémon in the current battle.
 ## getOpponentId()
 
 ~~~ lua
-local result = getOpponentId()
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentId()
+    log("getOpponentId: " .. tostring(result))
+    attack()
+end
+    log("getOpponentId: " .. tostring(result))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5106,14 +7878,25 @@ local result = getOpponentId()
 
 Returns the id of the opponent pokémon in the current battle.
 
+**Practical scenario**
+
+Call this only from battle logic. It is a query and can be combined with one battle action in the same callback.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentId()
+    log("getOpponentId: " .. tostring(result))
+    attack()
+end
+    log("getOpponentId: " .. tostring(result))
+    attack()
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/battle-state/getopponentid`</small>
 
@@ -5121,7 +7904,15 @@ Returns the id of the opponent pokémon in the current battle.
 ## getOpponentName()
 
 ~~~ lua
-local result = getOpponentName()
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentName()
+    log("getOpponentName: " .. tostring(result))
+    attack()
+end
+    log("getOpponentName: " .. tostring(result))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5130,14 +7921,25 @@ local result = getOpponentName()
 
 Returns the name of the opponent pokémon in the current battle.
 
+**Practical scenario**
+
+Call this only from battle logic. It is a query and can be combined with one battle action in the same callback.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentName()
+    log("getOpponentName: " .. tostring(result))
+    attack()
+end
+    log("getOpponentName: " .. tostring(result))
+    attack()
+end
+```
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/battle-state/getopponentname`</small>
 
@@ -5145,7 +7947,15 @@ Returns the name of the opponent pokémon in the current battle.
 ## getOpponentHealth()
 
 ~~~ lua
-local result = getOpponentHealth()
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentHealth()
+    log("getOpponentHealth: " .. tostring(result))
+    attack()
+end
+    log("getOpponentHealth: " .. tostring(result))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5154,14 +7964,25 @@ local result = getOpponentHealth()
 
 Returns the current health of the opponent pokémon in the current battle.
 
+**Practical scenario**
+
+Call this only from battle logic. It is a query and can be combined with one battle action in the same callback.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentHealth()
+    log("getOpponentHealth: " .. tostring(result))
+    attack()
+end
+    log("getOpponentHealth: " .. tostring(result))
+    attack()
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/battle-state/getopponenthealth`</small>
 
@@ -5169,7 +7990,15 @@ Returns the current health of the opponent pokémon in the current battle.
 ## getOpponentMaxHealth()
 
 ~~~ lua
-local result = getOpponentMaxHealth()
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentMaxHealth()
+    log("getOpponentMaxHealth: " .. tostring(result))
+    attack()
+end
+    log("getOpponentMaxHealth: " .. tostring(result))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5178,14 +8007,25 @@ local result = getOpponentMaxHealth()
 
 Returns the maximum health of the opponent pokémon in the current battle.
 
+**Practical scenario**
+
+Call this only from battle logic. It is a query and can be combined with one battle action in the same callback.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentMaxHealth()
+    log("getOpponentMaxHealth: " .. tostring(result))
+    attack()
+end
+    log("getOpponentMaxHealth: " .. tostring(result))
+    attack()
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/battle-state/getopponentmaxhealth`</small>
 
@@ -5193,7 +8033,15 @@ Returns the maximum health of the opponent pokémon in the current battle.
 ## getOpponentHealthPercent()
 
 ~~~ lua
-local result = getOpponentHealthPercent()
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentHealthPercent()
+    log("getOpponentHealthPercent: " .. tostring(result))
+    attack()
+end
+    log("getOpponentHealthPercent: " .. tostring(result))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5202,14 +8050,25 @@ local result = getOpponentHealthPercent()
 
 Returns the percentage of remaining health of the opponent pokémon in the current battle.
 
+**Practical scenario**
+
+Call this only from battle logic. It is a query and can be combined with one battle action in the same callback.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentHealthPercent()
+    log("getOpponentHealthPercent: " .. tostring(result))
+    attack()
+end
+    log("getOpponentHealthPercent: " .. tostring(result))
+    attack()
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/battle-state/getopponenthealthpercent`</small>
 
@@ -5217,7 +8076,15 @@ Returns the percentage of remaining health of the opponent pokémon in the curre
 ## getOpponentLevel()
 
 ~~~ lua
-local result = getOpponentLevel()
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentLevel()
+    log("getOpponentLevel: " .. tostring(result))
+    attack()
+end
+    log("getOpponentLevel: " .. tostring(result))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5226,14 +8093,25 @@ local result = getOpponentLevel()
 
 Returns the level of the opponent pokémon in the current battle.
 
+**Practical scenario**
+
+Call this only from battle logic. It is a query and can be combined with one battle action in the same callback.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentLevel()
+    log("getOpponentLevel: " .. tostring(result))
+    attack()
+end
+    log("getOpponentLevel: " .. tostring(result))
+    attack()
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/battle-state/getopponentlevel`</small>
 
@@ -5241,7 +8119,15 @@ Returns the level of the opponent pokémon in the current battle.
 ## getOpponentStatus()
 
 ~~~ lua
-local result = getOpponentStatus()
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentStatus()
+    log("getOpponentStatus: " .. tostring(result))
+    attack()
+end
+    log("getOpponentStatus: " .. tostring(result))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5250,14 +8136,25 @@ local result = getOpponentStatus()
 
 Returns the status of the opponent pokémon in the current battle.
 
+**Practical scenario**
+
+Call this only from battle logic. It is a query and can be combined with one battle action in the same callback.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentStatus()
+    log("getOpponentStatus: " .. tostring(result))
+    attack()
+end
+    log("getOpponentStatus: " .. tostring(result))
+    attack()
+end
+```
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/battle-state/getopponentstatus`</small>
 
@@ -5265,7 +8162,15 @@ Returns the status of the opponent pokémon in the current battle.
 ## getOpponentForm()
 
 ~~~ lua
-local result = getOpponentForm()
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentForm()
+    log("getOpponentForm: " .. tostring(result))
+    attack()
+end
+    log("getOpponentForm: " .. tostring(result))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5274,22 +8179,90 @@ local result = getOpponentForm()
 
 Returns the form of the opponent pokémon in the current battle (0 if no form).
 
+**Practical scenario**
+
+Call this only from battle logic. It is a query and can be combined with one battle action in the same callback.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentForm()
+    log("getOpponentForm: " .. tostring(result))
+    attack()
+end
+    log("getOpponentForm: " .. tostring(result))
+    attack()
+end
+```
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/battle-state/getopponentform`</small>
+
+
+## getOpponentGender()
+
+~~~ lua
+function onBattleAction()
+    local gender = getOpponentGender()
+
+    if gender == "M" then
+        log("Male opponent detected.")
+    elseif gender == "F" then
+        log("Female opponent detected.")
+    else
+        log("Genderless or unknown opponent.")
+    end
+
+    attack()
+end
+~~~
+
+**Signature**
+
+`result = getOpponentGender()`
+
+Returns the gender of the current opponent Pokémon. The result is `"M"` for male, `"F"` for female, or an empty string for genderless/unknown. This function is valid only during battle; calling it outside battle triggers the same fatal Lua error contract as the other `getOpponent...` helpers.
+
+**Practical scenario**
+
+Use this during battle when behavior depends on gender-specific moves, abilities, or encounter rules.
+
+```lua
+function onBattleAction()
+    local gender = getOpponentGender()
+
+    if gender == "M" then
+        log("Male opponent detected.")
+    elseif gender == "F" then
+        log("Female opponent detected.")
+    else
+        log("Genderless or unknown opponent.")
+    end
+
+    attack()
+end
+```
+
+### Returns
+
+`string` — example: `"M"`
+
+<small>Source key: `POST /lua/battle-state/getopponentgender`</small>
 
 
 ## isOpponentEffortValue()
 
 ~~~ lua
-local result = isOpponentEffortValue("value")
+function onBattleAction()
+    if isOpponentEffortValue("ATK") then
+        attack()
+    else
+        run()
+    end
+end
 ~~~
 
 **Signature**
@@ -5298,22 +8271,29 @@ local result = isOpponentEffortValue("value")
 
 Returns true if the opponent is only giving the specified effort value.
 
-### Parameters
+**Practical scenario**
 
+Use a documented stat key to verify that the opponent gives only the EV you are training.
+
+```lua
+function onBattleAction()
+    if isOpponentEffortValue("ATK") then
+        attack()
+    else
+        run()
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `statType` | `string` | yes |  |
-
+| `statType` | `string` | yes | Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/battle-state/isopponenteffortvalue`</small>
 
@@ -5321,7 +8301,11 @@ Returns true if the opponent is only giving the specified effort value.
 ## getOpponentEffortValue()
 
 ~~~ lua
-local result = getOpponentEffortValue("value")
+function onBattleAction()
+    local attackYield = getOpponentEffortValue("ATK")
+    log("Opponent Attack EV yield: " .. tostring(attackYield))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5330,22 +8314,27 @@ local result = getOpponentEffortValue("value")
 
 Returns the amount of a particular EV given by the opponent.
 
-### Parameters
+**Practical scenario**
 
+Read the exact EV yield of the current opponent for one stat.
+
+```lua
+function onBattleAction()
+    local attackYield = getOpponentEffortValue("ATK")
+    log("Opponent Attack EV yield: " .. tostring(attackYield))
+    attack()
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `statType` | `string` | yes |  |
-
+| `statType` | `string` | yes | Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`. |
 
 ### Returns
 
-
-`integer`
- — example: `1`
-
-
+`integer` — example: `1`
 
 <small>Source key: `POST /lua/battle-state/getopponenteffortvalue`</small>
 
@@ -5353,7 +8342,15 @@ Returns the amount of a particular EV given by the opponent.
 ## getOpponentType()
 
 ~~~ lua
-local result = getOpponentType()
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentType()
+    log("getOpponentType: " .. tostring(result))
+    attack()
+end
+    log("getOpponentType: " .. tostring(result))
+    attack()
+end
 ~~~
 
 **Signature**
@@ -5362,25 +8359,42 @@ local result = getOpponentType()
 
 Returns the type of the opponent pokémon in the current battle as an array of length 2.
 
+**Practical scenario**
+
+Call this only from battle logic. It is a query and can be combined with one battle action in the same callback.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = getOpponentType()
+    log("getOpponentType: " .. tostring(result))
+    attack()
+end
+    log("getOpponentType: " .. tostring(result))
+    attack()
+end
+```
 
 ### Returns
 
-
-`array<string>`
- — example: `[]`
-
-
+`array<string>` — example: `[]`
 
 <small>Source key: `POST /lua/battle-state/getopponenttype`</small>
 
 
-# Path actions
 
+# Path actions
 
 ## moveToCell()
 
 ~~~ lua
-local result = moveToCell(10, 15)
+function onPathAction()
+    function onPathAction()
+    local result = moveToCell(10, 15)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5389,24 +8403,30 @@ local result = moveToCell(10, 15)
 
 Moves to the specified coordinates.
 
-### Parameters
+**Practical scenario**
 
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = moveToCell(10, 15)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `x` | `integer` | yes |  |
-
-| `y` | `integer` | yes |  |
-
+| `x` | `integer` | yes | Map X coordinate. |
+| `y` | `integer` | yes | Map Y coordinate. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/movetocell`</small>
 
@@ -5414,7 +8434,12 @@ Moves to the specified coordinates.
 ## moveToListCell()
 
 ~~~ lua
-local result = moveToListCell("value", "value")
+function onPathAction()
+    local preferred = "10-15,11-15,12-15"
+    local alternate = "10-16,11-16,12-16"
+    moveToListCell(preferred, alternate)
+    return
+end
 ~~~
 
 **Signature**
@@ -5423,24 +8448,29 @@ local result = moveToListCell("value", "value")
 
 Moves to the specified list coordinates.
 
-### Parameters
+**Practical scenario**
 
+Provide comma-separated `x-y` cell lists. The optional second list can represent cells to avoid or an alternate set used by the path helper.
+
+```lua
+function onPathAction()
+    local preferred = "10-15,11-15,12-15"
+    local alternate = "10-16,11-16,12-16"
+    moveToListCell(preferred, alternate)
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `list` | `string` | yes |  |
-
-| `""` | `string` | yes |  |
-
+| `list` | `string` | yes | Value passed to the `list` parameter. |
+| `""` | `string` | yes | Value passed to the `""` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/movetolistcell`</small>
 
@@ -5448,7 +8478,12 @@ Moves to the specified list coordinates.
 ## moveToMap()
 
 ~~~ lua
-local result = moveToMap("Viridian City")
+function onPathAction()
+    -- moveToMap("Viridian City") is retired.
+    -- Walk onto the known map-link cell instead.
+    moveToCell(25, 42)
+    return
+end
 ~~~
 
 **Signature**
@@ -5457,22 +8492,28 @@ local result = moveToMap("Viridian City")
 
 Moves to the nearest cell teleporting to the specified map.
 
-### Parameters
+**Practical scenario**
 
+This legacy function is retired. Walk to the destination map link with `moveToCell()` instead.
+
+```lua
+function onPathAction()
+    -- moveToMap("Viridian City") is retired.
+    -- Walk onto the known map-link cell instead.
+    moveToCell(25, 42)
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `mapName` | `string` | yes |  |
-
+| `mapName` | `string` | yes | Value passed to the `mapName` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/movetomap`</small>
 
@@ -5480,7 +8521,10 @@ Moves to the nearest cell teleporting to the specified map.
 ## moveToRectangle()
 
 ~~~ lua
-local result = moveToRectangle(1, 2)
+function onPathAction()
+    moveToRectangle(10, 15, 14, 19)
+    return
+end
 ~~~
 
 **Signature**
@@ -5489,22 +8533,26 @@ local result = moveToRectangle(1, 2)
 
 Moves to a random accessible cell of the specified rectangle.
 
-### Parameters
+**Practical scenario**
 
+Pass four coordinates: minimum X/Y followed by maximum X/Y. The tool chooses a random accessible cell inside the rectangle.
+
+```lua
+function onPathAction()
+    moveToRectangle(10, 15, 14, 19)
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `arg1` | `array<object>` | yes |  |
-
+| `arg1` | `array<LuaValue>` | yes | Value passed to the `arg1` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/movetorectangle`</small>
 
@@ -5512,7 +8560,13 @@ Moves to a random accessible cell of the specified rectangle.
 ## moveToNormalGround()
 
 ~~~ lua
-local result = moveToNormalGround()
+function onPathAction()
+    function onPathAction()
+    local result = moveToNormalGround()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5521,14 +8575,23 @@ local result = moveToNormalGround()
 
 Move randomly avoiding water and links.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = moveToNormalGround()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/movetonormalground`</small>
 
@@ -5536,7 +8599,13 @@ Move randomly avoiding water and links.
 ## moveToGrass()
 
 ~~~ lua
-local result = moveToGrass()
+function onPathAction()
+    function onPathAction()
+    local result = moveToGrass()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5545,14 +8614,23 @@ local result = moveToGrass()
 
 Moves to the nearest grass patch then move randomly inside it.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = moveToGrass()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/movetograss`</small>
 
@@ -5560,7 +8638,13 @@ Moves to the nearest grass patch then move randomly inside it.
 ## moveToWater()
 
 ~~~ lua
-local result = moveToWater()
+function onPathAction()
+    function onPathAction()
+    local result = moveToWater()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5569,14 +8653,23 @@ local result = moveToWater()
 
 Moves to the nearest water area then move randomly inside it.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = moveToWater()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/movetowater`</small>
 
@@ -5584,7 +8677,13 @@ Moves to the nearest water area then move randomly inside it.
 ## moveNearExit()
 
 ~~~ lua
-local result = moveNearExit("Viridian City")
+function onPathAction()
+    function onPathAction()
+    local result = moveNearExit("Viridian City")
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5593,22 +8692,29 @@ local result = moveNearExit("Viridian City")
 
 Moves near the cell teleporting to the specified map.
 
-### Parameters
+**Practical scenario**
 
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = moveNearExit("Viridian City")
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `mapName` | `string` | yes |  |
-
+| `mapName` | `string` | yes | Value passed to the `mapName` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/movenearexit`</small>
 
@@ -5616,7 +8722,13 @@ Moves near the cell teleporting to the specified map.
 ## talkToNpc()
 
 ~~~ lua
-local result = talkToNpc("Nurse Joy")
+function onPathAction()
+    function onPathAction()
+    local result = talkToNpc("Nurse Joy")
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5625,22 +8737,29 @@ local result = talkToNpc("Nurse Joy")
 
 Moves then talk to NPC specified by its name.
 
-### Parameters
+**Practical scenario**
 
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = talkToNpc("Nurse Joy")
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `npcName` | `string` | yes |  |
-
+| `npcName` | `string` | yes | Exact or documented NPC name. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/talktonpc`</small>
 
@@ -5648,7 +8767,13 @@ Moves then talk to NPC specified by its name.
 ## talkToNpcOnCell()
 
 ~~~ lua
-local result = talkToNpcOnCell(10, 15)
+function onPathAction()
+    function onPathAction()
+    local result = talkToNpcOnCell(10, 15)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5657,24 +8782,30 @@ local result = talkToNpcOnCell(10, 15)
 
 Moves then talk to NPC located on the specified cell.
 
-### Parameters
+**Practical scenario**
 
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = talkToNpcOnCell(10, 15)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `cellX` | `integer` | yes |  |
-
-| `cellY` | `integer` | yes |  |
-
+| `cellX` | `integer` | yes | Value passed to the `cellX` parameter. |
+| `cellY` | `integer` | yes | Value passed to the `cellY` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/talktonpconcell`</small>
 
@@ -5682,7 +8813,13 @@ Moves then talk to NPC located on the specified cell.
 ## usePokecenter()
 
 ~~~ lua
-local result = usePokecenter()
+function onPathAction()
+    function onPathAction()
+    local result = usePokecenter()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5691,14 +8828,23 @@ local result = usePokecenter()
 
 Moves to the Nurse Joy then talk to the cell below her.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = usePokecenter()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/usepokecenter`</small>
 
@@ -5706,7 +8852,13 @@ Moves to the Nurse Joy then talk to the cell below her.
 ## swapPokemon()
 
 ~~~ lua
-local result = swapPokemon(1, 1)
+function onPathAction()
+    function onPathAction()
+    local result = swapPokemon(1, 1)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5715,24 +8867,30 @@ local result = swapPokemon(1, 1)
 
 Swaps the two pokémon specified by their position in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = swapPokemon(1, 1)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index1` | `integer` | yes |  |
-
-| `index2` | `integer` | yes |  |
-
+| `index1` | `integer` | yes | Value passed to the `index1` parameter. |
+| `index2` | `integer` | yes | Value passed to the `index2` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/swappokemon`</small>
 
@@ -5740,7 +8898,14 @@ Swaps the two pokémon specified by their position in the team.
 ## swapPokemonWithLeader()
 
 ~~~ lua
-local result = swapPokemonWithLeader("value")
+function onPathAction()
+    if getPokemonName(1) ~= "Pikachu" then
+        swapPokemonWithLeader("Pikachu")
+        return
+    end
+
+    moveToGrass()
+end
 ~~~
 
 **Signature**
@@ -5749,22 +8914,30 @@ local result = swapPokemonWithLeader("value")
 
 Swaps the first pokémon with the specified name with the leader of the team.
 
-### Parameters
+**Practical scenario**
 
+Move the named Pokémon to the lead slot before continuing the route.
+
+```lua
+function onPathAction()
+    if getPokemonName(1) ~= "Pikachu" then
+        swapPokemonWithLeader("Pikachu")
+        return
+    end
+
+    moveToGrass()
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `pokemonName` | `string` | yes |  |
-
+| `pokemonName` | `string` | yes | Value passed to the `pokemonName` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/swappokemonwithleader`</small>
 
@@ -5772,7 +8945,13 @@ Swaps the first pokémon with the specified name with the leader of the team.
 ## sortTeamByLevelAscending()
 
 ~~~ lua
-local result = sortTeamByLevelAscending()
+function onPathAction()
+    function onPathAction()
+    local result = sortTeamByLevelAscending()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5781,14 +8960,23 @@ local result = sortTeamByLevelAscending()
 
 Sorts the pokémon in the team by level in ascending order, one pokémon at a time.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = sortTeamByLevelAscending()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/sortteambylevelascending`</small>
 
@@ -5796,7 +8984,13 @@ Sorts the pokémon in the team by level in ascending order, one pokémon at a ti
 ## sortTeamByLevelDescending()
 
 ~~~ lua
-local result = sortTeamByLevelDescending()
+function onPathAction()
+    function onPathAction()
+    local result = sortTeamByLevelDescending()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5805,14 +8999,23 @@ local result = sortTeamByLevelDescending()
 
 Sorts the pokémon in the team by level in descending order, one pokémon at a time.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = sortTeamByLevelDescending()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/sortteambyleveldescending`</small>
 
@@ -5820,7 +9023,13 @@ Sorts the pokémon in the team by level in descending order, one pokémon at a t
 ## sortTeamRangeByLevelAscending()
 
 ~~~ lua
-local result = sortTeamRangeByLevelAscending(10, 10)
+function onPathAction()
+    function onPathAction()
+    local result = sortTeamRangeByLevelAscending(10, 10)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5829,24 +9038,30 @@ local result = sortTeamRangeByLevelAscending(10, 10)
 
 Sorts the specified part of the team by level in ascending order, one pokémon at a time.
 
-### Parameters
+**Practical scenario**
 
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = sortTeamRangeByLevelAscending(10, 10)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `fromIndex` | `integer` | yes |  |
-
-| `toIndex` | `integer` | yes |  |
-
+| `fromIndex` | `integer` | yes | Value passed to the `fromIndex` parameter. |
+| `toIndex` | `integer` | yes | Value passed to the `toIndex` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/sortteamrangebylevelascending`</small>
 
@@ -5854,7 +9069,13 @@ Sorts the specified part of the team by level in ascending order, one pokémon a
 ## sortTeamRangeByLevelDescending()
 
 ~~~ lua
-local result = sortTeamRangeByLevelDescending(10, 10)
+function onPathAction()
+    function onPathAction()
+    local result = sortTeamRangeByLevelDescending(10, 10)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5863,24 +9084,30 @@ local result = sortTeamRangeByLevelDescending(10, 10)
 
 Sorts the specified part of the team by level in descending order, one pokémon at a time.
 
-### Parameters
+**Practical scenario**
 
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = sortTeamRangeByLevelDescending(10, 10)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `fromIndex` | `integer` | yes |  |
-
-| `toIndex` | `integer` | yes |  |
-
+| `fromIndex` | `integer` | yes | Value passed to the `fromIndex` parameter. |
+| `toIndex` | `integer` | yes | Value passed to the `toIndex` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/sortteamrangebyleveldescending`</small>
 
@@ -5888,7 +9115,13 @@ Sorts the specified part of the team by level in descending order, one pokémon 
 ## relearnMove()
 
 ~~~ lua
-local result = relearnMove("Tackle")
+function onPathAction()
+    function onPathAction()
+    local result = relearnMove("Tackle")
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5897,22 +9130,29 @@ local result = relearnMove("Tackle")
 
 Relearn a move from the move relearner NPC.
 
-### Parameters
+**Practical scenario**
 
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = relearnMove("Tackle")
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `moveName` | `string` | yes |  |
-
+| `moveName` | `string` | yes | Exact move name as shown by the game. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/relearnmove`</small>
 
@@ -5920,7 +9160,13 @@ Relearn a move from the move relearner NPC.
 ## releasePokemonFromTeam()
 
 ~~~ lua
-local result = releasePokemonFromTeam(1)
+function onPathAction()
+    function onPathAction()
+    local result = releasePokemonFromTeam(1)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5929,22 +9175,29 @@ local result = releasePokemonFromTeam(1)
 
 Releases the specified pokemon in the team.
 
-### Parameters
+**Practical scenario**
 
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = releasePokemonFromTeam(1)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `pokemonUid` | `integer` | yes |  |
-
+| `pokemonUid` | `integer` | yes | Stable Pokémon database/unique identifier returned by the corresponding query API. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/releasepokemonfromteam`</small>
 
@@ -5952,7 +9205,13 @@ Releases the specified pokemon in the team.
 ## enablePrivateMessage()
 
 ~~~ lua
-local result = enablePrivateMessage()
+function onPathAction()
+    function onPathAction()
+    local result = enablePrivateMessage()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5961,14 +9220,23 @@ local result = enablePrivateMessage()
 
 Enable private messages from users.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = enablePrivateMessage()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/enableprivatemessage`</small>
 
@@ -5976,7 +9244,13 @@ Enable private messages from users.
 ## disablePrivateMessage()
 
 ~~~ lua
-local result = disablePrivateMessage()
+function onPathAction()
+    function onPathAction()
+    local result = disablePrivateMessage()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -5985,14 +9259,23 @@ local result = disablePrivateMessage()
 
 Disable private messages from users.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = disablePrivateMessage()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/disableprivatemessage`</small>
 
@@ -6000,7 +9283,13 @@ Disable private messages from users.
 ## enablePartyInspection()
 
 ~~~ lua
-local result = enablePartyInspection()
+function onPathAction()
+    function onPathAction()
+    local result = enablePartyInspection()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6009,14 +9298,23 @@ local result = enablePartyInspection()
 
 Enable party inspection from users.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = enablePartyInspection()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/enablepartyinspection`</small>
 
@@ -6024,7 +9322,13 @@ Enable party inspection from users.
 ## disablePartyInspection()
 
 ~~~ lua
-local result = disablePartyInspection()
+function onPathAction()
+    function onPathAction()
+    local result = disablePartyInspection()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6033,14 +9337,23 @@ local result = disablePartyInspection()
 
 Disable party inspection from users.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = disablePartyInspection()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/disablepartyinspection`</small>
 
@@ -6048,7 +9361,13 @@ Disable party inspection from users.
 ## enableAutoEvolve()
 
 ~~~ lua
-local result = enableAutoEvolve()
+function onPathAction()
+    function onPathAction()
+    local result = enableAutoEvolve()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6057,14 +9376,23 @@ local result = enableAutoEvolve()
 
 Enable auto evolve on Pkm Catchem client.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = enableAutoEvolve()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/enableautoevolve`</small>
 
@@ -6072,7 +9400,13 @@ Enable auto evolve on Pkm Catchem client.
 ## disableAutoEvolve()
 
 ~~~ lua
-local result = disableAutoEvolve()
+function onPathAction()
+    function onPathAction()
+    local result = disableAutoEvolve()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6081,14 +9415,23 @@ local result = disableAutoEvolve()
 
 Disable auto evolve on Pkm Catchem client.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = disableAutoEvolve()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/disableautoevolve`</small>
 
@@ -6096,7 +9439,13 @@ Disable auto evolve on Pkm Catchem client.
 ## enableNpcInteractions()
 
 ~~~ lua
-local result = enableNpcInteractions()
+function onPathAction()
+    function onPathAction()
+    local result = enableNpcInteractions()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6105,14 +9454,23 @@ local result = enableNpcInteractions()
 
 Enables npc interactions.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = enableNpcInteractions()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/enablenpcinteractions`</small>
 
@@ -6120,7 +9478,13 @@ Enables npc interactions.
 ## disableNpcInteractions()
 
 ~~~ lua
-local result = disableNpcInteractions()
+function onPathAction()
+    function onPathAction()
+    local result = disableNpcInteractions()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6129,25 +9493,37 @@ local result = disableNpcInteractions()
 
 Disables npc interactions.
 
+**Practical scenario**
+
+Use this in `onPathAction()` and return immediately so only one overworld action is issued in the frame.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = disableNpcInteractions()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/path-actions/disablenpcinteractions`</small>
 
 
-# Dialog functions
 
+# Dialog functions
 
 ## pushDialogAnswer()
 
 ~~~ lua
-pushDialogAnswer({})
+function onPathAction()
+    pushDialogAnswer("Yes")
+    talkToNpc("Nurse Joy")
+end
 ~~~
 
 **Signature**
@@ -6156,32 +9532,43 @@ pushDialogAnswer({})
 
 Adds the specified answer to the answer queue. It will be used in the next dialog.
 
-### Parameters
+**Practical scenario**
 
+Queue the expected answer before interacting with the NPC that will open the dialog.
+
+```lua
+function onPathAction()
+    pushDialogAnswer("Yes")
+    talkToNpc("Nurse Joy")
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `answerValue` | `object` | yes | Any Lua value. |
-
+| `answerValue` | `LuaValue` | yes | Any Lua value. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/dialog-functions/pushdialoganswer`</small>
 
 
-# Battle actions
 
+# Battle actions
 
 ## attack()
 
 ~~~ lua
-local result = attack()
+function onBattleAction()
+    function onBattleAction()
+    local result = attack()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6190,14 +9577,23 @@ local result = attack()
 
 Uses the most effective offensive move available.
 
+**Practical scenario**
+
+Choose this action in `onBattleAction()` and return immediately so only one battle action is sent in the frame.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = attack()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/battle-actions/attack`</small>
 
@@ -6205,7 +9601,13 @@ Uses the most effective offensive move available.
 ## weakAttack()
 
 ~~~ lua
-local result = weakAttack()
+function onBattleAction()
+    function onBattleAction()
+    local result = weakAttack()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6214,14 +9616,23 @@ local result = weakAttack()
 
 Uses the least effective offensive move available.
 
+**Practical scenario**
+
+Choose this action in `onBattleAction()` and return immediately so only one battle action is sent in the frame.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = weakAttack()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/battle-actions/weakattack`</small>
 
@@ -6229,7 +9640,13 @@ Uses the least effective offensive move available.
 ## run()
 
 ~~~ lua
-local result = run()
+function onBattleAction()
+    function onBattleAction()
+    local result = run()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6238,14 +9655,23 @@ local result = run()
 
 Tries to escape from the current wild battle.
 
+**Practical scenario**
+
+Choose this action in `onBattleAction()` and return immediately so only one battle action is sent in the frame.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = run()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/battle-actions/run`</small>
 
@@ -6253,7 +9679,13 @@ Tries to escape from the current wild battle.
 ## sendUsablePokemon()
 
 ~~~ lua
-local result = sendUsablePokemon()
+function onBattleAction()
+    function onBattleAction()
+    local result = sendUsablePokemon()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6262,14 +9694,23 @@ local result = sendUsablePokemon()
 
 Sends the first usable pokemon different from the active one.
 
+**Practical scenario**
+
+Choose this action in `onBattleAction()` and return immediately so only one battle action is sent in the frame.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = sendUsablePokemon()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/battle-actions/sendusablepokemon`</small>
 
@@ -6277,7 +9718,13 @@ Sends the first usable pokemon different from the active one.
 ## sendAnyPokemon()
 
 ~~~ lua
-local result = sendAnyPokemon()
+function onBattleAction()
+    function onBattleAction()
+    local result = sendAnyPokemon()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6286,14 +9733,23 @@ local result = sendAnyPokemon()
 
 Sends the first available pokemon different from the active one.
 
+**Practical scenario**
+
+Choose this action in `onBattleAction()` and return immediately so only one battle action is sent in the frame.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = sendAnyPokemon()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/battle-actions/sendanypokemon`</small>
 
@@ -6301,7 +9757,13 @@ Sends the first available pokemon different from the active one.
 ## sendPokemon()
 
 ~~~ lua
-local result = sendPokemon(1)
+function onBattleAction()
+    function onBattleAction()
+    local result = sendPokemon(1)
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6310,22 +9772,29 @@ local result = sendPokemon(1)
 
 Sends the specified pokemon to battle.
 
-### Parameters
+**Practical scenario**
 
+Choose this action in `onBattleAction()` and return immediately so only one battle action is sent in the frame.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = sendPokemon(1)
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/battle-actions/sendpokemon`</small>
 
@@ -6333,7 +9802,13 @@ Sends the specified pokemon to battle.
 ## useMove()
 
 ~~~ lua
-local result = useMove("Tackle")
+function onBattleAction()
+    function onBattleAction()
+    local result = useMove("Tackle")
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6342,22 +9817,29 @@ local result = useMove("Tackle")
 
 Uses the specified move in the current battle if available.
 
-### Parameters
+**Practical scenario**
 
+Choose this action in `onBattleAction()` and return immediately so only one battle action is sent in the frame.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = useMove("Tackle")
+    return
+end
+    return
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `moveName` | `string` | yes |  |
-
+| `moveName` | `string` | yes | Exact move name as shown by the game. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/battle-actions/usemove`</small>
 
@@ -6365,7 +9847,13 @@ Uses the specified move in the current battle if available.
 ## useAnyMove()
 
 ~~~ lua
-local result = useAnyMove()
+function onBattleAction()
+    function onBattleAction()
+    local result = useAnyMove()
+    return
+end
+    return
+end
 ~~~
 
 **Signature**
@@ -6374,25 +9862,38 @@ local result = useAnyMove()
 
 Uses the first available move or struggle if out of PP.
 
+**Practical scenario**
+
+Choose this action in `onBattleAction()` and return immediately so only one battle action is sent in the frame.
+
+```lua
+function onBattleAction()
+    function onBattleAction()
+    local result = useAnyMove()
+    return
+end
+    return
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/battle-actions/useanymove`</small>
 
 
-# Bot configuration
 
+# Bot configuration
 
 ## setAfk()
 
 ~~~ lua
-local result = setAfk(1)
+function onStart()
+    function onStart()
+    local result = setAfk(1)
+end
+end
 ~~~
 
 **Signature**
@@ -6401,22 +9902,27 @@ local result = setAfk(1)
 
 Sets afk timeout for BOT
 
-### Parameters
+**Practical scenario**
 
+Set this during startup or when changing modes, rather than writing it every frame.
+
+```lua
+function onStart()
+    function onStart()
+    local result = setAfk(1)
+end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `value` | `integer` | yes |  |
-
+| `value` | `integer` | yes | Value to store or send. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/bot-configuration/setafk`</small>
 
@@ -6424,7 +9930,11 @@ Sets afk timeout for BOT
 ## setAfkTimeout()
 
 ~~~ lua
-local result = setAfkTimeout(1)
+function onStart()
+    function onStart()
+    local result = setAfkTimeout(1)
+end
+end
 ~~~
 
 **Signature**
@@ -6433,33 +9943,42 @@ local result = setAfkTimeout(1)
 
 Sets afk timeout for BOT
 
-### Parameters
+**Practical scenario**
 
+Set this during startup or when changing modes, rather than writing it every frame.
+
+```lua
+function onStart()
+    function onStart()
+    local result = setAfkTimeout(1)
+end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `value` | `integer` | yes |  |
-
+| `value` | `integer` | yes | Value to store or send. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/bot-configuration/setafktimeout`</small>
 
 
-# Move learning actions
 
+# Move learning actions
 
 ## forgetMove()
 
 ~~~ lua
-local result = forgetMove("Tackle")
+function onLearningMove(moveName, pokemonIndex)
+    function onLearningMove(moveName, pokemonIndex)
+    local result = forgetMove("Tackle")
+end
+end
 ~~~
 
 **Signature**
@@ -6468,22 +9987,27 @@ local result = forgetMove("Tackle")
 
 Forgets the specified move, if existing, in order to learn a new one.
 
-### Parameters
+**Practical scenario**
 
+Call this from `onLearningMove()` and choose exactly one move-learning action.
+
+```lua
+function onLearningMove(moveName, pokemonIndex)
+    function onLearningMove(moveName, pokemonIndex)
+    local result = forgetMove("Tackle")
+end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `moveName` | `string` | yes |  |
-
+| `moveName` | `string` | yes | Exact move name as shown by the game. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/move-learning-actions/forgetmove`</small>
 
@@ -6491,7 +10015,9 @@ Forgets the specified move, if existing, in order to learn a new one.
 ## forgetAnyMoveExcept()
 
 ~~~ lua
-local result = forgetAnyMoveExcept(1, 2)
+function onLearningMove(moveName, pokemonIndex)
+    forgetAnyMoveExcept("Thunderbolt", "Volt Tackle")
+end
 ~~~
 
 **Signature**
@@ -6500,33 +10026,40 @@ local result = forgetAnyMoveExcept(1, 2)
 
 Forgets the first move that is not one of the specified moves.
 
-### Parameters
+**Practical scenario**
 
+Pass move names that must be preserved. The tool forgets the first current move not in that list.
+
+```lua
+function onLearningMove(moveName, pokemonIndex)
+    forgetAnyMoveExcept("Thunderbolt", "Volt Tackle")
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `moveNames` | `array<object>` | yes |  |
-
+| `moveNames` | `array<LuaValue>` | yes | Value passed to the `moveNames` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/move-learning-actions/forgetanymoveexcept`</small>
 
 
-# Custom options
 
+# Custom options
 
 ## setOption()
 
 ~~~ lua
-setOption(1, true)
+function onStart()
+    function onStart()
+    setOption(1, true)
+end
+end
 ~~~
 
 **Signature**
@@ -6535,23 +10068,28 @@ setOption(1, true)
 
 Sets the option at a particular index, or creates it if it doesn't exist
 
-### Parameters
+**Practical scenario**
 
+Define or update script options during startup so the user can configure behavior from the UI.
+
+```lua
+function onStart()
+    function onStart()
+    setOption(1, true)
+end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
-| `value` | `boolean` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
+| `value` | `boolean` | yes | Value to store or send. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/custom-options/setoption`</small>
 
@@ -6559,7 +10097,13 @@ Sets the option at a particular index, or creates it if it doesn't exist
 ## getOption()
 
 ~~~ lua
-local result = getOption(1)
+function onPathAction()
+    function onPathAction()
+    local result = getOption(1)
+    log("getOption: " .. tostring(result))
+end
+    log("getOption: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -6568,22 +10112,29 @@ local result = getOption(1)
 
 Gets the option at a particular index, or creates it if it doesn't exist
 
-### Parameters
+**Practical scenario**
 
+Read the user-selected option when deciding what action the script should take.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getOption(1)
+    log("getOption: " .. tostring(result))
+end
+    log("getOption: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/custom-options/getoption`</small>
 
@@ -6591,7 +10142,10 @@ Gets the option at a particular index, or creates it if it doesn't exist
 ## setOptionName()
 
 ~~~ lua
-setOptionName(1, "value")
+function onStart()
+    setOption(1, true)
+    setOptionName(1, "Catch uncaught Pokémon")
+end
 ~~~
 
 **Signature**
@@ -6600,23 +10154,27 @@ setOptionName(1, "value")
 
 Sets the name of the option at a particular index, or creates it if it doesn't exist
 
-### Parameters
+**Practical scenario**
 
+Give a boolean option a user-facing label during script startup.
+
+```lua
+function onStart()
+    setOption(1, true)
+    setOptionName(1, "Catch uncaught Pokémon")
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
-| `content` | `string` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
+| `content` | `string` | yes | Value passed to the `content` parameter. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/custom-options/setoptionname`</small>
 
@@ -6624,7 +10182,9 @@ Sets the name of the option at a particular index, or creates it if it doesn't e
 ## setOptionDescription()
 
 ~~~ lua
-setOptionDescription(1, "value")
+function onStart()
+    setOptionDescription(1, "When enabled, the script weakens and catches species not yet owned.")
+end
 ~~~
 
 **Signature**
@@ -6633,23 +10193,26 @@ setOptionDescription(1, "value")
 
 Sets the tooltip description of the option at a particular index, or creates it if it doesn't exist
 
-### Parameters
+**Practical scenario**
 
+Explain exactly what a boolean option changes so the user can configure the script safely.
+
+```lua
+function onStart()
+    setOptionDescription(1, "When enabled, the script weakens and catches species not yet owned.")
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
-| `content` | `string` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
+| `content` | `string` | yes | Value passed to the `content` parameter. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/custom-options/setoptiondescription`</small>
 
@@ -6657,7 +10220,11 @@ Sets the tooltip description of the option at a particular index, or creates it 
 ## removeOption()
 
 ~~~ lua
-removeOption(1)
+function onStart()
+    function onStart()
+    removeOption(1)
+end
+end
 ~~~
 
 **Signature**
@@ -6666,21 +10233,27 @@ removeOption(1)
 
 Removes the slider option at the specified index
 
-### Parameters
+**Practical scenario**
 
+Define or update script options during startup so the user can configure behavior from the UI.
+
+```lua
+function onStart()
+    function onStart()
+    removeOption(1)
+end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/custom-options/removeoption`</small>
 
@@ -6688,7 +10261,10 @@ Removes the slider option at the specified index
 ## setTextOption()
 
 ~~~ lua
-setTextOption(1, "value")
+function onStart()
+    setTextOption(1, "Pikachu")
+    setTextOptionName(1, "Target Pokémon")
+end
 ~~~
 
 **Signature**
@@ -6697,23 +10273,27 @@ setTextOption(1, "value")
 
 Sets the text of the TextOption at a particular index, or creates it if it doesn't exist
 
-### Parameters
+**Practical scenario**
 
+Create a text option with a meaningful default value.
+
+```lua
+function onStart()
+    setTextOption(1, "Pikachu")
+    setTextOptionName(1, "Target Pokémon")
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
-| `content` | `string` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
+| `content` | `string` | yes | Value passed to the `content` parameter. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/custom-options/settextoption`</small>
 
@@ -6721,7 +10301,13 @@ Sets the text of the TextOption at a particular index, or creates it if it doesn
 ## getTextOption()
 
 ~~~ lua
-local result = getTextOption(1)
+function onPathAction()
+    function onPathAction()
+    local result = getTextOption(1)
+    log("getTextOption: " .. tostring(result))
+end
+    log("getTextOption: " .. tostring(result))
+end
 ~~~
 
 **Signature**
@@ -6730,22 +10316,29 @@ local result = getTextOption(1)
 
 Returns the text content of the TextOption at a particular index, or an empty string if it doesn't exist
 
-### Parameters
+**Practical scenario**
 
+Read the user-selected option when deciding what action the script should take.
+
+```lua
+function onPathAction()
+    function onPathAction()
+    local result = getTextOption(1)
+    log("getTextOption: " .. tostring(result))
+end
+    log("getTextOption: " .. tostring(result))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
-`string`
- — example: `"value"`
-
-
+`string` — example: `"value"`
 
 <small>Source key: `POST /lua/custom-options/gettextoption`</small>
 
@@ -6753,7 +10346,9 @@ Returns the text content of the TextOption at a particular index, or an empty st
 ## setTextOptionName()
 
 ~~~ lua
-setTextOptionName(1, "value")
+function onStart()
+    setTextOptionName(1, "Target Pokémon")
+end
 ~~~
 
 **Signature**
@@ -6762,23 +10357,26 @@ setTextOptionName(1, "value")
 
 Sets the name of the TextOption at a particular index, or creates it if it doesn't exist
 
-### Parameters
+**Practical scenario**
 
+Give a text option a concise user-facing label.
+
+```lua
+function onStart()
+    setTextOptionName(1, "Target Pokémon")
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
-| `content` | `string` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
+| `content` | `string` | yes | Value passed to the `content` parameter. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/custom-options/settextoptionname`</small>
 
@@ -6786,7 +10384,9 @@ Sets the name of the TextOption at a particular index, or creates it if it doesn
 ## setTextOptionDescription()
 
 ~~~ lua
-setTextOptionDescription(1, "value")
+function onStart()
+    setTextOptionDescription(1, "Exact species name, for example Pikachu or Eevee.")
+end
 ~~~
 
 **Signature**
@@ -6795,23 +10395,26 @@ setTextOptionDescription(1, "value")
 
 Sets the tooltip description of the TextOption at a particular index, or creates it if it doesn't exist
 
-### Parameters
+**Practical scenario**
 
+Describe the accepted text format and provide an example.
+
+```lua
+function onStart()
+    setTextOptionDescription(1, "Exact species name, for example Pikachu or Eevee.")
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
-| `content` | `string` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
+| `content` | `string` | yes | Value passed to the `content` parameter. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/custom-options/settextoptiondescription`</small>
 
@@ -6819,7 +10422,11 @@ Sets the tooltip description of the TextOption at a particular index, or creates
 ## removeTextOption()
 
 ~~~ lua
-removeTextOption(1)
+function onStart()
+    function onStart()
+    removeTextOption(1)
+end
+end
 ~~~
 
 **Signature**
@@ -6828,32 +10435,40 @@ removeTextOption(1)
 
 Removes the text option at the specified index
 
-### Parameters
+**Practical scenario**
 
+Define or update script options during startup so the user can configure behavior from the UI.
+
+```lua
+function onStart()
+    function onStart()
+    removeTextOption(1)
+end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `index` | `integer` | yes |  |
-
+| `index` | `integer` | yes | One-based index in the current team or option list, depending on the API. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/custom-options/removetextoption`</small>
 
 
-# File APIs
 
+# File APIs
 
 ## writeToFile()
 
 ~~~ lua
-writeToFile("logs/script.txt", "value", true)
+function onStop()
+    writeToFile("state/last-map.txt", getMapName(), true)
+end
 ~~~
 
 **Signature**
@@ -6862,25 +10477,27 @@ writeToFile("logs/script.txt", "value", true)
 
 Writes a string to file overwrite is an optional parameter, and will append the line(s) if absent
 
-### Parameters
+**Practical scenario**
 
+Persist a small state snapshot. Set the third argument to `true` to overwrite or `false` to append.
+
+```lua
+function onStop()
+    writeToFile("state/last-map.txt", getMapName(), true)
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `filename` | `string` | yes |  |
-
-| `text` | `string` | yes |  |
-
-| `false` | `boolean` | yes |  |
-
+| `filename` | `string` | yes | Value passed to the `filename` parameter. |
+| `text` | `string` | yes | Value passed to the `text` parameter. |
+| `false` | `boolean` | yes | Value passed to the `false` parameter. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/file-apis/writetofile`</small>
 
@@ -6888,7 +10505,13 @@ Writes a string to file overwrite is an optional parameter, and will append the 
 ## logToFile()
 
 ~~~ lua
-logToFile("logs/script.txt", {}, true)
+function onWarningMessage(differentMap, distance)
+    logToFile("logs/warnings.txt", {
+        map = getMapName(),
+        differentMap = differentMap,
+        distance = distance
+    }, false)
+end
 ~~~
 
 **Signature**
@@ -6897,25 +10520,31 @@ logToFile("logs/script.txt", {}, true)
 
 Writes a string, a number, or a table of strings and/or numbers to file overwrite is an optional parameter, and will append the line(s) if absent
 
-### Parameters
+**Practical scenario**
 
+Append structured diagnostic values without relying only on the visible message log.
+
+```lua
+function onWarningMessage(differentMap, distance)
+    logToFile("logs/warnings.txt", {
+        map = getMapName(),
+        differentMap = differentMap,
+        distance = distance
+    }, false)
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `file` | `string` | yes |  |
-
-| `text` | `object` | yes | Any Lua value. |
-
-| `false` | `boolean` | yes |  |
-
+| `file` | `string` | yes | Path relative to the script/tool data directory. |
+| `text` | `LuaValue` | yes | Any Lua value. |
+| `false` | `boolean` | yes | Value passed to the `false` parameter. |
 
 ### Returns
 
-
 `void`
-
-
 
 <small>Source key: `POST /lua/file-apis/logtofile`</small>
 
@@ -6923,7 +10552,17 @@ Writes a string, a number, or a table of strings and/or numbers to file overwrit
 ## readLinesFromFile()
 
 ~~~ lua
-local result = readLinesFromFile("logs/script.txt")
+function onStart()
+    function onStart()
+    local result = readLinesFromFile("logs/script.txt")
+    if result ~= nil then
+        log("File API completed.")
+    end
+end
+    if result ~= nil then
+        log("File API completed.")
+    end
+end
 ~~~
 
 **Signature**
@@ -6932,22 +10571,33 @@ local result = readLinesFromFile("logs/script.txt")
 
 Returns a table of every line in file
 
-### Parameters
+**Practical scenario**
 
+Use script-local files for small persistent state or diagnostics. Handle missing/empty data before indexing returned lines.
+
+```lua
+function onStart()
+    function onStart()
+    local result = readLinesFromFile("logs/script.txt")
+    if result ~= nil then
+        log("File API completed.")
+    end
+end
+    if result ~= nil then
+        log("File API completed.")
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `file` | `string` | yes |  |
-
+| `file` | `string` | yes | Path relative to the script/tool data directory. |
 
 ### Returns
 
-
-`array<string>`
- — example: `[]`
-
-
+`array<string>` — example: `[]`
 
 <small>Source key: `POST /lua/file-apis/readlinesfromfile`</small>
 
@@ -6955,7 +10605,10 @@ Returns a table of every line in file
 ## tradeGiveMoney()
 
 ~~~ lua
-local result = tradeGiveMoney("value", 15)
+function prepareTrade()
+    local ok = tradeGiveMoney("TrustedPlayer", 15000)
+    log("Money offer prepared: " .. tostring(ok))
+end
 ~~~
 
 **Signature**
@@ -6964,24 +10617,27 @@ local result = tradeGiveMoney("value", 15)
 
 Used to trade money With Parameters Username and Money
 
-### Parameters
+**Practical scenario**
 
+Use only inside the intended trade flow and validate the recipient and amount.
+
+```lua
+function prepareTrade()
+    local ok = tradeGiveMoney("TrustedPlayer", 15000)
+    log("Money offer prepared: " .. tostring(ok))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `username` | `string` | yes |  |
-
-| `money` | `integer` | yes |  |
-
+| `username` | `string` | yes | Value passed to the `username` parameter. |
+| `money` | `integer` | yes | Value passed to the `money` parameter. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/file-apis/tradegivemoney`</small>
 
@@ -6989,7 +10645,17 @@ Used to trade money With Parameters Username and Money
 ## tradeAcceptMoney()
 
 ~~~ lua
-local result = tradeAcceptMoney()
+function onStart()
+    function onStart()
+    local result = tradeAcceptMoney()
+    if result ~= nil then
+        log("File API completed.")
+    end
+end
+    if result ~= nil then
+        log("File API completed.")
+    end
+end
 ~~~
 
 **Signature**
@@ -6998,25 +10664,41 @@ local result = tradeAcceptMoney()
 
 Lua function `tradeAcceptMoney`.
 
+**Practical scenario**
+
+Use script-local files for small persistent state or diagnostics. Handle missing/empty data before indexing returned lines.
+
+```lua
+function onStart()
+    function onStart()
+    local result = tradeAcceptMoney()
+    if result ~= nil then
+        log("File API completed.")
+    end
+end
+    if result ~= nil then
+        log("File API completed.")
+    end
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/file-apis/tradeacceptmoney`</small>
 
 
-# Chat
 
+# Chat
 
 ## closeChannel()
 
 ~~~ lua
-local result = closeChannel("value")
+function onStart()
+    local closed = closeChannel("Trade")
+    log("Trade channel closed: " .. tostring(closed))
+end
 ~~~
 
 **Signature**
@@ -7025,33 +10707,45 @@ local result = closeChannel("value")
 
 Close channel chat by name
 
-### Parameters
+**Practical scenario**
 
+Close a channel by its visible name when the script no longer needs it.
+
+```lua
+function onStart()
+    local closed = closeChannel("Trade")
+    log("Trade channel closed: " .. tostring(closed))
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
-| `name` | `string` | yes |  |
-
+| `name` | `string` | yes | Name of the option, hook, variable, or resource. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/chat/closechannel`</small>
 
 
-# Notifications
 
+# Notifications
 
 ## sendNotification()
 
 ~~~ lua
-local ok = sendNotification("Shiny found")
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        local ok = sendNotification("Shiny found")
+    end
+end
+    end
+end
 ~~~
 
 **Signature**
@@ -7060,22 +10754,31 @@ local ok = sendNotification("Shiny found")
 
 Send a configured notification template by name or id. Built-in variables such as `{player}`, `{map}`, `{x}`, `{y}`, `{account}`, `{server}`, `{bot}`, `{time}`, `{date}`, and `{datetime}` are filled automatically when available. The template's configured target controls whether it goes to personal Discord, the built-in PROCatchem Discord channel, Telegram, or all enabled channels. Returns `false` only when notifications are disabled or the template cannot be found; network delivery is asynchronous.
 
-### Parameters
+**Practical scenario**
 
+Send notifications only for meaningful events to avoid duplicate alerts from callbacks that run repeatedly.
+
+```lua
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        local ok = sendNotification("Shiny found")
+    end
+end
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
 | `templateName` | `string` | yes | Template display name or stable template id. |
-
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/notifications/sendnotification`</small>
 
@@ -7083,7 +10786,15 @@ Send a configured notification template by name or id. Built-in variables such a
 ## sendNotificationWith()
 
 ~~~ lua
-local ok = sendNotificationWith("Shiny found", { pokemon = "Gyarados", level = "30" })
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        local ok = sendNotificationWith("Shiny found", { pokemon = "Gyarados", level = "30" })
+    end
+end
+    end
+end
 ~~~
 
 **Signature**
@@ -7092,24 +10803,32 @@ local ok = sendNotificationWith("Shiny found", { pokemon = "Gyarados", level = "
 
 Send a configured notification template and override/add template variables using a Lua table. Table keys should match template variables without braces. Per-call values override built-ins, runtime variables set by `setNotifyVar`, global variables, and template defaults.
 
-### Parameters
+**Practical scenario**
 
+Send notifications only for meaningful events to avoid duplicate alerts from callbacks that run repeatedly.
+
+```lua
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        local ok = sendNotificationWith("Shiny found", { pokemon = "Gyarados", level = "30" })
+    end
+end
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
 | `templateName` | `string` | yes | Template display name or stable template id. |
-
-| `values` | `NotificationVariables` | yes |  |
-
+| `values` | `NotificationVariables` | yes | Lua table containing template variables. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/notifications/sendnotificationwith`</small>
 
@@ -7117,7 +10836,15 @@ Send a configured notification template and override/add template variables usin
 ## sendNotificationTo()
 
 ~~~ lua
-local ok = sendNotificationTo("Bot stopped", "personal")
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        local ok = sendNotificationTo("Bot stopped", "personal")
+    end
+end
+    end
+end
 ~~~
 
 **Signature**
@@ -7126,24 +10853,32 @@ local ok = sendNotificationTo("Bot stopped", "personal")
 
 Send a configured notification template while overriding its delivery target for this one call. Accepted targets are `personal`, `discord`, `procatchem`, `telegram`, and `all`. `all` falls back to the template's configured target, which defaults to all enabled channels.
 
-### Parameters
+**Practical scenario**
 
+Send notifications only for meaningful events to avoid duplicate alerts from callbacks that run repeatedly.
+
+```lua
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        local ok = sendNotificationTo("Bot stopped", "personal")
+    end
+end
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
 | `templateName` | `string` | yes | Template display name or stable template id. |
-
-| `target` | `NotificationTarget` | yes |  |
-
+| `target` | `NotificationTarget` | yes | Notification delivery target. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/notifications/sendnotificationto`</small>
 
@@ -7151,7 +10886,15 @@ Send a configured notification template while overriding its delivery target for
 ## sendNotificationWithTo()
 
 ~~~ lua
-local ok = sendNotificationWithTo("Shiny found", { pokemon = "Gyarados", level = "30" }, "procatchem")
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        local ok = sendNotificationWithTo("Shiny found", { pokemon = "Gyarados", level = "30" }, "procatchem")
+    end
+end
+    end
+end
 ~~~
 
 **Signature**
@@ -7160,26 +10903,33 @@ local ok = sendNotificationWithTo("Shiny found", { pokemon = "Gyarados", level =
 
 Send a configured notification template, pass template variables, and override the delivery target for this one call. This is the most explicit notification helper for scripts that need to route different alerts to different channels.
 
-### Parameters
+**Practical scenario**
 
+Send notifications only for meaningful events to avoid duplicate alerts from callbacks that run repeatedly.
+
+```lua
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        local ok = sendNotificationWithTo("Shiny found", { pokemon = "Gyarados", level = "30" }, "procatchem")
+    end
+end
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
 | `templateName` | `string` | yes | Template display name or stable template id. |
-
-| `values` | `NotificationVariables` | yes |  |
-
-| `target` | `NotificationTarget` | yes |  |
-
+| `values` | `NotificationVariables` | yes | Lua table containing template variables. |
+| `target` | `NotificationTarget` | yes | Notification delivery target. |
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/notifications/sendnotificationwithto`</small>
 
@@ -7187,7 +10937,15 @@ Send a configured notification template, pass template variables, and override t
 ## notify()
 
 ~~~ lua
-local ok = notify("PROCatchem: script reached Cerulean City.")
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        local ok = notify("PROCatchem: script reached Cerulean City.")
+    end
+end
+    end
+end
 ~~~
 
 **Signature**
@@ -7196,22 +10954,31 @@ local ok = notify("PROCatchem: script reached Cerulean City.")
 
 Send a quick plain-text notification without using a configured template. Use this for simple alerts where you do not need title/body formatting or template variables. Returns immediately after queueing the asynchronous send.
 
-### Parameters
+**Practical scenario**
 
+Send notifications only for meaningful events to avoid duplicate alerts from callbacks that run repeatedly.
+
+```lua
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        local ok = notify("PROCatchem: script reached Cerulean City.")
+    end
+end
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
 | `message` | `string` | yes | Plain text message to send. |
-
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/notifications/notify`</small>
 
@@ -7219,7 +10986,15 @@ Send a quick plain-text notification without using a configured template. Use th
 ## setNotifyVar()
 
 ~~~ lua
-setNotifyVar("hunt", "Shiny Magikarp")
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        setNotifyVar("hunt", "Shiny Magikarp")
+    end
+end
+    end
+end
 ~~~
 
 **Signature**
@@ -7228,23 +11003,32 @@ setNotifyVar("hunt", "Shiny Magikarp")
 
 Set a runtime notification variable. The variable can be used in any template as `{name}` until it is overwritten or cleared with `clearNotifyVars()`. Values are converted to strings.
 
-### Parameters
+**Practical scenario**
 
+Send notifications only for meaningful events to avoid duplicate alerts from callbacks that run repeatedly.
+
+```lua
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        setNotifyVar("hunt", "Shiny Magikarp")
+    end
+end
+    end
+end
+```
+
+### Parameters
 
 | Name | Type | Required | Description |
 |---|---|---:|---|
-
 | `name` | `string` | yes | Variable name without braces. |
-
-| `value` | `LuaValue` | yes |  |
-
+| `value` | `LuaValue` | yes | Value to store or send. |
 
 ### Returns
 
-
-`null`
-
-
+`void`
 
 <small>Source key: `POST /lua/notifications/setnotifyvar`</small>
 
@@ -7252,7 +11036,15 @@ Set a runtime notification variable. The variable can be used in any template as
 ## clearNotifyVars()
 
 ~~~ lua
-clearNotifyVars()
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        clearNotifyVars()
+    end
+end
+    end
+end
 ~~~
 
 **Signature**
@@ -7261,24 +11053,43 @@ clearNotifyVars()
 
 Clear all runtime notification variables previously set with `setNotifyVar`. Built-in variables and configured template/default variables are not removed.
 
+**Practical scenario**
+
+Send notifications only for meaningful events to avoid duplicate alerts from callbacks that run repeatedly.
+
+```lua
+function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        function onSystemMessage(message)
+    if stringContains(message, "Caught") then
+        clearNotifyVars()
+    end
+end
+    end
+end
+```
 
 ### Returns
 
-
-`null`
-
-
+`void`
 
 <small>Source key: `POST /lua/notifications/clearnotifyvars`</small>
 
 
-# Legacy special actions
 
+# Legacy special actions
 
 ## useSurf()
 
 ~~~ lua
-local result = useSurf()
+function onPathAction()
+    if not isSurfing() then
+        useSurf()
+        return
+    end
+
+    moveToWater()
+end
 ~~~
 
 **Signature**
@@ -7287,13 +11098,25 @@ local result = useSurf()
 
 Start surfing from the current position. If `setWaterMount()` configured a water mount, the tool uses that mount item; otherwise it sends the normal `/surf` action. Pathfinding also calls this automatically when a route transitions from ground to water.
 
+**Practical scenario**
+
+Call this at the shoreline when a scripted route needs to enter water. Pathfinding may also trigger it automatically.
+
+```lua
+function onPathAction()
+    if not isSurfing() then
+        useSurf()
+        return
+    end
+
+    moveToWater()
+end
+```
 
 ### Returns
 
-
-`boolean`
- — example: `true`
-
-
+`boolean` — example: `true`
 
 <small>Source key: `POST /lua/legacy-special-actions/usesurf`</small>
+
+

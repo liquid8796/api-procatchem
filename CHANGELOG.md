@@ -1,5 +1,21 @@
 # Changelog
 
+## PROCatchem content — v1.0.107
+
+*July 20, 2026*
+
+**Added:**
+
+- Documented `getOpponentGender()` and `disMount()` in OpenAPI, Slate Markdown, static HTML, and the sidebar navigation.
+- Added a focused gender/dismount Lua example.
+
+**Improved:**
+
+- Added a concrete practical scenario to every Lua API entry.
+- Added callback/action-safety and asynchronous PC operation guidance.
+- Filled previously empty parameter descriptions.
+
+
 ## PROCatchem content — v1.0.106
 
 *July 6, 2026*
