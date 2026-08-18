@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: PROCatchem Lua Script API
   summary: Lua API reference for PROCatchem script authors, including notification helpers.
-  version: 1.0.107
+  version: 1.0.108
   description: "This documentation describes the Lua functions exposed by PROCatchem to user scripts.\n\
     \nThe API is represented as OpenAPI pseudo-endpoints so it can be rendered with Redoc/Redocly and\
     \ deployed as a static documentation site. These are not HTTP endpoints. Each operation describes\
@@ -5950,6 +5950,40 @@ paths:
           \ \"M\" then\n        log(\"Male opponent detected.\")\n    elseif gender == \"F\" then\n  \
           \      log(\"Female opponent detected.\")\n    else\n        log(\"Genderless or unknown opponent.\"\
           )\n    end\n\n    attack()\nend"
+  /lua/battle-state/getbattleturn:
+    post:
+      tags:
+      - Battle state
+      operationId: getBattleTurn
+      summary: getBattleTurn()
+      description: "**Lua global function**\n\n```lua\nresult = getBattleTurn()\n```\n\nReturns the\
+        \ latest battle turn number confirmed by the server through the `BT:n` battle marker. The value\
+        \ is monotonic for the current battle: duplicate or out-of-order lower markers do not move the\
+        \ turn backwards. `0` means the battle exists but no valid `BT:n` marker has been received yet.\
+        \ This function is valid only during battle; calling it outside battle follows the tool's fatal\
+        \ Lua error contract.\n\n**Practical scenario**\n\nUse the server-backed turn number when a script\
+        \ needs different behavior on the first turn or after several turns. Unlike counting `onBattleAction()`\
+        \ calls, this remains aligned with server battle progression when a move continues automatically,\
+        \ a forced switch occurs, or one player command spans multiple server turns.\n\n```lua\nfunction\
+        \ onBattleAction()\n    local turn = getBattleTurn()\n\n    if turn == 1 then\n        log(\"First\
+        \ server-confirmed battle turn.\")\n        useMove(\"Thunder Wave\")\n        return\n    end\n\
+        \n    log(\"Current battle turn: \" .. tostring(turn))\n    attack()\nend\n```"
+      responses:
+        '200':
+          description: Lua return value.
+          content:
+            application/json:
+              schema:
+                type: integer
+                minimum: 0
+              example: 1
+      x-lua-signature: result = getBattleTurn()
+      x-codeSamples:
+      - lang: Lua
+        source: "function onBattleAction()\n    local turn = getBattleTurn()\n\n    if turn == 1 then\n\
+          \        log(\"First server-confirmed battle turn.\")\n        useMove(\"Thunder Wave\")\n  \
+          \      return\n    end\n\n    log(\"Current battle turn: \" .. tostring(turn))\n    attack()\n\
+          end"
   /lua/battle-state/isopponenteffortvalue:
     post:
       tags:

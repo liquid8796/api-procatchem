@@ -42,6 +42,14 @@ A **Workflow** category documents `executeSteps(steps [, options])` — a Lua gl
 - Added `examples/opponent-gender-and-dismount.lua`.
 - Synchronized `openapi.yaml`, `source/index.md`, `LUA_API_SLATE.md`, `index.html`, and deployable `dist/` output.
 
+## Battle turn API (v1.0.108)
+
+- Added `getBattleTurn()` to the **Battle state** Lua API reference.
+- The API returns the latest server-confirmed `BT:n` battle turn stored by PROCatchem.
+- `0` means the current battle has not received a valid `BT:n` marker yet; positive values are monotonic and do not move backwards on duplicate/out-of-order markers.
+- The API is battle-only and follows the existing fatal Lua error contract outside battle.
+- Updated `source/index.md`, `LUA_API_SLATE.md`, `openapi.yaml`, `index.html`, and deployable `dist/` output.
+
 ## Files
 
 - `source/index.md` - Slate source document.
@@ -72,6 +80,6 @@ npm run slate:build
 
 Vercel uses the default `npm run build` static build to avoid failing when Bundler gems are not installed.
 
-Version: `1.0.107`.
+Version: `1.0.108`.
 
 - Sidebar categories are collapsed by default on first landing. Clicking either the category label or the chevron toggles collapse/expand; function links still scroll to their API sections.

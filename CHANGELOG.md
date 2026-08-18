@@ -1,5 +1,20 @@
 # Changelog
 
+## PROCatchem content — v1.0.108
+
+*August 18, 2026*
+
+**Added:**
+
+- Documented the new battle-only Lua API `getBattleTurn()`.
+- Defined `0` as "no valid server `BT:n` marker received yet" and positive values as the latest server-confirmed battle turn.
+- Documented monotonic turn behavior and why the API is preferable to counting `onBattleAction()` callbacks for automatic/forced battle progression.
+
+**Updated:**
+
+- Synchronized the Slate Markdown sources, OpenAPI metadata, static HTML navigation/content, README, and deployable `dist/` output.
+
+
 ## PROCatchem content — v1.0.107
 
 *July 20, 2026*

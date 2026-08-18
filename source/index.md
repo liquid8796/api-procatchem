@@ -8253,6 +8253,58 @@ end
 <small>Source key: `POST /lua/battle-state/getopponentgender`</small>
 
 
+
+## getBattleTurn()
+
+~~~ lua
+function onBattleAction()
+    local turn = getBattleTurn()
+
+    if turn == 1 then
+        log("First server-confirmed battle turn.")
+        useMove("Thunder Wave")
+        return
+    end
+
+    log("Current battle turn: " .. tostring(turn))
+    attack()
+end
+~~~
+
+**Signature**
+
+`result = getBattleTurn()`
+
+Returns the latest battle turn number confirmed by the server through the `BT:n` battle marker. The value is monotonic for the current battle: duplicate or out-of-order lower markers do not move the turn backwards. `0` means the battle exists but no valid `BT:n` marker has been received yet.
+
+This function is valid only during battle. Calling it outside battle follows the tool's fatal Lua error contract.
+
+**Practical scenario**
+
+Use the server-backed turn number when a script needs different behavior on the first turn or after several turns. Unlike counting `onBattleAction()` calls, this remains aligned with server battle progression when a move continues automatically, a forced switch occurs, or one player command spans multiple server turns.
+
+```lua
+function onBattleAction()
+    local turn = getBattleTurn()
+
+    if turn == 1 then
+        log("First server-confirmed battle turn.")
+        useMove("Thunder Wave")
+        return
+    end
+
+    log("Current battle turn: " .. tostring(turn))
+    attack()
+end
+```
+
+### Returns
+
+`integer` — `0` before the first valid `BT:n` marker, otherwise the latest server-confirmed turn number such as `1`, `2`, `4`, ...
+
+<small>Source key: `POST /lua/battle-state/getbattleturn`</small>
+
+
 ## isOpponentEffortValue()
 
 ~~~ lua
