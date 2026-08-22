@@ -7,7 +7,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { createDefaultConfig } from '../assets/builder/js/domain/config.js';
+import { createDefaultConfig, createStep } from '../assets/builder/js/domain/config.js';
 import { LinkGraph } from '../assets/builder/js/domain/link-graph.js';
 import { generateScript } from '../assets/builder/js/generators/index.js';
 import { modeRegistry } from '../assets/builder/js/generators/mode-registry.js';
@@ -24,6 +24,8 @@ const { graph } = LinkGraph.parse([
   'Viridian City\t23\t8\tPokecenter Viridian',
   'Viridian City\t12\t3\tViridian Forest',
   'Viridian Forest\t14\t46\tViridian City',
+  'Viridian City\t40\t20\tRoute 21',
+  'Route 21\t2\t2\tViridian City',
 ].join('\n'));
 
 const MODES = modeRegistry.ids();
@@ -37,6 +39,90 @@ const FARM_ACTIONS = [
   ['moveToNormalGround', ''],
   ['moveToCell', '12, 30'],
   ['useItem', 'Super Rod'],
+];
+
+/** Zone setups, including a line zone and an empty (disabled) case. */
+const ZONE_SETUPS = [
+  { zones: [], rotation: { mode: 'fixed', min: 30, max: 60 } },
+  { zones: ['10,10,20,20'], rotation: { mode: 'fixed', min: 15, max: 40 } },
+  { zones: ['10,10,20,20', '30,5,40,15'], rotation: { mode: 'random', min: 5, max: 20 } },
+  { zones: ['12,5,12,25', '3,3,9,9'], rotation: { mode: 'chaotic', min: 5, max: 20 } },
+  { zones: ['1,1,4,4', '6,6,9,9'], rotation: { mode: 'onHeal', min: 5, max: 20 } },
+  { zones: ['1,1,4,4', '6,6,9,9'], rotation: { mode: 'onWin', min: 5, max: 20 } },
+];
+
+/** Team management setups, from "nothing" to "everything at once". */
+const TEAM_SETUPS = [
+  {},
+  { useStrongest: true },
+  { leadAbility: 'Synchronize', rotation: { mode: 'weakest', stat: 'ATK', target: 252, slots: 2, ids: [] } },
+  {
+    leadAbility: 'Synchronize',
+    secondAbility: 'Trace',
+    rotation: { mode: 'ev', stat: 'SPD', target: 252, slots: 2, ids: [] },
+    leadItem: 'Leftovers',
+    keepMoves: ['False Swipe', 'Surf'],
+  },
+  { rotation: { mode: 'uid', stat: 'ATK', target: 252, slots: 2, ids: ['111', '222'] } },
+];
+
+/** Every step action, so each emitter is executed at least once. */
+const STEP_SETS = [
+  [
+    createStep({ action: 'useMove', move: 'False Swipe', slot: 'auto' }),
+    createStep({ action: 'throwBalls', balls: ['Ultra Ball', 'Pokeball'] }),
+  ],
+  [
+    createStep({ action: 'useMove', move: 'Spore', slot: 3, once: true }),
+    createStep({ action: 'useItem', item: 'Ultra Ball' }),
+    createStep({ action: 'sendPokemon', slotNumber: 2 }),
+  ],
+  [
+    createStep({ action: 'attack' }),
+    createStep({ action: 'weakAttack' }),
+    createStep({ action: 'run' }),
+  ],
+  [
+    createStep({ action: 'sendUsablePokemon' }),
+    createStep({ action: 'sendAnyPokemon' }),
+    createStep({ action: 'rawLua', expr: 'useItem("Repel")' }),
+  ],
+];
+
+/** Condition trees exercised as rule matchers, including nesting and negation. */
+const MATCHERS = [
+  { op: 'or', negate: false, items: [{ kind: 'shiny', params: {}, negate: false }] },
+  {
+    op: 'and',
+    negate: false,
+    items: [
+      { kind: 'oppHpPercent', params: { cmp: '<=', value: 40 }, negate: false },
+      { op: 'or', negate: true, items: [{ kind: 'oppHasStatus', params: {}, negate: false }] },
+    ],
+  },
+  {
+    op: 'and',
+    negate: false,
+    items: [
+      { kind: 'oppType', params: { type: 'Water' }, negate: false },
+      { kind: 'ppLeft', params: { move: 'Surf', cmp: '>=', value: 1 }, negate: false },
+      { kind: 'battleTurn', params: { cmp: '>', value: 2 }, negate: true },
+    ],
+  },
+  { op: 'or', negate: false, items: [] },
+];
+
+/** Custom farm guards, including "not set". */
+const GUARDS = [
+  { op: 'and', negate: false, items: [] },
+  {
+    op: 'and',
+    negate: false,
+    items: [
+      { kind: 'usableCount', params: { cmp: '>=', value: 2 }, negate: false },
+      { kind: 'itemCount', params: { item: 'Ultra Ball', cmp: '>', value: 0 }, negate: false },
+    ],
+  },
 ];
 
 await fs.mkdir(outputDir, { recursive: true });
@@ -89,6 +175,41 @@ for (const mode of MODES) {
 
           config.logging.counters = index % 5 !== 0;
           config.logging.announceShiny = index % 2 === 0;
+
+          // ---- V4 feature groups -------------------------------------
+          const zoneSetup = ZONE_SETUPS[index % ZONE_SETUPS.length];
+          config.route.zones = [...zoneSetup.zones];
+          config.route.zoneRotation = { ...zoneSetup.rotation };
+
+          config.route.stops = index % 4 === 0
+            ? [{ map: 'Viridian City', mount: index % 8 === 0 ? 'off' : 'force', terrain: 'land' }]
+            : [];
+
+          // `index` is even on the 'here' pass and odd on the 'route' pass, so the
+          // selector must be odd for time-of-day to ever reach a routed fixture.
+          config.route.timeOfDay = routeKind === 'route' && index % 6 === 1
+            ? { enabled: true, morningMap: 'Route 21', noonMap: '', nightMap: '' }
+            : { enabled: false, morningMap: '', noonMap: '', nightMap: '' };
+
+          Object.assign(config.team, TEAM_SETUPS[index % TEAM_SETUPS.length]);
+          config.team.customGuard = GUARDS[index % GUARDS.length];
+
+          config.rules = [
+            {
+              id: 'rule-a',
+              label: 'Primary',
+              match: MATCHERS[index % MATCHERS.length],
+              fallback: ['attack', 'run', 'nothing'][index % 3],
+              steps: STEP_SETS[index % STEP_SETS.length],
+            },
+            {
+              id: 'rule-b',
+              label: 'Secondary',
+              match: MATCHERS[(index + 1) % MATCHERS.length],
+              fallback: 'attack',
+              steps: STEP_SETS[(index + 2) % STEP_SETS.length],
+            },
+          ];
 
           const result = generateScript(config, graph);
           if (result.unknownCalls.length || result.retiredCalls.length) {

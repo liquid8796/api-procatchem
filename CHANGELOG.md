@@ -1,5 +1,32 @@
 # Changelog
 
+## PROCatchem content — v1.0.110
+
+*August 22, 2026*
+
+**Added:**
+
+- **Farm zones**: multiple `moveToRectangle` areas with five rotation triggers (fixed interval,
+  random interval, fully random, after a heal, after a won battle). Line-shaped zones are patrolled
+  with `moveToCell` instead, since `moveToRectangle` cannot move within a zero-width box.
+- **Team management**: ability pinning for slots 1 and 2, lead rotation by level / EV cap /
+  unique-id list, a held item kept on the lead, `strongestSlot()`, and move protection through
+  `onLearningMove`.
+- **Battle rules engine** as a new `Custom rules` farm mode: named rules, nested AND/OR/NOT
+  condition trees from a registry of checks, ordered steps with per-step guards, once-per-battle
+  flags, and a raw-Lua escape hatch that is still verified against the API.
+- **Route stops** that converge the mount and terrain state before travelling on, and
+  **time-of-day hunting** with a hop table per period.
+- A custom keep-farming condition that replaces the simple healing settings.
+
+**Fixed:**
+
+- `opponentHasType()` no longer calls `ipairs` on a possibly-nil list.
+- `ppLeft()` has a single definition site, so a healing clause and a condition that both use it no
+  longer conflict — previously the healing clause was silently dropped.
+- The dismount-without-mount lint never fired, because an empty array is truthy.
+
+
 ## PROCatchem content — v1.0.109
 
 *August 22, 2026*

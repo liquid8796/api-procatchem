@@ -8,7 +8,9 @@
  */
 
 import { Registry } from '../core/registry.js';
+import { isEmptyCondition } from '../domain/condition.js';
 import { EV_STATS } from '../domain/config.js';
+import { parseZone } from '../domain/zone.js';
 
 /**
  * @typedef {'error' | 'warning' | 'info'} Severity
@@ -22,6 +24,8 @@ import { EV_STATS } from '../domain/config.js';
  * @property {object} config
  * @property {import('../generators/route-plan.js').RoutePlan} plan
  * @property {import('../generators/mode-registry.js').FarmMode} mode
+ * @property {import('../generators/zones.js').ZonePlan} zones
+ * @property {import('../generators/team.js').TeamPlan} team
  * @property {string[]} unknownCalls
  * @property {string[]} retiredCalls
  *
@@ -173,7 +177,8 @@ lintRegistry.register('afk-timeout', ({ config }) => {
 
 lintRegistry.register('dismount-without-mount', ({ config }) => {
   if (!config.mounts.dismountOnFarm) return null;
-  if (config.mounts.land || config.mounts.water) return null;
+  // Mount lists are arrays, and an empty array is truthy — check the length.
+  if (config.mounts.land.length || config.mounts.water.length) return null;
   return finding('info', 'Dismount-before-hunting is on, but no mount is configured.', 'route');
 });
 
@@ -199,6 +204,138 @@ lintRegistry.register('generated-call-check', ({ unknownCalls, retiredCalls }) =
     out.push(finding('error', `The generated script calls ${name}(), which is not in the Lua API.`));
   }
   return out;
+});
+
+lintRegistry.register('zone-syntax', ({ config }) => {
+  const bad = (config.route.zones ?? []).filter((entry) => String(entry).trim() && !parseZone(entry));
+  return bad.map((entry) => finding(
+    'error',
+    `"${entry}" is not four whole numbers — a zone is written as "x1, y1, x2, y2".`,
+    'zones',
+  ));
+});
+
+lintRegistry.register('zone-rotation-range', ({ config, zones }) => {
+  if (!zones.rotates || !zones.timed) return null;
+  const { min, max } = config.route.zoneRotation;
+  if (Number(min) <= Number(max)) return null;
+  return finding(
+    'warning',
+    `Zone interval ${min}–${max} minutes is reversed; the builder clamped it to `
+    + `${zones.minMinutes}–${zones.maxMinutes}.`,
+    'zones',
+  );
+});
+
+lintRegistry.register('zone-flat-note', ({ zones }) => {
+  if (!zones.zones.some((zone) => zone.flat)) return null;
+  return finding(
+    'info',
+    'A zone is a single row or column, so the bot patrols its two ends with moveToCell '
+    + 'instead of wandering a rectangle.',
+    'zones',
+  );
+});
+
+lintRegistry.register('zones-override-action', ({ config, zones }) => {
+  if (!zones.active || config.route.farmAction === 'moveToGrass') return null;
+  return finding(
+    'info',
+    'Zones replace the "how to find encounters" action while they are configured.',
+    'zones',
+  );
+});
+
+lintRegistry.register('stop-force-mount', ({ config, plan }) => {
+  if (!plan.stops.some((stop) => stop.mount === 'force')) return null;
+  if (config.mounts.land.length) return null;
+  return finding(
+    'warning',
+    'A stop forces a mount, but no land mount is configured — the step is skipped.',
+    'stops',
+  );
+});
+
+lintRegistry.register('time-of-day-empty', ({ config }) => {
+  const timeOfDay = config.route.timeOfDay ?? {};
+  if (!timeOfDay.enabled) return null;
+  const named = [timeOfDay.morningMap, timeOfDay.noonMap, timeOfDay.nightMap]
+    .filter((map) => String(map ?? '').trim());
+  if (named.length) return null;
+  return finding(
+    'warning',
+    'Time-of-day hunting is on but no period names a map, so it has no effect.',
+    'stops',
+  );
+});
+
+lintRegistry.register('rotation-conflicts-with-pins', ({ team }) => {
+  if (team.rotationMode === 'off' || team.pinnedSlots === 0) return null;
+  const plural = team.pinnedSlots > 1;
+  return finding(
+    'info',
+    `Slot${plural ? 's 1 and 2 are' : ' 1 is'} pinned by an ability, so rotation works on `
+    + `slot ${team.rotationSlot}.`,
+    'team',
+  );
+});
+
+lintRegistry.register('rotation-uid-list', ({ config }) => {
+  if (config.team.rotation.mode !== 'uid') return null;
+  const ids = config.team.rotation.ids;
+  if (!ids.length) return finding('error', 'Unique-id rotation needs at least one id.', 'team');
+  const bad = ids.find((id) => !/^[0-9]+$/.test(String(id).trim()));
+  if (!bad) return null;
+  return finding('error', `Unique ids must be whole numbers: "${bad}" is not.`, 'team');
+});
+
+lintRegistry.register('custom-guard-overrides', ({ config }) => {
+  if (isEmptyCondition(config.team.customGuard)) return null;
+  return finding(
+    'info',
+    'The custom keep-farming condition replaces the usable-count and PP settings above.',
+    'team',
+  );
+});
+
+lintRegistry.register('rules-present', ({ config, mode }) => {
+  if (mode.id !== 'rules') return null;
+  if ((config.rules ?? []).some((rule) => rule.steps?.length)) return null;
+  return finding('error', 'Custom-rules mode needs at least one rule with a step.', 'rules');
+});
+
+lintRegistry.register('rule-step-arguments', ({ config, mode }) => {
+  if (mode.id !== 'rules') return null;
+  /** @type {Finding[]} */
+  const out = [];
+  (config.rules ?? []).forEach((rule, ruleIndex) => {
+    const where = rule.label || `Rule ${ruleIndex + 1}`;
+    (rule.steps ?? []).forEach((step, stepIndex) => {
+      const at = `${where}, step ${stepIndex + 1}`;
+      if (step.action === 'useMove' && !step.move) out.push(finding('error', `${at}: no move name.`, 'rules'));
+      if (step.action === 'useItem' && !step.item) out.push(finding('error', `${at}: no item name.`, 'rules'));
+      if (step.action === 'throwBalls' && !step.balls.length) {
+        out.push(finding('error', `${at}: no balls listed.`, 'rules'));
+      }
+      if (step.action === 'rawLua' && !step.expr) {
+        out.push(finding('error', `${at}: the raw Lua step is empty.`, 'rules'));
+      }
+    });
+  });
+  return out;
+});
+
+lintRegistry.register('rule-unreachable', ({ config, mode }) => {
+  if (mode.id !== 'rules') return null;
+  const rules = config.rules ?? [];
+  const openIndex = rules.findIndex((rule) => isEmptyCondition(rule.match));
+  if (openIndex < 0 || openIndex === rules.length - 1) return null;
+  return finding(
+    'warning',
+    `"${rules[openIndex].label}" has no condition, so it matches everything and the `
+    + `${rules.length - openIndex - 1} rule(s) after it never run.`,
+    'rules',
+  );
 });
 
 /** Order findings worst-first so the panel reads top-down. */

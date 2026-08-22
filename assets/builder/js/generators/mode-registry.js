@@ -11,6 +11,7 @@ import { evMode } from './modes/ev.js';
 import { expMode } from './modes/exp.js';
 import { goldMode } from './modes/gold.js';
 import { huntMode } from './modes/hunt.js';
+import { rulesMode } from './modes/rules.js';
 
 /**
  * @typedef {object} ModeTraits
@@ -28,6 +29,9 @@ import { huntMode } from './modes/hunt.js';
  * @property {string} tagline
  * @property {string} description
  * @property {ModeTraits} traits
+ * @property {(config: object) => Partial<import('./runtime.js').Needs>} [analyse]
+ *           Extra needs this mode's own configuration implies, merged into the
+ *           shared analysis before anything is emitted.
  * @property {(writer: import('../core/lua-writer.js').LuaWriter,
  *             context: import('./runtime.js').EmitContext) => void} emitHelpers
  *           Local functions the engagement step depends on.
@@ -44,6 +48,7 @@ modeRegistry.register(huntMode.id, huntMode);
 modeRegistry.register(expMode.id, expMode);
 modeRegistry.register(evMode.id, evMode);
 modeRegistry.register(goldMode.id, goldMode);
+modeRegistry.register(rulesMode.id, rulesMode);
 
 /**
  * @param {string} id

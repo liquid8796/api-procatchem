@@ -70,6 +70,33 @@ end
 Load that file in the builder's sidebar to unlock Pokécenter routes. Without it the builder says so
 rather than emitting a route that cannot work; hunting on the current map needs no link graph.
 
+### V4 feature groups (v1.0.110)
+
+Four groups ported from the standalone V4 builder:
+
+**Farm zones** — several `moveToRectangle` boxes plus a picker. Zones rotate on a fixed timer, a
+random interval, fully at random, after every heal, or after every won battle. A rectangle that is
+really a line (one row, one column, or a single cell) is patrolled end to end with `moveToCell`,
+because `moveToRectangle` would leave the bot standing still on it.
+
+**Team management** — pin an ability to slot 1 and slot 2 (Synchronize, Trace), rotate the lead by
+lowest level / EV cap / a unique-id priority list, keep an item on the lead (reclaiming it from a
+team-mate when the bag runs out), expose `strongestSlot()`, and protect moves through
+`onLearningMove`. Rotation automatically works on the first slot no ability has pinned, so the two
+never fight over the same Pokémon.
+
+**Battle rules engine** — a fifth farm mode, `Custom rules`. Rules are named conditions with ordered
+steps; conditions are arbitrarily nested AND/OR/NOT trees built from a registry of checks, and each
+step can be gated, marked once-per-battle, or drop to raw Lua. Anything a raw expression calls is
+still checked against the API catalogue.
+
+**Routes** — stops that adjust the mount or the terrain before travelling on (both convergent, so
+they cannot loop), and a different hunting map per time of day with its own outbound and return hop
+tables selected by `activeLeg()`.
+
+The same condition trees also power an optional custom keep-farming guard, replacing the simple
+usable-count and PP settings.
+
 ### Source layout
 
 The builder ships as plain ES modules — no bundler, no framework:
@@ -79,12 +106,15 @@ assets/builder/
   builder.css                 Pokédex theme for the builder page
   js/
     core/       store.js, registry.js, lua-writer.js    state, plug-in registry, Lua emitter
-    domain/     config.js, link-graph.js, host-api.js   config schema, BFS routing, API catalogue
+    domain/     config.js, condition.js, link-graph.js, config schema, condition trees,
+                zone.js, host-api.js                    BFS routing, zones, API catalogue
     generators/ index.js, runtime.js, battle.js,        composition + shared emitters
-                route-plan.js, mode-registry.js,
-                modes/{hunt,exp,ev,gold}.js             one Strategy per farm mode
+                route-plan.js, zones.js, team.js,
+                rules.js, mode-registry.js,
+                modes/{hunt,exp,ev,gold,rules}.js       one Strategy per farm mode
     lint/       rules.js                                configuration checks
     ui/         app.js, panels.js, fields.js,           wiring, panel descriptors, controls
+                condition-editor.js, rule-editor.js,
                 dom.js, highlight.js, radio-group.js
 ```
 
@@ -92,6 +122,10 @@ Extension points:
 
 - **A new farm mode** — add `generators/modes/<id>.js` exporting a `FarmMode`, then register it in
   `generators/mode-registry.js`. The UI, lint and panels pick it up automatically.
+- **A new condition** — add one entry to `CONDITION_KINDS` in `domain/condition.js`. The tree editor
+  renders its parameters from the descriptor and the emitter calls its `emit`.
+- **A new battle step action** — add it to `STEP_ACTIONS` in `domain/config.js` and handle it in
+  `generators/rules.js`.
 - **A new setting** — add the field to `domain/config.js`, a descriptor to the relevant panel in
   `ui/panels.js`, and the emitter that consumes it.
 - **A new check** — add one function to `lint/rules.js` and register it.

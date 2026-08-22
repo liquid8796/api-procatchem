@@ -169,6 +169,8 @@ export class BuilderApp {
       config: this._store.state,
       plan: generation.plan,
       mode: generation.mode,
+      zones: generation.zones,
+      team: generation.team,
       unknownCalls: generation.unknownCalls,
       retiredCalls: generation.retiredCalls,
     });

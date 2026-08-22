@@ -91,6 +91,8 @@ export class LuaWriter {
     this._indent = 0;
     /** @type {Set<string>} every host function referenced by emitted code */
     this._calls = new Set();
+    /** @type {Set<string>} every function this script defines for itself */
+    this._locals = new Set();
   }
 
   /**
@@ -151,6 +153,29 @@ export class LuaWriter {
   }
 
   /**
+   * Emit an `if` / `elseif` / `else` chain.
+   *
+   * A branch with no `cond` becomes the `else`. Indentation is restored even if
+   * a body throws, exactly as in {@link block}.
+   *
+   * @param {Array<{ cond?: string, body: (writer: this) => void }>} branches
+   * @returns {this}
+   */
+  ifChain(branches) {
+    branches.forEach((branch, index) => {
+      const keyword = index === 0 ? 'if' : (branch.cond ? 'elseif' : 'else');
+      this.line(branch.cond ? `${keyword} ${branch.cond} then` : keyword);
+      this._indent += 1;
+      try {
+        branch.body(this);
+      } finally {
+        this._indent -= 1;
+      }
+    });
+    return this.line('end');
+  }
+
+  /**
    * Emit a top-level or local function definition.
    *
    * @param {string} signature e.g. `onBattleAction()`
@@ -160,7 +185,28 @@ export class LuaWriter {
    */
   fn(signature, body, options = {}) {
     const keyword = options.local ? 'local function' : 'function';
+    // Remember the name so the verifier does not mistake a call to it for a
+    // missing host function. This is why no hand-maintained list is needed.
+    const name = String(signature).match(/^([A-Za-z_][A-Za-z0-9_]*)/);
+    if (name) this._locals.add(name[1]);
     return this.block(`${keyword} ${signature}`, body);
+  }
+
+  /**
+   * Declare a name the script defines by other means (a local variable holding
+   * a function, for instance), so the verifier treats it as defined.
+   *
+   * @param {string} name
+   * @returns {this}
+   */
+  declareLocal(name) {
+    this._locals.add(name);
+    return this;
+  }
+
+  /** @returns {Set<string>} functions this script defines for itself */
+  localFunctions() {
+    return new Set(this._locals);
   }
 
   /**
@@ -199,4 +245,18 @@ export class LuaWriter {
     const body = this._lines.join('\n').replace(/\n{3,}/g, '\n\n');
     return `${body.replace(/\s+$/, '')}\n`;
   }
+}
+
+/** Total width a section divider is padded to. */
+const SECTION_RULE_WIDTH = 68;
+
+/**
+ * Emit a labelled divider comment, so a long generated file stays scannable.
+ *
+ * @param {LuaWriter} writer
+ * @param {string} title
+ */
+export function section(writer, title) {
+  const rule = '-'.repeat(Math.max(4, SECTION_RULE_WIDTH - title.length));
+  writer.line(`-- ${rule} ${title}`);
 }

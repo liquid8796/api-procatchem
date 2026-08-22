@@ -7,10 +7,12 @@
  * not a new block of DOM code.
  *
  * Supported `type` values: `text`, `number`, `select`, `segmented`, `toggle`,
- * `chips`, and `ballLadder`.
+ * `chips`, `ballLadder`, `textList`, `stopList`, `conditionTree`, and `ruleList`.
  */
 
-import { splitList, toNullableInt } from '../domain/config.js';
+import { STOP_MOUNT_MODES, STOP_TERRAINS, splitList, toNullableInt } from '../domain/config.js';
+import { renderConditionTree } from './condition-editor.js';
+import { renderRuleList } from './rule-editor.js';
 import { h, requestFocus } from './dom.js';
 import { wireRadioGroup } from './radio-group.js';
 
@@ -46,6 +48,10 @@ export function renderField(field, store) {
     case 'toggle': return renderToggle(field, store);
     case 'chips': return renderChips(field, store);
     case 'ballLadder': return renderBallLadder(field, store);
+    case 'textList': return renderTextList(field, store);
+    case 'stopList': return renderStopList(field, store);
+    case 'conditionTree': return renderConditionField(field, store);
+    case 'ruleList': return renderRuleField(field, store);
     default: throw new Error(`Unknown field type: ${field.type}`);
   }
 }
@@ -307,6 +313,136 @@ function renderChips(field, store) {
   ]);
 
   return wrap(field, box);
+}
+
+/**
+ * An ordered list of free-text rows — farm zones, unique ids, and anything else
+ * where each entry is one short string that benefits from its own input.
+ *
+ * @param {Field} field
+ * @param {import('../core/store.js').Store} store
+ * @returns {HTMLElement}
+ */
+function renderTextList(field, store) {
+  /** @type {string[]} */
+  const values = store.getIn(field.path) ?? [];
+  const update = (next) => store.setIn(field.path, next);
+  const rowId = (index) => `${idFor(field.path)}-row-${index}`;
+
+  const rows = values.map((value, index) => h('div.list-row', {}, [
+    h('span.ladder-rank', { text: String(index + 1) }),
+    h('input.input', {
+      id: rowId(index),
+      type: 'text',
+      value,
+      placeholder: field.placeholder ?? '',
+      'aria-label': `${field.label ?? 'Entry'} ${index + 1}`,
+      onInput: (event) => update(values.map((entry, i) => (i === index ? event.target.value : entry))),
+    }),
+    h('button.icon-btn.icon-btn-danger', {
+      type: 'button', text: '×', title: 'Remove',
+      'aria-label': `Remove entry ${index + 1}`,
+      onClick: () => {
+        const next = values.filter((_, i) => i !== index);
+        if (next.length) requestFocus(rowId(Math.min(index, next.length - 1)));
+        update(next);
+      },
+    }),
+  ]));
+
+  return wrap(field, h('div.list-rows', {}, [
+    ...rows,
+    h('button.btn.btn-ghost.cond-mini', {
+      type: 'button',
+      text: field.addLabel ?? '+ Add',
+      onClick: () => {
+        requestFocus(rowId(values.length));
+        update([...values, '']);
+      },
+    }),
+  ]));
+}
+
+/**
+ * Stops along a route: a map plus the mount and terrain it needs.
+ *
+ * @param {Field} field
+ * @param {import('../core/store.js').Store} store
+ * @returns {HTMLElement}
+ */
+function renderStopList(field, store) {
+  /** @type {Array<{map: string, mount: string, terrain: string}>} */
+  const stops = store.getIn(field.path) ?? [];
+  const update = (next) => store.setIn(field.path, next);
+  const patchAt = (index, patch) => update(
+    stops.map((stop, i) => (i === index ? { ...stop, ...patch } : stop)),
+  );
+  const rowId = (index) => `${idFor(field.path)}-map-${index}`;
+
+  const rows = stops.map((stop, index) => h('div.stop-row', {}, [
+    h('input.input', {
+      id: rowId(index),
+      type: 'text',
+      value: stop.map,
+      placeholder: 'Viridian City',
+      'aria-label': `Stop ${index + 1} map`,
+      onInput: (event) => patchAt(index, { map: event.target.value }),
+    }),
+    h('select.input.select', {
+      'aria-label': `Stop ${index + 1} mount`,
+      onChange: (event) => patchAt(index, { mount: event.target.value }),
+    }, STOP_MOUNT_MODES.map((mode) => h('option', {
+      value: mode.id, selected: mode.id === stop.mount, text: mode.label,
+    }))),
+    h('select.input.select', {
+      'aria-label': `Stop ${index + 1} terrain`,
+      onChange: (event) => patchAt(index, { terrain: event.target.value }),
+    }, STOP_TERRAINS.map((mode) => h('option', {
+      value: mode.id, selected: mode.id === stop.terrain, text: mode.label,
+    }))),
+    h('button.icon-btn.icon-btn-danger', {
+      type: 'button', text: '×', title: 'Remove',
+      'aria-label': `Remove stop ${index + 1}`,
+      onClick: () => update(stops.filter((_, i) => i !== index)),
+    }),
+  ]));
+
+  return wrap(field, h('div.list-rows', {}, [
+    ...rows,
+    h('button.btn.btn-ghost.cond-mini', {
+      type: 'button',
+      text: '+ Add a stop',
+      onClick: () => {
+        requestFocus(rowId(stops.length));
+        update([...stops, { map: '', mount: 'auto', terrain: 'any' }]);
+      },
+    }),
+  ]));
+}
+
+/**
+ * @param {Field} field
+ * @param {import('../core/store.js').Store} store
+ * @returns {HTMLElement}
+ */
+function renderConditionField(field, store) {
+  const tree = renderConditionTree(
+    store.getIn(field.path),
+    (next) => store.setIn(field.path, next),
+    { label: field.label },
+  );
+  // The label lives inside the tree header, so it is not repeated here.
+  return wrap({ ...field, label: undefined }, tree);
+}
+
+/**
+ * @param {Field} field
+ * @param {import('../core/store.js').Store} store
+ * @returns {HTMLElement}
+ */
+function renderRuleField(field, store) {
+  const list = renderRuleList(store.getIn(field.path) ?? [], (next) => store.setIn(field.path, next));
+  return wrap(field, list);
 }
 
 /**

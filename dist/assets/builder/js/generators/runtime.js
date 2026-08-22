@@ -8,8 +8,14 @@
  * generated file never contains a helper nothing calls.
  */
 
-import { luaKey, luaNumber, luaString } from '../core/lua-writer.js';
+import { luaKey, luaNumber, luaString, section } from '../core/lua-writer.js';
 import { splitList, toStringList } from '../domain/config.js';
+import {
+  CONDITION_HELPERS,
+  collectConditionHelpers,
+  emitCondition,
+  isEmptyCondition,
+} from '../domain/condition.js';
 import { hasTrappedEscape } from './battle.js';
 
 /** Host sentinel for "the opponent has no status condition". */
@@ -29,11 +35,18 @@ const NO_STATUS_LITERAL = '""';
  * @property {boolean} trapFlag        the trapped flag is read somewhere
  * @property {boolean} relogEscape     the relog trap escape is emitted
  * @property {boolean} statusHelper    `opponentStatused` required
+ * @property {boolean} onceFlags      the once-per-battle table `F` is used
+ * @property {boolean} teamUpkeep     out-of-battle team management is emitted
+ * @property {boolean} zoneReroll     a zone rotation is triggered by an event
+ * @property {boolean} stopUpkeep     at least one stop emits a branch
+ * @property {Set<string>} conditionHelpers helper ids the condition trees need
  *
  * @typedef {object} EmitContext
  * @property {object} config
  * @property {RoutePlan} plan
  * @property {Needs} needs
+ * @property {import('./zones.js').ZonePlan} zones
+ * @property {import('./team.js').TeamPlan} team
  */
 
 /**
@@ -64,10 +77,20 @@ export function analyseNeeds(config, plan, modeTraits) {
   // encounter do not have.
   const escapes = !modeTraits.engagesEveryEncounter && hasTrappedEscape(config);
 
+  // A custom guard replaces the two simple healing conditions, so the simple
+  // PP helper is only needed when the guard is not in use.
+  const usesCustomGuard = !isEmptyCondition(config.team.customGuard);
+
   return {
     moves,
+    usesCustomGuard,
+    onceFlags: false,
+    teamUpkeep: false,
+    zoneReroll: false,
+    stopUpkeep: false,
+    conditionHelpers: collectConditionHelpers(config.team.customGuard),
     slotHelpers: moves.length > 0,
-    ppHelper: config.team.healOnPPOut && moves.length > 0,
+    ppHelper: !usesCustomGuard && config.team.healOnPPOut && moves.length > 0,
     mounts: toStringList(config.mounts.land).length > 0
       || toStringList(config.mounts.water).length > 0,
     breaks: Boolean(config.safety.breaks.enabled),
@@ -122,34 +145,25 @@ export function emitState(writer, { needs }) {
   if (needs.relogEscape) {
     writer.line('local relogArmed  = false');
   }
+  if (needs.onceFlags) {
+    writer.line('local F           = {} -- once-per-battle step flags, cleared between battles');
+  }
   writer.blank();
 }
 
 /**
- * `ppLeft`, `slotWithMove`, `useMoveFromAnySlot`, `opponentStatused`.
+ * `slotWithMove`, `useMoveFromAnySlot`, and `opponentStatused`.
+ *
+ * `ppLeft` is deliberately not here: the condition-helper emitter owns it, so
+ * there is exactly one definition whether it is a healing clause or a condition
+ * that asks for it.
  *
  * @param {LuaWriter} writer
  * @param {EmitContext} context
  */
 export function emitTeamHelpers(writer, { needs }) {
-  if (!needs.ppHelper && !needs.slotHelpers && !needs.statusHelper) return;
+  if (!needs.slotHelpers && !needs.statusHelper) return;
   section(writer, 'Helpers');
-
-  if (needs.ppHelper) {
-    writer.comment('Highest remaining PP for `move` across every usable team member.');
-    writer.fn('ppLeft(move)', (w) => {
-      w.useHosts(['getTeamSize', 'hasMove', 'isPokemonUsable', 'getRemainingPowerPoints']);
-      w.line('local best = 0');
-      w.block('for slot = 1, getTeamSize() do', (loop) => {
-        loop.block('if hasMove(slot, move) and isPokemonUsable(slot) then', (inner) => {
-          inner.line('local left = getRemainingPowerPoints(slot, move)');
-          inner.line('if left > best then best = left end');
-        });
-      });
-      w.line('return best');
-    }, { local: true });
-    writer.blank();
-  }
 
   if (needs.slotHelpers) {
     writer.comment('First usable slot that still has PP for `move`, or nil.');
@@ -192,6 +206,22 @@ export function emitTeamHelpers(writer, { needs }) {
 }
 
 /**
+ * Local helpers that condition trees depend on.
+ *
+ * @param {LuaWriter} writer
+ * @param {EmitContext} context
+ */
+export function emitConditionHelpers(writer, { needs }) {
+  const ids = [...(needs.conditionHelpers ?? [])].sort();
+  if (!ids.length) return;
+  section(writer, 'Condition helpers');
+  for (const id of ids) {
+    const helper = CONDITION_HELPERS[id];
+    if (helper) helper.emit(writer);
+  }
+}
+
+/**
  * Mount picker: first configured mount actually in the bag.
  *
  * @param {LuaWriter} writer
@@ -221,24 +251,122 @@ export function emitMountHelper(writer, { config, needs }) {
 }
 
 /**
- * Route tables and the `walk` helper that turns them into moveToCell steps.
+ * Route tables, the leg selector, the `walk` helper, and stop upkeep.
  *
  * @param {LuaWriter} writer
  * @param {EmitContext} context
  */
-export function emitRoute(writer, { plan }) {
-  if (!plan.travels) return;
+export function emitRoute(writer, context) {
+  const { plan } = context;
+  if (!plan.travels && !plan.stops.length) return;
   section(writer, 'Route');
-  writer.comment('Each entry is the cell to step on to leave that map toward the next one.');
-  emitHopTable(writer, 'TO_FARM', plan.toFarm);
-  emitHopTable(writer, 'TO_HEAL', plan.toHeal);
 
-  writer.comment('Take one hop along `hops`. Returns false when the bot is somewhere the');
-  writer.comment('route does not cover, which the host reports as "no action executed".');
-  writer.fn('walk(hops)', (w) => {
-    w.useHosts(['getMapName', 'moveToCell']);
-    w.line('local hop = hops[getMapName()]');
-    w.line('if hop then return moveToCell(hop[1], hop[2]) end');
+  if (plan.travels) {
+    writer.comment('Each entry is the cell to step on to leave that map toward the next one.');
+    for (const leg of plan.legs) {
+      emitHopTable(writer, hopTableName(leg, 'TO_FARM'), leg.toFarm);
+      emitHopTable(writer, hopTableName(leg, 'TO_HEAL'), leg.toHeal);
+    }
+    writer.blank();
+
+    if (plan.legs.length > 1) emitLegSelector(writer, plan);
+
+    writer.comment('Take one hop along `hops`. Returns false when the bot is somewhere the');
+    writer.comment('route does not cover, which the host reports as "no action executed".');
+    writer.fn('walk(hops)', (w) => {
+      w.useHosts(['getMapName', 'moveToCell']);
+      w.line('local hop = hops[getMapName()]');
+      w.line('if hop then return moveToCell(hop[1], hop[2]) end');
+      w.line('return false');
+    }, { local: true });
+    writer.blank();
+  }
+
+  emitStopUpkeep(writer, context);
+}
+
+/**
+ * Suffix a hop table with its leg, so the time-of-day legs do not collide.
+ *
+ * @param {import('./route-plan.js').RouteLeg} leg
+ * @param {string} base
+ * @returns {string}
+ */
+function hopTableName(leg, base) {
+  return leg.id === 'day' ? base : `${base}_${leg.id.toUpperCase()}`;
+}
+
+/**
+ * `activeLeg()` — which hunting map and hop tables apply right now.
+ *
+ * @param {LuaWriter} writer
+ * @param {import('./route-plan.js').RoutePlan} plan
+ */
+function emitLegSelector(writer, plan) {
+  writer.comment('The hunting map changes with the time of day.');
+  writer.fn('activeLeg()', (w) => {
+    for (const leg of plan.legs) {
+      const values = `${luaString(leg.farmMap)}, ${hopTableName(leg, 'TO_FARM')}, ${hopTableName(leg, 'TO_HEAL')}`;
+      if (!leg.guard) {
+        w.line(`return ${values}`);
+        continue;
+      }
+      // The guard is a host predicate such as isMorning().
+      w.useHost(leg.guard.replace('()', ''));
+      w.line(`if ${leg.guard} then return ${values} end`);
+    }
+  }, { local: true });
+  writer.blank();
+}
+
+/**
+ * Which configured stops will actually emit a branch.
+ *
+ * @param {import('./route-plan.js').RoutePlan} plan
+ * @param {object} config
+ * @param {boolean} hasLandMount
+ * @returns {import('./route-plan.js').RouteStop[]}
+ */
+export function usableStops(plan, config, hasLandMount) {
+  return plan.stops.filter((stop) => stop.terrain !== 'any'
+    || stop.mount === 'off'
+    || (stop.mount === 'force' && hasLandMount));
+}
+
+/**
+ * Per-map mount and terrain handling for stops along the way.
+ *
+ * Both adjustments converge — once the bot is mounted (or on the right
+ * terrain) the function stops acting and the route continues.
+ *
+ * @param {LuaWriter} writer
+ * @param {EmitContext} context
+ */
+function emitStopUpkeep(writer, { plan, config, needs }) {
+  const hasLandMount = needs.mounts && toStringList(config.mounts.land).length > 0;
+  const usable = usableStops(plan, config, hasLandMount);
+  if (!usable.length) return;
+
+  writer.comment('Maps that need the mount or the terrain adjusted before moving on.');
+  writer.fn('stopUpkeep(map)', (w) => {
+    for (const stop of usable) {
+      w.block(`if map == ${luaString(stop.map)} then`, (inner) => {
+        if (stop.mount === 'off') {
+          inner.useHosts(['isMounted', 'disMount']);
+          inner.line('if isMounted() then return disMount() end');
+        } else if (stop.mount === 'force' && hasLandMount) {
+          inner.useHosts(['isMounted', 'setMount']);
+          inner.line('if not isMounted() then return setMount(pickMount(LAND_MOUNTS)) end');
+        }
+        if (stop.terrain === 'water') {
+          inner.useHosts(['isSurfing', 'moveToWater']);
+          inner.line('if not isSurfing() then return moveToWater() end');
+        } else if (stop.terrain === 'land') {
+          inner.useHosts(['isSurfing', 'moveToNormalGround']);
+          inner.line('if isSurfing() then return moveToNormalGround() end');
+        }
+      });
+    }
     w.line('return false');
   }, { local: true });
   writer.blank();
@@ -322,6 +450,11 @@ export function emitTeamReady(writer, { config, needs }) {
   section(writer, 'Team readiness');
   writer.comment('False means: stop farming and go heal.');
   writer.fn('teamIsReady()', (w) => {
+    if (needs.usesCustomGuard) {
+      w.comment('Custom guard from the editor.');
+      w.line(`return ${emitCondition(config.team.customGuard, w)}`);
+      return;
+    }
     if (!clauses.length) {
       w.comment('No healing rules configured, so the script never leaves the farm.');
       w.line('return true');
@@ -388,21 +521,41 @@ export function emitOnPathAction(writer, context) {
       w.comment('Leaving a battle clears the trap flag.');
       w.line('trapped = false');
     }
+    if (needs.onceFlags) {
+      w.comment('This callback only runs between battles, so it is where once-per-battle resets.');
+      w.line('F = {}');
+    }
     // `map` is only read when the script has to tell maps apart. Hunting in
     // place with no Pokécenter never does, so declaring it there would leave an
     // unused local in the output.
     const readsMap = plan.travels
+      || needs.stopUpkeep
       || (plan.kind === 'route' && Boolean(plan.farmMap || plan.pokecenterMap));
     if (readsMap) {
       w.useHost('getMapName');
       w.line('local map = getMapName()');
     }
+    if (multiLeg(plan)) {
+      w.line('local farmMap, toFarm, toHeal = activeLeg()');
+    }
     w.blank();
+
+    if (needs.stopUpkeep) {
+      w.comment('Adjust mount and terrain before travelling on.');
+      w.line('if stopUpkeep(map) then return true end');
+      w.blank();
+    }
 
     if (needs.breaks) {
       w.block('if onBreak() then', (inner) => {
         emitBreakTick(inner, context);
       });
+      w.blank();
+    }
+
+    if (needs.teamUpkeep) {
+      w.comment('Team management takes priority: it costs one frame, then farming resumes.');
+      w.line('if teamUpkeep() then return true end');
       w.blank();
     }
 
@@ -429,7 +582,7 @@ function emitBreakTick(writer, { plan }) {
     writer.block(`if map == ${luaString(plan.pokecenterMap)} then`, (inner) => {
       inner.line('return moveToNormalGround()');
     });
-    writer.line('return walk(TO_HEAL)');
+    writer.line(`return walk(${multiLeg(plan) ? 'toHeal' : 'TO_HEAL'})`);
     return;
   }
   writer.useHost('moveToNormalGround');
@@ -444,9 +597,12 @@ function emitBreakTick(writer, { plan }) {
  */
 function emitFarmTick(writer, context) {
   const { plan } = context;
+  const target = multiLeg(plan) ? 'farmMap' : luaString(plan.farmMap);
+  const table = multiLeg(plan) ? 'toFarm' : 'TO_FARM';
+
   if (!plan.travels) {
     if (plan.kind === 'route' && plan.farmMap) {
-      writer.block(`if map == ${luaString(plan.farmMap)} then`, (inner) => {
+      writer.block(`if map == ${target} then`, (inner) => {
         emitFarmAction(inner, context);
       });
       writer.line('return false');
@@ -456,10 +612,10 @@ function emitFarmTick(writer, context) {
     return;
   }
 
-  writer.block(`if map == ${luaString(plan.farmMap)} then`, (inner) => {
+  writer.block(`if map == ${target} then`, (inner) => {
     emitFarmAction(inner, context);
   });
-  writer.line('return walk(TO_FARM)');
+  writer.line(`return walk(${table})`);
 }
 
 /**
@@ -468,11 +624,11 @@ function emitFarmTick(writer, context) {
  * @param {LuaWriter} writer
  * @param {EmitContext} context
  */
-function emitFarmAction(writer, { config }) {
+function emitFarmAction(writer, { config, zones }) {
   const { farmAction, farmArgs, surfFix } = config.route;
   const wantsWater = farmAction === 'moveToWater';
 
-  if (surfFix && !wantsWater) {
+  if (surfFix && !wantsWater && !zones.active) {
     writer.useHosts(['isSurfing', 'moveToNormalGround']);
     writer.comment('Surfing when we want land encounters: step back onto dry ground first.');
     writer.line('if isSurfing() then return moveToNormalGround() end');
@@ -480,6 +636,11 @@ function emitFarmAction(writer, { config }) {
   if (config.mounts.dismountOnFarm) {
     writer.useHosts(['isMounted', 'disMount']);
     writer.line('if isMounted() then return disMount() end');
+  }
+  if (zones.active) {
+    writer.comment('Zones replace the plain hunting action.');
+    writer.line('return farmZone()');
+    return;
   }
   writer.line(`return ${renderFarmCall(farmAction, farmArgs, writer)}`);
 }
@@ -525,17 +686,32 @@ function emitHealTick(writer, context) {
   writer.block(`if map == ${luaString(plan.pokecenterMap)} then`, (inner) => {
     emitHealAction(inner, context);
   });
-  writer.line('return walk(TO_HEAL)');
+  writer.line(`return walk(${multiLeg(plan) ? 'toHeal' : 'TO_HEAL'})`);
+}
+
+/**
+ * True when the route has more than one hunting destination, so the hop tables
+ * are chosen at runtime rather than named directly.
+ *
+ * @param {RoutePlan} plan
+ * @returns {boolean}
+ */
+function multiLeg(plan) {
+  return plan.travels && plan.legs.length > 1;
 }
 
 /**
  * @param {LuaWriter} writer
  * @param {EmitContext} context
  */
-function emitHealAction(writer, { config }) {
+function emitHealAction(writer, { config, zones }) {
   const { healAction, healArgs } = config.route;
   writer.useHosts(['isSurfing', 'moveToNormalGround']);
   writer.line('if isSurfing() then return moveToNormalGround() end');
+  if (zones.eventDriven && zones.mode === 'onHeal') {
+    writer.comment('Healing is the trigger for picking a different zone.');
+    writer.line('zoneReroll = true');
+  }
   if (healAction === 'talkToNpcOnCell') {
     const [x, y] = splitList(healArgs);
     writer.useHost('talkToNpcOnCell');
@@ -552,8 +728,9 @@ function emitHealAction(writer, { config }) {
  * @param {LuaWriter} writer
  * @param {EmitContext} context
  */
-export function emitOnBattleMessage(writer, { config, needs }) {
-  if (!needs.trapFlag && !needs.counters) return;
+export function emitOnBattleMessage(writer, { config, needs, zones }) {
+  const armsZoneReroll = zones.eventDriven && zones.mode === 'onWin';
+  if (!needs.trapFlag && !needs.counters && !armsZoneReroll) return;
 
   const trapPhrases = [
     'wrapped',
@@ -573,6 +750,10 @@ export function emitOnBattleMessage(writer, { config, needs }) {
         inner.line('trapped = true');
         if (needs.relogEscape) inner.line('relogArmed = true');
       });
+    }
+    if (armsZoneReroll) {
+      w.comment('Winning a battle is the trigger for picking a different zone.');
+      w.line('if stringContains(message, "You have won") then zoneReroll = true end');
     }
     if (needs.counters) {
       w.line('if stringContains(message, "A Wild SHINY ") then shinySeen = shinySeen + 1 end');
@@ -603,15 +784,4 @@ export function emitOnPause(writer, { needs }) {
     w.line('log("Money earned: " .. tostring(getMoney() - startMoney))');
   });
   writer.blank();
-}
-
-/**
- * A labelled divider comment.
- *
- * @param {LuaWriter} writer
- * @param {string} title
- */
-export function section(writer, title) {
-  const rule = '-'.repeat(Math.max(4, 66 - title.length));
-  writer.line(`-- ${rule} ${title}`);
 }

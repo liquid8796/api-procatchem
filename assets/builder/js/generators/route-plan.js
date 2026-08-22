@@ -6,21 +6,47 @@
  * warp tile taken from the link graph. Planning happens before emission so the
  * UI can report an unreachable route instead of generating a script that
  * silently stalls.
+ *
+ * A route has one **leg** per hunting destination. Normally that is a single
+ * leg; with time-of-day hunting there is one per period, each with its own
+ * outbound and return hops.
  */
 
 /**
  * @typedef {import('../domain/link-graph.js').LinkGraph} LinkGraph
  * @typedef {import('../domain/link-graph.js').Hop} Hop
  *
+ * @typedef {object} RouteLeg
+ * @property {string} id       'day', or the time-of-day period
+ * @property {string} guard    Lua condition selecting this leg, '' for the default
+ * @property {string} farmMap
+ * @property {Hop[]} toFarm    hops from the Pokécenter to the hunting map
+ * @property {Hop[]} toHeal    hops from the hunting map back to the Pokécenter
+ *
+ * @typedef {object} RouteStop
+ * @property {string} map
+ * @property {string} mount    'auto' | 'force' | 'off'
+ * @property {string} terrain  'any' | 'water' | 'land'
+ *
  * @typedef {object} RoutePlan
  * @property {'here' | 'route'} kind
  * @property {boolean} travels        true when the script has to change maps
- * @property {string} farmMap         '' means "hunt wherever the bot stands"
+ * @property {boolean} timeOfDay      true when the hunting map varies by period
+ * @property {string} farmMap         the default hunting map, '' for "wherever you stand"
  * @property {string} pokecenterMap
- * @property {Hop[]} toFarm           hops from the Pokécenter to the farm map
- * @property {Hop[]} toHeal           hops from the farm map back to the Pokécenter
+ * @property {RouteLeg[]} legs
+ * @property {RouteStop[]} stops      maps needing mount/terrain handling en route
+ * @property {Hop[]} toFarm           the default leg's outbound hops
+ * @property {Hop[]} toHeal           the default leg's return hops
  * @property {string[]} problems      blocking issues; non-empty means unusable
  */
+
+/** Time-of-day periods, in the order the generated selector tests them. */
+const PERIODS = Object.freeze([
+  { id: 'morning', field: 'morningMap', host: 'isMorning' },
+  { id: 'night', field: 'nightMap', host: 'isNight' },
+  { id: 'noon', field: 'noonMap', host: 'isNoon' },
+]);
 
 /**
  * @param {object} config
@@ -36,14 +62,21 @@ export function planRoute(config, linkGraph) {
   const plan = {
     kind: route.kind === 'route' ? 'route' : 'here',
     travels: false,
+    timeOfDay: false,
     farmMap,
     pokecenterMap,
+    legs: [],
+    stops: normaliseStops(route.stops),
     toFarm: [],
     toHeal: [],
     problems: [],
   };
 
-  if (plan.kind === 'here') return plan;
+  if (plan.kind === 'here') {
+    // Stops describe legs of a journey; hunting in place has none.
+    plan.stops = [];
+    return plan;
+  }
 
   if (!farmMap) plan.problems.push('Route mode needs a hunting map.');
   if (!pokecenterMap) plan.problems.push('Route mode needs a Pokécenter map.');
@@ -57,24 +90,80 @@ export function planRoute(config, linkGraph) {
     return plan;
   }
 
-  const farm = linkGraph.resolveName(farmMap);
   const pokecenter = linkGraph.resolveName(pokecenterMap);
-  if (!farm) plan.problems.push(`"${farmMap}" is not in the loaded link graph.`);
-  if (!pokecenter) plan.problems.push(`"${pokecenterMap}" is not in the loaded link graph.`);
-  if (plan.problems.length) return plan;
-
-  plan.farmMap = farm;
-  plan.pokecenterMap = pokecenter;
-
-  if (farm === pokecenter) {
-    // Healing and hunting on one map is legitimate: no travel, just heal in place.
+  if (!pokecenter) {
+    plan.problems.push(`"${pokecenterMap}" is not in the loaded link graph.`);
     return plan;
   }
+  plan.pokecenterMap = pokecenter;
 
-  plan.toFarm = resolveLeg(linkGraph, pokecenter, farm, plan.problems);
-  plan.toHeal = resolveLeg(linkGraph, farm, pokecenter, plan.problems);
-  plan.travels = plan.problems.length === 0;
+  const destinations = collectDestinations(config, farmMap);
+  plan.timeOfDay = destinations.length > 1;
+
+  for (const destination of destinations) {
+    const resolved = linkGraph.resolveName(destination.map);
+    if (!resolved) {
+      plan.problems.push(`"${destination.map}" is not in the loaded link graph.`);
+      continue;
+    }
+    plan.legs.push({
+      id: destination.id,
+      guard: destination.guard,
+      farmMap: resolved,
+      toFarm: resolved === pokecenter ? [] : resolveLeg(linkGraph, pokecenter, resolved, plan.problems),
+      toHeal: resolved === pokecenter ? [] : resolveLeg(linkGraph, resolved, pokecenter, plan.problems),
+    });
+  }
+
+  if (plan.problems.length) return plan;
+
+  const defaultLeg = plan.legs.find((leg) => !leg.guard) ?? plan.legs[0];
+  plan.farmMap = defaultLeg ? defaultLeg.farmMap : farmMap;
+  plan.toFarm = defaultLeg ? defaultLeg.toFarm : [];
+  plan.toHeal = defaultLeg ? defaultLeg.toHeal : [];
+  plan.travels = plan.legs.some((leg) => leg.toFarm.length || leg.toHeal.length);
   return plan;
+}
+
+/**
+ * The hunting destinations this route serves: one, or one per time-of-day
+ * period that names a map of its own.
+ *
+ * @param {object} config
+ * @param {string} farmMap
+ * @returns {Array<{ id: string, map: string, guard: string }>}
+ */
+function collectDestinations(config, farmMap) {
+  const timeOfDay = config.route.timeOfDay ?? {};
+  if (!timeOfDay.enabled) return [{ id: 'day', map: farmMap, guard: '' }];
+
+  const destinations = [];
+  for (const period of PERIODS) {
+    const map = String(timeOfDay[period.field] ?? '').trim();
+    // A period with no map of its own falls through to the default hunting map.
+    if (map && map !== farmMap) {
+      destinations.push({ id: period.id, map, guard: `${period.host}()` });
+    }
+  }
+  destinations.push({ id: 'day', map: farmMap, guard: '' });
+  return destinations;
+}
+
+/**
+ * @param {unknown} stops
+ * @returns {RouteStop[]}
+ */
+function normaliseStops(stops) {
+  if (!Array.isArray(stops)) return [];
+  return stops
+    .filter((stop) => stop && String(stop.map ?? '').trim())
+    .map((stop) => ({
+      map: String(stop.map).trim(),
+      mount: stop.mount ?? 'auto',
+      terrain: stop.terrain ?? 'any',
+    }))
+    // A stop that changes nothing would emit an empty branch.
+    .filter((stop) => stop.mount !== 'auto' || stop.terrain !== 'any');
 }
 
 /**
@@ -99,4 +188,3 @@ function resolveLeg(linkGraph, from, to, problems) {
     return [];
   }
 }
-

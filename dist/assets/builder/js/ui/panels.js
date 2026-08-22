@@ -13,9 +13,11 @@ import {
   FARM_ACTIONS,
   HEAL_ACTIONS,
   OTHER_POLICIES,
+  ROTATION_MODES,
   TRAINER_POLICIES,
   TRAPPED_POLICIES,
   WEAKEN_MODES,
+  ZONE_ROTATION_MODES,
   toStringList,
 } from '../domain/config.js';
 import { modeRegistry } from '../generators/mode-registry.js';
@@ -222,6 +224,93 @@ export const PANELS = [
   },
 
   {
+    id: 'zones',
+    title: 'Farm zones',
+    icon: '▦',
+    subtitle: 'Work several patches and move between them',
+    build: (store) => [renderFields([
+      {
+        type: 'textList',
+        path: 'route.zones',
+        label: 'Rectangles',
+        placeholder: '10, 10, 20, 20',
+        addLabel: '+ Add a zone',
+        hint: 'Two opposite corners. A single row or column is patrolled end to end '
+          + 'with moveToCell, because moveToRectangle would stand still on it.',
+      },
+      {
+        type: 'select',
+        path: 'route.zoneRotation.mode',
+        label: 'Move to another zone',
+        options: ZONE_ROTATION_MODES.map((entry) => ({
+          value: entry.id,
+          label: `${entry.label} — ${entry.hint}`,
+        })),
+        visibleWhen: (config) => toStringList(config.route.zones).length > 1,
+      },
+      {
+        type: 'number',
+        path: 'route.zoneRotation.min',
+        label: 'From (minutes)',
+        min: 1, max: 600,
+        visibleWhen: (config) => toStringList(config.route.zones).length > 1
+          && ['fixed', 'random'].includes(config.route.zoneRotation.mode),
+      },
+      {
+        type: 'number',
+        path: 'route.zoneRotation.max',
+        label: 'To (minutes)',
+        min: 1, max: 600,
+        visibleWhen: (config) => toStringList(config.route.zones).length > 1
+          && ['random', 'chaotic'].includes(config.route.zoneRotation.mode),
+      },
+    ], store)],
+  },
+
+  {
+    id: 'stops',
+    title: 'Stops and time of day',
+    icon: '⇄',
+    subtitle: 'Legs that need handling, and a map per period',
+    visibleWhen: (config) => config.route.kind === 'route',
+    build: (store) => [renderFields([
+      {
+        type: 'stopList',
+        path: 'route.stops',
+        label: 'Stops along the way',
+        hint: 'Maps where the mount or the terrain has to change before the route continues.',
+      },
+      {
+        type: 'toggle',
+        path: 'route.timeOfDay.enabled',
+        label: 'Hunt a different map depending on the time',
+        hint: 'Each period gets its own outbound and return route.',
+      },
+      {
+        type: 'text',
+        path: 'route.timeOfDay.morningMap',
+        label: 'Morning map',
+        placeholder: 'leave blank to use the main map',
+        visibleWhen: (config) => config.route.timeOfDay.enabled,
+      },
+      {
+        type: 'text',
+        path: 'route.timeOfDay.noonMap',
+        label: 'Noon map',
+        placeholder: 'leave blank to use the main map',
+        visibleWhen: (config) => config.route.timeOfDay.enabled,
+      },
+      {
+        type: 'text',
+        path: 'route.timeOfDay.nightMap',
+        label: 'Night map',
+        placeholder: 'leave blank to use the main map',
+        visibleWhen: (config) => config.route.timeOfDay.enabled,
+      },
+    ], store)],
+  },
+
+  {
     id: 'target',
     title: 'What to catch',
     icon: '◎',
@@ -342,6 +431,22 @@ export const PANELS = [
   },
 
   {
+    id: 'rules',
+    title: 'Battle rules',
+    icon: '⚙',
+    subtitle: 'Your own conditions and ordered steps',
+    visibleWhen: (config, mode) => mode.id === 'rules',
+    build: (store) => [renderFields([
+      {
+        type: 'ruleList',
+        path: 'rules',
+        hint: 'Rules are tried top to bottom; the first that matches handles the encounter. '
+          + 'Inside a rule, the first step that can act ends the turn.',
+      },
+    ], store)],
+  },
+
+  {
     id: 'team',
     title: 'Team and healing',
     icon: '✚',
@@ -360,6 +465,77 @@ export const PANELS = [
         path: 'team.healOnPPOut',
         label: 'Heal when the battle moves run out of PP',
         hint: 'Checks the weakening and status moves you configured.',
+      },
+      {
+        type: 'conditionTree',
+        path: 'team.customGuard',
+        label: 'Custom keep-farming condition',
+        hint: 'Anything here replaces the two settings above.',
+      },
+      {
+        type: 'select',
+        path: 'team.rotation.mode',
+        label: 'Rotate the team',
+        options: ROTATION_MODES.map((entry) => ({
+          value: entry.id,
+          label: `${entry.label} — ${entry.hint}`,
+        })),
+      },
+      {
+        type: 'select',
+        path: 'team.rotation.stat',
+        label: 'EV to cap',
+        options: asOptions(EV_STATS),
+        visibleWhen: (config) => config.team.rotation.mode === 'ev',
+      },
+      {
+        type: 'number',
+        path: 'team.rotation.target',
+        label: 'EV target',
+        min: 1, max: 252,
+        visibleWhen: (config) => config.team.rotation.mode === 'ev',
+      },
+      {
+        type: 'textList',
+        path: 'team.rotation.ids',
+        label: 'Unique ids, in priority order',
+        placeholder: '123456',
+        addLabel: '+ Add an id',
+        hint: 'The first one that can still fight takes the lead.',
+        visibleWhen: (config) => config.team.rotation.mode === 'uid',
+      },
+      {
+        type: 'text',
+        path: 'team.leadAbility',
+        label: 'Pin this ability to slot 1',
+        placeholder: 'Synchronize',
+        hint: 'Rotation moves to the next free slot so the two never fight.',
+      },
+      {
+        type: 'text',
+        path: 'team.secondAbility',
+        label: 'Pin this ability to slot 2',
+        placeholder: 'Trace',
+      },
+      {
+        type: 'text',
+        path: 'team.leadItem',
+        label: 'Item the lead should hold',
+        placeholder: 'Leftovers',
+        hint: 'Reclaimed from a team-mate when the bag runs out.',
+      },
+      {
+        type: 'toggle',
+        path: 'team.useStrongest',
+        label: 'Provide strongestSlot() for battle steps',
+        hint: 'Adds a helper that finds the highest-level Pokémon still able to fight.',
+      },
+      {
+        type: 'chips',
+        path: 'team.keepMoves',
+        label: 'Never forget these moves',
+        placeholder: 'False Swipe, Surf',
+        hint: 'Adds an onLearningMove callback that protects them.',
       },
     ], store)],
   },
