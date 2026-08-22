@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>PROCatchem Script Builder</title>
+<meta content="Build a complete, runnable PROCatchem Lua script from a form — routes, filters, battle plans and safety rules, verified against the live API." name="description"/>
+<meta content="#E3350D" name="theme-color"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;family=Nunito:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="assets/builder/builder.css" rel="stylesheet"/>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="dex-top">
+      <span aria-hidden="true" class="dex-lens"></span>
+      <span aria-hidden="true" class="dex-leds"><i></i><i></i><i></i></span>
+    </div>
+    <div class="brand-row">
+      <span aria-hidden="true" class="pokeball"></span>
+      <h1>Script<br/>Builder</h1>
+    </div>
+    <p class="brand-sub">Assemble a run<span class="ver">v1.0.108</span></p>
+  </div>
+
+  <nav aria-label="Builder sections" class="side-nav">
+    <a href="#panel-meta"><span aria-hidden="true">❒</span>Script details</a>
+    <a href="#panel-mode"><span aria-hidden="true">◈</span>Farm mode</a>
+    <a href="#panel-route"><span aria-hidden="true">⌖</span>Where to hunt</a>
+    <a href="#panel-target"><span aria-hidden="true">◎</span>What to catch</a>
+    <a href="#panel-battle"><span aria-hidden="true">⚔</span>Battle plan</a>
+    <a href="#panel-team"><span aria-hidden="true">✚</span>Team and healing</a>
+    <a href="#panel-safety"><span aria-hidden="true">⏻</span>Session safety</a>
+  </nav>
+
+  <div class="side-block">
+    <h2 class="side-h">Map data</h2>
+    <p class="side-note">
+      Load <code>maps-cache/link_graph.txt</code> from your bot folder to unlock
+      Pokécenter routes. The bot writes it as it walks between maps.
+    </p>
+    <div id="graph-status" class="graph-status"></div>
+    <div class="side-actions">
+      <button class="btn btn-lcd" id="btn-load-graph" type="button">Load link graph</button>
+      <button class="btn btn-lcd btn-quiet" id="btn-clear-graph" type="button">Clear</button>
+    </div>
+  </div>
+
+  <div class="side-block">
+    <h2 class="side-h">Presets</h2>
+    <div class="side-actions">
+      <button class="btn btn-lcd" id="btn-import" type="button">Open a script or preset</button>
+      <button class="btn btn-lcd btn-quiet" id="btn-export" type="button">Save preset</button>
+      <button class="btn btn-lcd btn-quiet" id="btn-reset" type="button">Reset everything</button>
+    </div>
+  </div>
+
+  <a class="side-back" href="index.html">← Back to the API reference</a>
+</aside>
+
+<main class="content">
+  <section class="hero">
+    <p class="hero-eyebrow">Trainer’s Field Manual</p>
+    <h1>Script <span>Builder</span></h1>
+    <p class="hero-tag">
+      Describe the run you want and the builder writes the Lua for it — route, filters, battle
+      plan and safety rules. Every function it emits is checked against the live API before you
+      copy a single line.
+    </p>
+    <div class="hero-notes">
+      <p class="hero-note">
+        <b>moveToMap() is retired.</b> The host aborts any script that calls it, so map changes
+        here are walked with <code>moveToCell(x, y)</code> using your link graph.
+      </p>
+    </div>
+  </section>
+
+  <div class="workbench">
+    <div class="controls" id="panels"></div>
+
+    <aside class="preview">
+      <div class="preview-inner">
+        <div class="screen">
+          <div class="screen-bar">
+            <span class="screen-lights" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="screen-name">generated script</span>
+            <div class="screen-stats" id="code-status"></div>
+          </div>
+          <pre class="screen-code"><code class="language-lua" id="code-out"></code></pre>
+        </div>
+
+        <div class="preview-actions">
+          <button class="btn btn-primary" id="btn-copy" type="button">Copy script</button>
+          <button class="btn btn-secondary" id="btn-download" type="button">Download .lua</button>
+        </div>
+
+        <section class="diagnostics">
+          <h2 class="diag-h">Diagnostics</h2>
+          <div id="lint" class="findings"></div>
+        </section>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<div aria-live="polite" class="toasts" id="toasts"></div>
+<div class="drop-veil" aria-hidden="true"><span>Drop a link graph or a generated script</span></div>
+
+<input accept=".lua,.json,text/plain,application/json" class="visually-hidden" id="file-import" type="file"/>
+<input accept=".txt,text/plain" class="visually-hidden" id="file-graph" type="file"/>
+
+<script src="assets/builder/js/main.js" type="module"></script>
+<noscript>
+  <p class="noscript">The Script Builder needs JavaScript. The
+  <a href="index.html">API reference</a> works without it.</p>
+</noscript>
+</body>
+</html>

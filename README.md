@@ -42,6 +42,68 @@ A **Workflow** category documents `executeSteps(steps [, options])` — a Lua gl
 - Added `examples/opponent-gender-and-dismount.lua`.
 - Synchronized `openapi.yaml`, `source/index.md`, `LUA_API_SLATE.md`, `index.html`, and deployable `dist/` output.
 
+## Script Builder (v1.0.109)
+
+A form-driven generator at **`builder.html`** (linked from the sidebar and the hero of the API
+reference) that assembles a complete, runnable Lua script — route, encounter filters, battle
+plan, healing rules and session safety — and verifies every function it emits against the API
+catalogue before you copy it.
+
+### Why it never emits `moveToMap()`
+
+The host retired `moveToMap()`: calling it raises a fatal error and stops the script. The builder
+therefore expresses every map transition as `moveToCell(x, y)` onto a warp tile, using the link
+graph the bot writes to `maps-cache/link_graph.txt` while it plays:
+
+```lua
+local TO_FARM = {
+    ["Pokecenter Viridian"] = { 9, 14 }, -- -> Viridian City
+    ["Viridian City"]       = { 12, 3 }, -- -> Viridian Forest
+}
+local function walk(hops)
+    local hop = hops[getMapName()]
+    if hop then return moveToCell(hop[1], hop[2]) end
+    return false
+end
+```
+
+Load that file in the builder's sidebar to unlock Pokécenter routes. Without it the builder says so
+rather than emitting a route that cannot work; hunting on the current map needs no link graph.
+
+### Source layout
+
+The builder ships as plain ES modules — no bundler, no framework:
+
+```
+assets/builder/
+  builder.css                 Pokédex theme for the builder page
+  js/
+    core/       store.js, registry.js, lua-writer.js    state, plug-in registry, Lua emitter
+    domain/     config.js, link-graph.js, host-api.js   config schema, BFS routing, API catalogue
+    generators/ index.js, runtime.js, battle.js,        composition + shared emitters
+                route-plan.js, mode-registry.js,
+                modes/{hunt,exp,ev,gold}.js             one Strategy per farm mode
+    lint/       rules.js                                configuration checks
+    ui/         app.js, panels.js, fields.js,           wiring, panel descriptors, controls
+                dom.js, highlight.js, radio-group.js
+```
+
+Extension points:
+
+- **A new farm mode** — add `generators/modes/<id>.js` exporting a `FarmMode`, then register it in
+  `generators/mode-registry.js`. The UI, lint and panels pick it up automatically.
+- **A new setting** — add the field to `domain/config.js`, a descriptor to the relevant panel in
+  `ui/panels.js`, and the emitter that consumes it.
+- **A new check** — add one function to `lint/rules.js` and register it.
+
+### Tests
+
+`npm test` runs the Node test suite in `tests/` (Lua escaping, link-graph routing, and generation
+invariants — no configuration may emit an unknown or retired API call).
+
+`scripts/emit-fixtures.mjs <dir>` writes a matrix of generated scripts so they can be compiled and
+executed against the real MoonSharp host used by the bot.
+
 ## Battle turn API (v1.0.108)
 
 - Added `getBattleTurn()` to the **Battle state** Lua API reference.

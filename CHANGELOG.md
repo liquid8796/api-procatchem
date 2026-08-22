@@ -1,5 +1,27 @@
 # Changelog
 
+## PROCatchem content — v1.0.109
+
+*August 22, 2026*
+
+**Added:**
+
+- **Script Builder** (`builder.html`): generates a complete, runnable Lua script from a form —
+  farm mode, route, encounter filters, battle plan, healing rules and session safety.
+- Route travel is emitted as `moveToCell(x, y)` warp-tile hops resolved by a breadth-first search
+  over `maps-cache/link_graph.txt`, because the host retired `moveToMap()`.
+- Every generated script is checked against the API catalogue; the preview reports the number of
+  API calls and whether they all resolve.
+- Configuration lint with jump-to-setting diagnostics, and a `--[==[PROBUILDER ... ]==]` header so a
+  generated `.lua` can be reopened in the builder.
+- Node test suite under `tests/`, runnable with `npm test`.
+
+**Updated:**
+
+- The API reference links to the builder from the sidebar and the hero.
+- `npm run build` now also ships `builder.html` and `assets/` into `dist/`.
+
+
 ## PROCatchem content — v1.0.108
 
 *August 18, 2026*

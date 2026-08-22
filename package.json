@@ -5,6 +5,7 @@
   "description": "Slate-style documentation site for the PROCatchem Lua Script API.",
   "scripts": {
     "build": "node scripts/build-static.mjs",
+    "test": "node --test \"tests/*.test.mjs\"",
     "dev": "python3 -m http.server 8080 -d dist",
     "static": "python3 -m http.server 8080 -d dist",
     "slate:build": "bundle install && bundle exec middleman build",

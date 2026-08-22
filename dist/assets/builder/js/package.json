@@ -1,0 +1,6 @@
+{
+  "name": "procatchem-script-builder",
+  "private": true,
+  "type": "module",
+  "description": "ES modules for the PROCatchem Script Builder. The type field lets Node run generator tests directly; browsers load these via script type=module."
+}

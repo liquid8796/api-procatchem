@@ -30,6 +30,16 @@ async function copyFileRequired(sourceRelativePath, targetRelativePath = sourceR
   console.log(`copied ${sourceRelativePath} -> dist/${targetRelativePath}`);
 }
 
+async function copyDirectoryRequired(sourceRelativePath, targetRelativePath = sourceRelativePath) {
+  const sourcePath = path.join(rootDir, sourceRelativePath);
+
+  if (!(await exists(sourcePath))) {
+    throw new Error(`Required static directory is missing: ${sourceRelativePath}`);
+  }
+
+  await copyDirectoryIfExists(sourceRelativePath, targetRelativePath);
+}
+
 async function copyDirectoryIfExists(sourceRelativePath, targetRelativePath = sourceRelativePath) {
   const sourcePath = path.join(rootDir, sourceRelativePath);
   const targetPath = path.join(distDir, targetRelativePath);
@@ -47,9 +57,13 @@ await fs.rm(distDir, { recursive: true, force: true });
 await fs.mkdir(distDir, { recursive: true });
 
 await copyFileRequired('index.html');
+await copyFileRequired('builder.html');
 await copyFileRequired('openapi.yaml');
 await copyFileRequired('robots.txt');
 await copyFileRequired('sitemap.xml');
 await copyDirectoryIfExists('examples');
+// The Script Builder ships as ES modules plus one stylesheet; they must land in
+// dist/ with the same relative paths builder.html references.
+await copyDirectoryRequired('assets');
 
 console.log('Static PROCatchem Lua API docs build completed.');
