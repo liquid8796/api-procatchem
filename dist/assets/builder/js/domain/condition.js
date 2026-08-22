@@ -247,6 +247,22 @@ export const CONDITION_KINDS = Object.freeze({
     helpers: ['teamPpLeft'],
     emit: (p) => `ppLeft(${luaString(p.move || '')}) ${comparator(p.cmp)} ${luaNumber(p.value, 1)}`,
   },
+  slotAbility: {
+    group: 'Team',
+    label: 'Slot shows ability',
+    params: [
+      { key: 'slot', type: 'number', label: 'Slot', min: 1, max: 6 },
+      {
+        key: 'ability',
+        type: 'text',
+        label: 'Ability',
+        placeholder: 'Static',
+        hint: 'With Trace on that slot, this reads whichever ability was copied — '
+          + 'the host exposes no getOpponentAbility of its own.',
+      },
+    ],
+    emit: (p, w) => `${w.useHost('getPokemonAbility')}(${luaNumber(p.slot, 1)}) == ${luaString(p.ability || '')}`,
+  },
   slotHasMove: {
     group: 'Team',
     label: 'Slot knows a move',

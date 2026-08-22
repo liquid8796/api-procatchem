@@ -11,6 +11,7 @@ import {
   BALL_CONDITIONS,
   EV_STATS,
   FARM_ACTIONS,
+  FISHING_ACTION,
   HEAL_ACTIONS,
   OTHER_POLICIES,
   ROTATION_MODES,
@@ -44,9 +45,12 @@ const asOptions = (entries) => entries.map((entry) => ({
 }));
 
 /** True when the current farm action needs a cell coordinate. */
-const needsCell = (config) => config.route.farmAction === 'moveToCell';
-/** True when the current farm action needs an item name. */
+const needsCell = (config) => config.route.farmAction === 'moveToCell'
+  || config.route.farmAction === FISHING_ACTION;
+/** True when the current farm action needs an item name of its own. */
 const needsItem = (config) => config.route.farmAction === 'useItem';
+/** True when the current farm action casts a rod from a cell. */
+const needsRod = (config) => config.route.farmAction === FISHING_ACTION;
 
 /** @type {Panel[]} */
 export const PANELS = [
@@ -161,15 +165,23 @@ export const PANELS = [
         path: 'route.farmArgs',
         label: 'Cell to stand on',
         placeholder: '12, 30',
-        hint: 'The tile to fish or idle from.',
+        hint: 'The script walks here before doing anything else.',
         visibleWhen: needsCell,
+      },
+      {
+        type: 'text',
+        path: 'route.farmRod',
+        label: 'Rod to cast',
+        placeholder: 'Super Rod',
+        hint: 'Cast once the bot is standing on the cell above.',
+        visibleWhen: needsRod,
       },
       {
         type: 'text',
         path: 'route.farmArgs',
         label: 'Item to use',
-        placeholder: 'Super Rod',
-        hint: 'Used once per turn while standing still.',
+        placeholder: 'Repel',
+        hint: 'Used once per turn wherever the bot happens to be standing.',
         visibleWhen: needsItem,
       },
       {
@@ -382,6 +394,14 @@ export const PANELS = [
         label: 'Stop attacking at HP %',
         min: 1, max: 99,
         visibleWhen: (config) => mode.traits.usesWeaken && config.battle.weaken.mode === 'percent',
+      },
+      {
+        type: 'helperMoves',
+        path: 'battle.helperMoves',
+        label: 'Preparation moves',
+        hint: 'Used at most once per battle, before weakening. Soak strips a Ghost type so '
+          + 'False Swipe connects; a Trace lead makes the opponent’s ability readable on your slot.',
+        visibleWhen: () => mode.traits.usesBalls,
       },
       {
         type: 'chips',

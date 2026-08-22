@@ -97,6 +97,16 @@ tables selected by `activeLeg()`.
 The same condition trees also power an optional custom keep-farming guard, replacing the simple
 usable-count and PP settings.
 
+### Feedback fixes (v1.0.111)
+
+- **Fishing** is its own hunting action with both a cell and a rod, because the host has no fishing
+  call: the script walks onto the tile, then casts. The surf guard is skipped for it.
+- **Preparation moves** (Soak, Skill Swap, Thief) sit in the basic battle plan, run at most once per
+  battle before weakening, and can be triggered by opponent type, opponent name, or the ability
+  showing on one of your slots — a Trace lead is how you read the opponent's ability, since the host
+  exposes no `getOpponentAbility`.
+- The generated script can be **collapsed**; Copy, Download and Diagnostics stay available.
+
 ### Source layout
 
 The builder ships as plain ES modules — no bundler, no framework:
@@ -115,6 +125,7 @@ assets/builder/
     lint/       rules.js                                configuration checks
     ui/         app.js, panels.js, fields.js,           wiring, panel descriptors, controls
                 condition-editor.js, rule-editor.js,
+                helper-moves.js,
                 dom.js, highlight.js, radio-group.js
 ```
 

@@ -57,15 +57,27 @@ lintRegistry.register('route-unused-pokecenter', ({ config, plan }) => {
 });
 
 lintRegistry.register('farm-action-arguments', ({ config }) => {
-  const { farmAction, farmArgs } = config.route;
+  const { farmAction, farmArgs, farmRod } = config.route;
   const args = String(farmArgs ?? '').trim();
-  if (farmAction === 'moveToCell' && !/^-?\d+\s*[,;]\s*-?\d+$/.test(args)) {
-    return finding('error', 'The cell hunting action needs coordinates like "12, 30".', 'route');
+  const isCell = /^-?\d+\s*[,;]\s*-?\d+$/.test(args);
+  /** @type {Finding[]} */
+  const out = [];
+
+  if (farmAction === 'moveToCell' && !isCell) {
+    out.push(finding('error', 'The cell hunting action needs coordinates like "12, 30".', 'route'));
+  }
+  if (farmAction === 'fish') {
+    if (!isCell) {
+      out.push(finding('error', 'Fishing needs the cell to stand on, written as "12, 30".', 'route'));
+    }
+    if (!String(farmRod ?? '').trim()) {
+      out.push(finding('error', 'Fishing needs a rod, e.g. "Super Rod".', 'route'));
+    }
   }
   if (farmAction === 'useItem' && !args) {
-    return finding('error', 'The item hunting action needs an item name, e.g. "Super Rod".', 'route');
+    out.push(finding('error', 'The item hunting action needs an item name, e.g. "Repel".', 'route'));
   }
-  return null;
+  return out;
 });
 
 lintRegistry.register('heal-action-arguments', ({ config }) => {
@@ -203,6 +215,29 @@ lintRegistry.register('generated-call-check', ({ unknownCalls, retiredCalls }) =
   for (const name of unknownCalls) {
     out.push(finding('error', `The generated script calls ${name}(), which is not in the Lua API.`));
   }
+  return out;
+});
+
+lintRegistry.register('helper-moves', ({ config, mode }) => {
+  if (!mode.traits.usesBalls) return null;
+  /** @type {Finding[]} */
+  const out = [];
+  (config.battle.helperMoves ?? []).forEach((helper, index) => {
+    const at = `Preparation move ${index + 1}`;
+    if (!String(helper.move ?? '').trim()) {
+      out.push(finding('error', `${at}: no move name.`, 'battle'));
+      return;
+    }
+    if (helper.trigger === 'oppType' && !String(helper.type ?? '').trim()) {
+      out.push(finding('error', `${at} ("${helper.move}"): no opponent type given.`, 'battle'));
+    }
+    if (helper.trigger === 'oppName' && !helper.names.length) {
+      out.push(finding('error', `${at} ("${helper.move}"): no opponent names given.`, 'battle'));
+    }
+    if (helper.trigger === 'myAbility' && !String(helper.ability ?? '').trim()) {
+      out.push(finding('error', `${at} ("${helper.move}"): no ability given.`, 'battle'));
+    }
+  });
   return out;
 });
 

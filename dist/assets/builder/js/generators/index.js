@@ -131,6 +131,7 @@ function mergeNeeds(base, mode, config, zones, team, plan) {
     slotHelpers: base.slotHelpers || Boolean(extra.slotHelpers),
     statusHelper: base.statusHelper || Boolean(extra.statusHelper),
     trapFlag: base.trapFlag || Boolean(extra.trapFlag),
+    onceFlags: base.onceFlags || Boolean(extra.onceFlags),
     // `ppLeft` has exactly one definition site: the condition-helper emitter.
     // Requesting it here keeps the healing clauses working without emitting a
     // second copy when a condition also uses it.

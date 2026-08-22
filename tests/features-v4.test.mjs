@@ -218,9 +218,36 @@ test('a once-per-battle step is flagged and the table is cleared between battles
   }));
   assertSound(result, 'rules-once');
   assert.match(result.lua, /local F           = \{\}/);
-  assert.match(result.lua, /if not F\["r1s2"\]/);
-  assert.match(result.lua, /F\["r1s2"\] = true; return true/);
+  // The auto-slot path delegates the flag to useOnce, which can tell a landed
+  // move from a turn spent switching the owner in.
+  assert.match(result.lua, /if useOnce\("r1s2", "Spore"\) then return true end/);
   assert.match(result.lua, /^\s*F = \{\}$/m);
+});
+
+test('a once-per-battle move is only marked done once the move actually lands', () => {
+  const result = generate(configWith((c) => {
+    c.mode = 'rules';
+    c.rules[0].steps[1].once = true;
+  }));
+  assertSound(result, 'once-lands');
+  assert.match(result.lua, /local function useOnce\(flag, move\)/);
+  assert.match(result.lua, /local acted, landed = useMoveFromAnySlot\(move\)/);
+  assert.match(result.lua, /if landed then F\[flag\] = true end/);
+  // Switching must report "did something" but "move did not land".
+  assert.match(result.lua, /return sendPokemon\(slot\), false/);
+  assert.match(result.lua, /return useMove\(move\), true/);
+  // No redundant outer guard around the step useOnce already checks.
+  assert.ok(!/if not F\["r1s2"\] then/.test(result.lua));
+});
+
+test('a once-per-battle step that is not an auto-slot move keeps the outer guard', () => {
+  const result = generate(configWith((c) => {
+    c.mode = 'rules';
+    c.rules[0].steps = [createStep({ action: 'useItem', item: 'Repel', once: true })];
+  }));
+  assertSound(result, 'once-item');
+  assert.match(result.lua, /if not F\["r1s1"\] then/);
+  assert.match(result.lua, /F\["r1s1"\] = true; return true/);
 });
 
 test('a script with no once-steps declares no flag table', () => {
@@ -490,4 +517,165 @@ test('the battle plan section is not printed twice in rules mode', () => {
   const result = generate(configWith((c) => { c.mode = 'rules'; }));
   const headers = result.lua.match(/^-- -+ (Battle plan|Battle rules)$/gm) ?? [];
   assert.equal(headers.length, 1, `got ${headers.length} battle headers: ${headers.join(' | ')}`);
+});
+
+// ------------------------------------------------------- fishing (feedback)
+
+test('fishing walks to the cell first, then casts the rod', () => {
+  const result = generate(configWith((c) => {
+    c.route.farmAction = 'fish';
+    c.route.farmArgs = '12, 30';
+    c.route.farmRod = 'Super Rod';
+  }));
+  assertSound(result, 'fish');
+  assert.match(result.lua, /if getPlayerX\(\) ~= 12 or getPlayerY\(\) ~= 30 then/);
+  assert.match(result.lua, /return moveToCell\(12, 30\)/);
+  assert.match(result.lua, /return useItem\("Super Rod"\)/);
+});
+
+test('the plain cell and item actions are still available on their own', () => {
+  const cell = generate(configWith((c) => {
+    c.route.farmAction = 'moveToCell';
+    c.route.farmArgs = '5, 6';
+  }));
+  assertSound(cell, 'cell');
+  assert.match(cell.lua, /return moveToCell\(5, 6\)/);
+  assert.ok(!/getPlayerX/.test(cell.lua), 'plain cell action should not test the position');
+
+  const item = generate(configWith((c) => {
+    c.route.farmAction = 'useItem';
+    c.route.farmArgs = 'Repel';
+  }));
+  assertSound(item, 'item');
+  assert.match(item.lua, /return useItem\("Repel"\)/);
+});
+
+test('fishing with a missing cell or rod is reported, not silently emitted', async () => {
+  const { runLint } = await import('../assets/builder/js/lint/rules.js');
+  const build = (mutate) => {
+    const config = configWith(mutate);
+    const result = generate(config);
+    return runLint({ config, ...result }).map((f) => `${f.level}: ${f.message}`);
+  };
+
+  const noRod = build((c) => {
+    c.route.farmAction = 'fish';
+    c.route.farmArgs = '12, 30';
+    c.route.farmRod = '';
+  });
+  assert.ok(noRod.some((m) => /needs a rod/.test(m)), noRod.join(' | '));
+
+  const noCell = build((c) => {
+    c.route.farmAction = 'fish';
+    c.route.farmArgs = '';
+    c.route.farmRod = 'Super Rod';
+  });
+  assert.ok(noCell.some((m) => /needs the cell/.test(m)), noCell.join(' | '));
+});
+
+// ---------------------------------------------- preparation moves (feedback)
+
+test('Soak is gated on the opponent type so False Swipe can connect', () => {
+  const result = generate(configWith((c) => {
+    c.battle.helperMoves = [
+      { move: 'Soak', trigger: 'oppType', type: 'Ghost', names: [], slot: 1, ability: '' },
+    ];
+  }));
+  assertSound(result, 'soak');
+  assert.match(result.lua, /local function opponentHasType\(want\)/);
+  assert.match(result.lua, /if opponentHasType\("Ghost"\) and useOnce\("h1", "Soak"\) then return true end/);
+
+  // Ordering only means anything inside tryCatch: "False Swipe" also appears
+  // earlier in teamIsReady as a PP clause.
+  const tryCatch = result.lua.slice(result.lua.indexOf('local function tryCatch()'));
+  assert.ok(
+    tryCatch.indexOf('"Soak"') < tryCatch.indexOf('"False Swipe"'),
+    'Soak must run before the weakening step it exists to enable',
+  );
+});
+
+test('Skill Swap can be gated on a name list', () => {
+  const result = generate(configWith((c) => {
+    c.battle.helperMoves = [
+      { move: 'Skill Swap', trigger: 'oppName', type: '', names: ['Abra', 'Kadabra'], slot: 1, ability: '' },
+    ];
+  }));
+  assertSound(result, 'skill-swap');
+  assert.match(
+    result.lua,
+    /if \(getOpponentName\(\) == "Abra" or getOpponentName\(\) == "Kadabra"\) and useOnce\("h1", "Skill Swap"\)/,
+  );
+});
+
+test('a Trace lead makes the copied ability readable on your own slot', () => {
+  const result = generate(configWith((c) => {
+    c.battle.helperMoves = [
+      { move: 'Thief', trigger: 'myAbility', type: '', names: [], slot: 1, ability: 'Static' },
+    ];
+  }));
+  assertSound(result, 'trace-read');
+  assert.match(result.lua, /if getPokemonAbility\(1\) == "Static" and useOnce\("h1", "Thief"\)/);
+});
+
+test('an unconditional preparation move needs no guard', () => {
+  const result = generate(configWith((c) => {
+    c.battle.helperMoves = [
+      { move: 'Thief', trigger: 'always', type: '', names: [], slot: 1, ability: '' },
+    ];
+  }));
+  assertSound(result, 'helper-always');
+  assert.match(result.lua, /if useOnce\("h1", "Thief"\) then return true end/);
+});
+
+test('incomplete preparation rows emit nothing and are reported', async () => {
+  const { runLint } = await import('../assets/builder/js/lint/rules.js');
+  const config = configWith((c) => {
+    c.battle.helperMoves = [
+      { move: 'Soak', trigger: 'oppType', type: '', names: [], slot: 1, ability: '' },
+      { move: '', trigger: 'always', type: '', names: [], slot: 1, ability: '' },
+    ];
+  });
+  const result = generate(config);
+  assertSound(result, 'helper-incomplete');
+  assert.ok(!/useOnce/.test(result.lua), 'emitted an incomplete preparation move');
+
+  const messages = runLint({ config, ...result }).map((f) => f.message);
+  assert.ok(messages.some((m) => /no opponent type given/.test(m)), messages.join(' | '));
+  assert.ok(messages.some((m) => /no move name/.test(m)), messages.join(' | '));
+});
+
+test('modes without a catch sequence ignore preparation moves', () => {
+  const result = generate(configWith((c) => {
+    c.mode = 'exp';
+    c.battle.helperMoves = [
+      { move: 'Soak', trigger: 'always', type: '', names: [], slot: 1, ability: '' },
+    ];
+  }));
+  assertSound(result, 'helper-exp');
+  assert.ok(!/useOnce/.test(result.lua));
+  assert.ok(!/local F /.test(result.lua));
+});
+
+test('the surf guard does not fight the walk to a fishing cell', () => {
+  const result = generate(configWith((c) => {
+    c.route.farmAction = 'fish';
+    c.route.farmArgs = '12, 30';
+    c.route.farmRod = 'Super Rod';
+    c.route.surfFix = true;
+  }));
+  assertSound(result, 'fish-surf');
+  const path = result.lua.slice(result.lua.indexOf('function onPathAction()'));
+  assert.ok(
+    !/if isSurfing\(\) then return moveToNormalGround\(\) end[\s\S]{0,200}getPlayerX/.test(path),
+    'stepped ashore before walking to the fishing cell',
+  );
+});
+
+test('the surf guard still runs for land hunting actions', () => {
+  const result = generate(configWith((c) => {
+    c.route.farmAction = 'moveToGrass';
+    c.route.surfFix = true;
+  }));
+  assertSound(result, 'grass-surf');
+  assert.match(result.lua, /if isSurfing\(\) then return moveToNormalGround\(\) end/);
 });

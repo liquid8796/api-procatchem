@@ -91,6 +91,8 @@
             <span class="screen-lights" aria-hidden="true"><i></i><i></i><i></i></span>
             <span class="screen-name">generated script</span>
             <div class="screen-stats" id="code-status"></div>
+            <button class="screen-hide" id="btn-hide-preview" type="button"
+                    title="Hide the generated script">Hide</button>
           </div>
           <pre class="screen-code"><code class="language-lua" id="code-out"></code></pre>
         </div>
@@ -108,6 +110,11 @@
     </aside>
   </div>
 </main>
+
+<button class="preview-toggle" id="btn-toggle-preview" type="button" aria-pressed="true"
+        aria-controls="code-out" title="Show or hide the generated script">
+  <span aria-hidden="true">&lt;/&gt;</span><span class="preview-toggle-text">Script</span>
+</button>
 
 <div aria-live="polite" class="toasts" id="toasts"></div>
 <div class="drop-veil" aria-hidden="true"><span>Drop a link graph or a generated script</span></div>

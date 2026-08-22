@@ -811,3 +811,61 @@ body.is-dropping .drop-veil { opacity: 1; }
   .stop-row .select { grid-column: 1; }
   .cond-text, .step-input { flex-basis: 100%; }
 }
+
+/* ================================================ preparation-move controls */
+.helpers { display: grid; gap: 8px; }
+.helper-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 7px 9px; border-radius: 10px;
+  background: #FFFBF0; border: 2px solid var(--paper-line);
+  animation: chipIn .18s var(--ease);
+}
+.helper-row .input { padding: 6px 9px; font-size: 12.5px; }
+.helper-move { flex: 1 1 130px; min-width: 110px; font-weight: 800; }
+.helper-when { width: auto; min-width: 160px; padding-right: 26px; }
+.helper-arg { flex: 1 1 110px; min-width: 90px; }
+.helper-wide { flex: 2 1 160px; }
+.helper-slot { width: auto; min-width: 90px; padding-right: 26px; }
+.helper-add { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.helper-preset { border-style: dashed; opacity: .9; }
+.helper-preset::before { content: '+ '; opacity: .6; }
+
+/* ======================================================== preview visibility */
+.screen-hide {
+  margin-left: 6px; padding: 3px 9px; cursor: pointer;
+  background: transparent; color: var(--lcd-dim);
+  border: 1px solid var(--lcd-frame); border-radius: 999px;
+  font: 700 10.5px var(--ff-mono);
+  transition: background .14s var(--ease), color .14s var(--ease);
+}
+.screen-hide:hover { background: rgba(120, 200, 80, .16); color: var(--lcd-text); }
+
+.preview-toggle {
+  position: fixed; right: 24px; bottom: 24px; z-index: 60;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 17px; cursor: pointer;
+  background: var(--shell-ink); color: var(--lcd-text);
+  border: 3px solid #000; border-radius: 999px;
+  box-shadow: 0 4px 0 #000, 0 10px 22px rgba(32, 36, 43, .3);
+  font: 800 12.5px var(--ff-body);
+  transition: transform .16s var(--ease), box-shadow .16s var(--ease), background .16s var(--ease);
+}
+.preview-toggle span[aria-hidden] { font: 700 13px var(--ff-mono); color: var(--leaf); }
+.preview-toggle:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #000, 0 12px 26px rgba(32, 36, 43, .32); }
+.preview-toggle:active { transform: translateY(2px); box-shadow: 0 2px 0 #000; }
+
+/*
+ * Collapsed: only the code screen goes away. Copy, Download and Diagnostics
+ * stay put — hiding the whole column would strand the buttons the panel exists
+ * to provide. The column narrows to what is left, so the form gains the room.
+ */
+body.preview-hidden .screen { display: none; }
+body.preview-hidden .workbench { grid-template-columns: minmax(0, 1fr) minmax(260px, 28%); }
+body.preview-hidden .preview-toggle { background: var(--leaf); color: #0A1811; }
+body.preview-hidden .preview-toggle span[aria-hidden] { color: #0A1811; }
+
+@media (max-width: 980px) {
+  .preview-toggle { right: 12px; bottom: 12px; padding: 10px 14px; }
+  .preview-toggle-text { display: none; }
+  .helper-when, .helper-slot { flex: 1 1 100%; width: 100%; }
+}

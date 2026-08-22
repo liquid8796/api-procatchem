@@ -24,6 +24,7 @@ import { PANELS } from './panels.js';
 
 const DRAFT_KEY = 'procatchem-script-builder-draft-v1';
 const GRAPH_KEY = 'procatchem-script-builder-linkgraph-v1';
+const PREVIEW_KEY = 'procatchem-script-builder-preview-hidden-v1';
 const TOAST_MS = 2600;
 const SEVERITY_ICON = { error: '✕', warning: '!', info: 'i' };
 
@@ -302,6 +303,37 @@ export class BuilderApp {
     this.toast('Link graph cleared.', 'ok');
   }
 
+  /**
+   * Show or hide the generated-script screen.
+   *
+   * Only the code screen collapses: Copy, Download and Diagnostics stay on
+   * screen, because hiding them would take away the actions the panel exists
+   * to offer. The form column widens to use the space.
+   *
+   * @param {boolean} [hidden] omit to flip the current state
+   * @returns {boolean} whether the screen is now hidden
+   */
+  togglePreview(hidden) {
+    const next = hidden === undefined ? !isPreviewHidden() : Boolean(hidden);
+    document.body.classList.toggle('preview-hidden', next);
+    for (const button of document.querySelectorAll('#btn-toggle-preview')) {
+      // The button reports whether the script is shown, not whether it is hidden.
+      button.setAttribute('aria-pressed', String(!next));
+      button.title = next ? 'Show the generated script' : 'Hide the generated script';
+    }
+    try {
+      localStorage.setItem(PREVIEW_KEY, next ? '1' : '0');
+    } catch {
+      // Remembering the choice is a convenience, never a requirement.
+    }
+    return next;
+  }
+
+  /** Apply the remembered preview visibility. */
+  restorePreviewVisibility() {
+    this.togglePreview(isPreviewHidden());
+  }
+
   /** Reset every setting back to the defaults. */
   reset() {
     this._store.replace(createDefaultConfig());
@@ -336,6 +368,15 @@ export class BuilderApp {
 }
 
 // -------------------------------------------------------------- persistence
+
+/** @returns {boolean} whether the preview was hidden last time */
+function isPreviewHidden() {
+  try {
+    return localStorage.getItem(PREVIEW_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 /** @returns {object} the saved draft, or a fresh default config */
 function loadDraft() {

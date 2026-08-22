@@ -9,6 +9,7 @@
  */
 
 import { luaNumber, luaString } from '../core/lua-writer.js';
+import { toStringList } from '../domain/config.js';
 
 /**
  * @typedef {import('../core/lua-writer.js').LuaWriter} LuaWriter
@@ -117,6 +118,72 @@ export function emitTargetPredicate(writer, config) {
 }
 
 /**
+ * Preparation moves: Soak, Skill Swap, Thief and the like.
+ *
+ * They run before weakening, at most once per battle each, because their effect
+ * is a one-off change to the encounter rather than something to repeat. The
+ * once-per-battle bookkeeping lives in `useOnce`, which only marks a step done
+ * when the move actually landed rather than when a turn went on switching.
+ *
+ * @param {LuaWriter} writer
+ * @param {object} config
+ */
+export function emitHelperMoves(writer, config) {
+  const helpers = helperMovesOf(config);
+  if (!helpers.length) return;
+
+  writer.comment('Preparation moves, at most once each per battle.');
+  helpers.forEach((helper, index) => {
+    const flag = luaString(`h${index + 1}`);
+    const call = `useOnce(${flag}, ${luaString(helper.move)})`;
+    const guard = helperGuard(helper, writer);
+    writer.line(guard
+      ? `if ${guard} and ${call} then return true end`
+      : `if ${call} then return true end`);
+  });
+  writer.blank();
+}
+
+/**
+ * The configured preparation moves that are complete enough to emit.
+ *
+ * @param {object} config
+ * @returns {object[]}
+ */
+export function helperMovesOf(config) {
+  return (config.battle.helperMoves ?? []).filter((helper) => {
+    if (!String(helper.move ?? '').trim()) return false;
+    if (helper.trigger === 'oppType') return Boolean(String(helper.type ?? '').trim());
+    if (helper.trigger === 'oppName') return toStringList(helper.names).length > 0;
+    if (helper.trigger === 'myAbility') return Boolean(String(helper.ability ?? '').trim());
+    return true;
+  });
+}
+
+/**
+ * @param {object} helper
+ * @param {LuaWriter} writer
+ * @returns {string} a Lua condition, or '' when the move always applies
+ */
+function helperGuard(helper, writer) {
+  switch (helper.trigger) {
+    case 'oppType':
+      // `opponentHasType` is defined by the condition-helper emitter.
+      return `opponentHasType(${luaString(helper.type)})`;
+    case 'oppName': {
+      const call = writer.useHost('getOpponentName');
+      const names = toStringList(helper.names);
+      return `(${names.map((name) => `${call}() == ${luaString(name)}`).join(' or ')})`;
+    }
+    case 'myAbility':
+      return `${writer.useHost('getPokemonAbility')}(${luaNumber(helper.slot, 1)}) == ${luaString(helper.ability)}`;
+    case 'always':
+    default:
+      return '';
+  }
+}
+
+/**
  * `tryCatch()` — weaken, apply status, then work down the ball ladder.
  *
  * @param {LuaWriter} writer
@@ -127,6 +194,7 @@ export function emitCatchSequence(writer, { config, needs }) {
 
   writer.comment('One catching step per turn; the first success ends the turn.');
   writer.fn('tryCatch()', (w) => {
+    emitHelperMoves(w, config);
     emitWeakenStep(w, weaken);
     emitStatusStep(w, status, needs);
     emitBallLadder(w, balls, status.requireBeforeBall, lowHpPercent);

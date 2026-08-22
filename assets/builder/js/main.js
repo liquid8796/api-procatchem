@@ -15,6 +15,7 @@ const app = new BuilderApp({
 });
 
 app.start();
+app.restorePreviewVisibility();
 
 /**
  * @param {string} selector
@@ -31,6 +32,8 @@ on('#btn-reset', () => {
   if (confirm('Reset every setting back to the defaults?')) app.reset();
 });
 on('#btn-clear-graph', () => app.clearLinkGraph());
+on('#btn-toggle-preview', () => app.togglePreview());
+on('#btn-hide-preview', () => app.togglePreview(true));
 
 bindFilePicker('#btn-import', '#file-import', (file) => app.importConfig(file));
 bindFilePicker('#btn-load-graph', '#file-graph', (file) => app.importLinkGraph(file));

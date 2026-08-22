@@ -40,6 +40,24 @@ export class Store {
   }
 
   /**
+   * Replace the value at a dotted path with one derived from its **current**
+   * value.
+   *
+   * Editors must use this rather than `setIn` with a value computed from what
+   * they rendered with: rendering is throttled, so a control can still be on
+   * screen after the state behind it moved on. Writing back a derived snapshot
+   * would silently discard whatever changed in between.
+   *
+   * @param {string} path
+   * @param {(current: unknown) => unknown} updater
+   * @param {unknown} [fallback] used when nothing is stored at `path` yet
+   */
+  update(path, updater, fallback = undefined) {
+    const current = this.getIn(path);
+    this.setIn(path, updater(current === undefined ? fallback : current));
+  }
+
+  /**
    * Read a value at a dotted path.
    * @param {string} path
    * @returns {unknown}

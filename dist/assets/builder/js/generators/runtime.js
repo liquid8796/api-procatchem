@@ -16,7 +16,7 @@ import {
   emitCondition,
   isEmptyCondition,
 } from '../domain/condition.js';
-import { hasTrappedEscape } from './battle.js';
+import { hasTrappedEscape, helperMovesOf } from './battle.js';
 
 /** Host sentinel for "the opponent has no status condition". */
 const NO_STATUS_LITERAL = '""';
@@ -69,6 +69,12 @@ export function analyseNeeds(config, plan, modeTraits) {
     }
   }
 
+  // Preparation moves only exist where the catch sequence is emitted.
+  const helpers = modeTraits.usesBalls ? helperMovesOf(config) : [];
+  const helperConditionHelpers = helpers.some((helper) => helper.trigger === 'oppType')
+    ? ['opponentHasType']
+    : [];
+
   const statusGated = modeTraits.usesBalls
     && (config.battle.status.requireBeforeBall
       || config.battle.balls.some((ball) => ball.condition === 'status'));
@@ -84,18 +90,23 @@ export function analyseNeeds(config, plan, modeTraits) {
   return {
     moves,
     usesCustomGuard,
-    onceFlags: false,
+    onceFlags: helpers.length > 0,
     teamUpkeep: false,
     zoneReroll: false,
     stopUpkeep: false,
-    conditionHelpers: collectConditionHelpers(config.team.customGuard),
-    slotHelpers: moves.length > 0,
+    conditionHelpers: new Set([
+      ...collectConditionHelpers(config.team.customGuard),
+      ...helperConditionHelpers,
+    ]),
+    // Preparation moves go through `useOnce`, which needs both the slot helpers
+    // and the once-per-battle table.
+    slotHelpers: moves.length > 0 || helpers.length > 0,
     ppHelper: !usesCustomGuard && config.team.healOnPPOut && moves.length > 0,
     mounts: toStringList(config.mounts.land).length > 0
       || toStringList(config.mounts.water).length > 0,
     breaks: Boolean(config.safety.breaks.enabled),
     counters: Boolean(config.logging.counters),
-    trapFlag: moves.length > 0 || escapes,
+    trapFlag: moves.length > 0 || helpers.length > 0 || escapes,
     relogEscape: escapes && config.safety.onTrapped === 'relog',
     statusHelper: statusGated || (modeTraits.usesBalls && config.battle.status.moves.length > 0),
   };
@@ -179,17 +190,30 @@ export function emitTeamHelpers(writer, { needs }) {
     }, { local: true });
     writer.blank();
 
-    writer.comment('Use `move`, switching to the slot that owns it first. Returns false when');
-    writer.comment('nothing can, so the caller falls through to its next tactic.');
+    writer.comment('Use `move`, switching to the slot that owns it first.');
+    writer.comment('Returns (acted, moveLanded). The second value matters for once-per-battle');
+    writer.comment('steps: a turn spent switching must not count as having used the move.');
     writer.fn('useMoveFromAnySlot(move)', (w) => {
       w.useHosts(['getActivePokemonNumber', 'useMove', 'sendPokemon']);
       w.line('local slot = slotWithMove(move)');
-      w.line('if not slot then return false end');
+      w.line('if not slot then return false, false end');
       w.block('if getActivePokemonNumber() == slot then', (inner) => {
-        inner.line('return useMove(move)');
+        inner.line('return useMove(move), true');
       });
-      w.line('if trapped then return false end -- cannot switch while trapped');
-      w.line('return sendPokemon(slot)');
+      w.line('if trapped then return false, false end -- cannot switch while trapped');
+      w.line('return sendPokemon(slot), false');
+    }, { local: true });
+    writer.blank();
+  }
+
+  if (needs.onceFlags && needs.slotHelpers) {
+    writer.comment('Use `move` at most once per battle. The flag is only set once the move');
+    writer.comment('actually landed, so a turn spent switching does not consume the step.');
+    writer.fn('useOnce(flag, move)', (w) => {
+      w.line('if F[flag] then return false end');
+      w.line('local acted, landed = useMoveFromAnySlot(move)');
+      w.line('if landed then F[flag] = true end');
+      w.line('return acted');
     }, { local: true });
     writer.blank();
   }
@@ -625,10 +649,12 @@ function emitFarmTick(writer, context) {
  * @param {EmitContext} context
  */
 function emitFarmAction(writer, { config, zones }) {
-  const { farmAction, farmArgs, surfFix } = config.route;
-  const wantsWater = farmAction === 'moveToWater';
+  const { farmAction, surfFix } = config.route;
+  // Fishing gets its encounters from the rod, not the terrain, and the cell may
+  // well be on water — stepping ashore first would fight the walk to it forever.
+  const terrainIsChosen = farmAction === 'moveToWater' || farmAction === 'fish';
 
-  if (surfFix && !wantsWater && !zones.active) {
+  if (surfFix && !terrainIsChosen && !zones.active) {
     writer.useHosts(['isSurfing', 'moveToNormalGround']);
     writer.comment('Surfing when we want land encounters: step back onto dry ground first.');
     writer.line('if isSurfing() then return moveToNormalGround() end');
@@ -642,26 +668,46 @@ function emitFarmAction(writer, { config, zones }) {
     writer.line('return farmZone()');
     return;
   }
-  writer.line(`return ${renderFarmCall(farmAction, farmArgs, writer)}`);
+  emitFarmCall(writer, farmAction, config.route);
 }
 
 /**
- * @param {string} action
- * @param {string} rawArgs
+ * The hunting action itself.
+ *
+ * Fishing is the only one that needs two statements: the host has no "fish"
+ * call, so the script walks onto the tile and only then casts the rod.
+ *
  * @param {LuaWriter} writer
- * @returns {string}
+ * @param {string} action
+ * @param {object} route
  */
-function renderFarmCall(action, rawArgs, writer) {
+function emitFarmCall(writer, action, route) {
+  if (action === 'fish') {
+    const [x, y] = splitList(route.farmArgs);
+    const cellX = luaNumber(x, 0);
+    const cellY = luaNumber(y, 0);
+    writer.useHosts(['getPlayerX', 'getPlayerY', 'moveToCell', 'useItem']);
+    writer.comment('Fishing: stand on the tile first, then cast.');
+    writer.line(`if getPlayerX() ~= ${cellX} or getPlayerY() ~= ${cellY} then`);
+    writer.line(`    return moveToCell(${cellX}, ${cellY})`);
+    writer.line('end');
+    writer.line(`return useItem(${luaString(String(route.farmRod ?? '').trim())})`);
+    return;
+  }
+
   writer.useHost(action);
   if (action === 'moveToCell') {
-    const [x, y] = splitList(rawArgs);
-    return `moveToCell(${luaNumber(x, 0)}, ${luaNumber(y, 0)})`;
+    const [x, y] = splitList(route.farmArgs);
+    writer.line(`return moveToCell(${luaNumber(x, 0)}, ${luaNumber(y, 0)})`);
+    return;
   }
   if (action === 'useItem') {
-    return `useItem(${luaString(String(rawArgs ?? '').trim())})`;
+    writer.line(`return useItem(${luaString(String(route.farmArgs ?? '').trim())})`);
+    return;
   }
-  return `${action}()`;
+  writer.line(`return ${action}()`);
 }
+
 
 /**
  * The healing half of `onPathAction`.

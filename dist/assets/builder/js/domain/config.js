@@ -13,9 +13,13 @@ export const FARM_ACTIONS = Object.freeze([
   { id: 'moveToGrass', label: 'Walk in grass', hint: 'Standard wild encounters', args: 'none' },
   { id: 'moveToWater', label: 'Surf on water', hint: 'Requires a water mount', args: 'none' },
   { id: 'moveToNormalGround', label: 'Walk on plain ground', hint: 'Caves and interiors', args: 'none' },
-  { id: 'moveToCell', label: 'Stand on a cell', hint: 'Fishing or a fixed spot', args: 'cell' },
-  { id: 'useItem', label: 'Use an item', hint: 'Fishing rods, Repel', args: 'item' },
+  { id: 'moveToCell', label: 'Stand on a cell', hint: 'A fixed spot', args: 'cell' },
+  { id: 'fish', label: 'Fish from a cell', hint: 'Walk to the tile, then cast the rod', args: 'fish' },
+  { id: 'useItem', label: 'Use an item', hint: 'Repel, or a rod where you already stand', args: 'item' },
 ]);
+
+/** Farm actions that need a rod as well as a cell. */
+export const FISHING_ACTION = 'fish';
 
 /** How the script gets healed once the team runs dry. */
 export const HEAL_ACTIONS = Object.freeze([
@@ -119,6 +123,29 @@ export const RULE_FALLBACKS = Object.freeze([
   { id: 'attack', label: 'Attack', hint: 'Keep the battle moving' },
   { id: 'run', label: 'Run away', hint: 'Abandon the encounter' },
   { id: 'nothing', label: 'Do nothing', hint: 'Stops the bot — use to avoid losing a target' },
+]);
+
+/**
+ * When a preparation move is worth using.
+ *
+ * These cover the moves players reach for before a catch attempt: Soak to strip
+ * a Ghost type so False Swipe connects, Skill Swap or Thief against particular
+ * Pokémon, and anything gated on the ability your lead is currently showing —
+ * which is how a Trace lead reveals the opponent's ability, since the host has
+ * no `getOpponentAbility`.
+ */
+export const HELPER_TRIGGERS = Object.freeze([
+  { id: 'always', label: 'Every battle', needs: [] },
+  { id: 'oppType', label: 'Opponent has type', needs: ['type'] },
+  { id: 'oppName', label: 'Opponent is named', needs: ['names'] },
+  { id: 'myAbility', label: 'My slot shows ability', needs: ['slot', 'ability'] },
+]);
+
+/** Preparation moves offered as one-click presets. */
+export const HELPER_PRESETS = Object.freeze([
+  { move: 'Soak', trigger: 'oppType', type: 'Ghost', hint: 'Strips Ghost so False Swipe connects' },
+  { move: 'Skill Swap', trigger: 'oppName', hint: 'Swap away a troublesome ability' },
+  { move: 'Thief', trigger: 'oppName', hint: 'Take the held item before catching' },
 ]);
 
 /** Sensible starting ladder: cheapest ball last so it is the fallback. */
@@ -241,6 +268,9 @@ export function createDefaultConfig() {
       farmMap: '',
       farmAction: 'moveToGrass',
       farmArgs: '',
+      // Fishing needs both a tile to stand on and a rod to cast; one text field
+      // could only ever hold one of them.
+      farmRod: 'Super Rod',
       pokecenterMap: '',
       healAction: 'usePokecenter',
       healArgs: '',
@@ -273,6 +303,8 @@ export function createDefaultConfig() {
       onOther: 'run',
       weaken: { mode: 'falseSwipe', move: 'False Swipe', percent: 30 },
       status: { moves: ['Spore'], requireBeforeBall: false },
+      // Preparation moves used at most once per battle, before weakening.
+      helperMoves: [],
       balls: DEFAULT_BALLS.map((ball) => ({ ...ball })),
       lowHpPercent: 20,
     },
@@ -325,6 +357,7 @@ export function normaliseConfig(loaded) {
   merged.mounts.land = toStringList(merged.mounts.land);
   merged.mounts.water = toStringList(merged.mounts.water);
   merged.battle.status.moves = toStringList(merged.battle.status.moves);
+  merged.battle.helperMoves = toHelperMoveList(merged.battle.helperMoves);
   merged.battle.balls = toBallList(merged.battle.balls, base.battle.balls);
 
   merged.route.zones = toStringList(merged.route.zones);
@@ -477,6 +510,36 @@ function toStepList(value) {
       balls: toStringList(step.balls),
       expr: String(step.expr ?? '').trim(),
     }));
+}
+
+/**
+ * @param {unknown} value
+ * @returns {Array<object>}
+ */
+function toHelperMoveList(value) {
+  if (!Array.isArray(value)) return [];
+  const triggers = new Set(HELPER_TRIGGERS.map((entry) => entry.id));
+  return value
+    .filter(isPlainObject)
+    .map((entry) => ({
+      move: String(entry.move ?? '').trim(),
+      trigger: triggers.has(entry.trigger) ? entry.trigger : 'always',
+      type: String(entry.type ?? '').trim(),
+      names: toStringList(entry.names),
+      slot: toNullableInt(entry.slot) ?? 1,
+      ability: String(entry.ability ?? '').trim(),
+    }))
+    .filter((entry) => entry.move);
+}
+
+/**
+ * A blank preparation move for the "add" button.
+ *
+ * @param {Partial<object>} [overrides]
+ * @returns {object}
+ */
+export function createHelperMove(overrides = {}) {
+  return { move: '', trigger: 'always', type: '', names: [], slot: 1, ability: '', ...overrides };
 }
 
 /**

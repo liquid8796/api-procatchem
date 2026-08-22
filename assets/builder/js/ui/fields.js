@@ -7,11 +7,13 @@
  * not a new block of DOM code.
  *
  * Supported `type` values: `text`, `number`, `select`, `segmented`, `toggle`,
- * `chips`, `ballLadder`, `textList`, `stopList`, `conditionTree`, and `ruleList`.
+ * `chips`, `ballLadder`, `textList`, `stopList`, `helperMoves`, `conditionTree`,
+ * and `ruleList`.
  */
 
 import { STOP_MOUNT_MODES, STOP_TERRAINS, splitList, toNullableInt } from '../domain/config.js';
 import { renderConditionTree } from './condition-editor.js';
+import { renderHelperMoves } from './helper-moves.js';
 import { renderRuleList } from './rule-editor.js';
 import { h, requestFocus } from './dom.js';
 import { wireRadioGroup } from './radio-group.js';
@@ -51,6 +53,7 @@ export function renderField(field, store) {
     case 'textList': return renderTextList(field, store);
     case 'stopList': return renderStopList(field, store);
     case 'conditionTree': return renderConditionField(field, store);
+    case 'helperMoves': return renderHelperField(field, store);
     case 'ruleList': return renderRuleField(field, store);
     default: throw new Error(`Unknown field type: ${field.type}`);
   }
@@ -326,7 +329,9 @@ function renderChips(field, store) {
 function renderTextList(field, store) {
   /** @type {string[]} */
   const values = store.getIn(field.path) ?? [];
-  const update = (next) => store.setIn(field.path, next);
+  // Every mutation is derived from the live value, not from `values`: rendering
+  // is throttled, so this closure can outlive the state it was built from.
+  const update = (fn) => store.update(field.path, fn, []);
   const rowId = (index) => `${idFor(field.path)}-row-${index}`;
 
   const rows = values.map((value, index) => h('div.list-row', {}, [
@@ -337,16 +342,16 @@ function renderTextList(field, store) {
       value,
       placeholder: field.placeholder ?? '',
       'aria-label': `${field.label ?? 'Entry'} ${index + 1}`,
-      onInput: (event) => update(values.map((entry, i) => (i === index ? event.target.value : entry))),
+      onInput: (event) => update((live) => live.map((entry, i) => (i === index ? event.target.value : entry))),
     }),
     h('button.icon-btn.icon-btn-danger', {
       type: 'button', text: '×', title: 'Remove',
       'aria-label': `Remove entry ${index + 1}`,
-      onClick: () => {
-        const next = values.filter((_, i) => i !== index);
+      onClick: () => update((live) => {
+        const next = live.filter((_, i) => i !== index);
         if (next.length) requestFocus(rowId(Math.min(index, next.length - 1)));
-        update(next);
-      },
+        return next;
+      }),
     }),
   ]));
 
@@ -355,10 +360,10 @@ function renderTextList(field, store) {
     h('button.btn.btn-ghost.cond-mini', {
       type: 'button',
       text: field.addLabel ?? '+ Add',
-      onClick: () => {
-        requestFocus(rowId(values.length));
-        update([...values, '']);
-      },
+      onClick: () => update((live) => {
+        requestFocus(rowId(live.length));
+        return [...live, ''];
+      }),
     }),
   ]));
 }
@@ -373,9 +378,9 @@ function renderTextList(field, store) {
 function renderStopList(field, store) {
   /** @type {Array<{map: string, mount: string, terrain: string}>} */
   const stops = store.getIn(field.path) ?? [];
-  const update = (next) => store.setIn(field.path, next);
+  const update = (fn) => store.update(field.path, fn, []);
   const patchAt = (index, patch) => update(
-    stops.map((stop, i) => (i === index ? { ...stop, ...patch } : stop)),
+    (live) => live.map((stop, i) => (i === index ? { ...stop, ...patch } : stop)),
   );
   const rowId = (index) => `${idFor(field.path)}-map-${index}`;
 
@@ -403,7 +408,7 @@ function renderStopList(field, store) {
     h('button.icon-btn.icon-btn-danger', {
       type: 'button', text: '×', title: 'Remove',
       'aria-label': `Remove stop ${index + 1}`,
-      onClick: () => update(stops.filter((_, i) => i !== index)),
+      onClick: () => update((live) => live.filter((_, i) => i !== index)),
     }),
   ]));
 
@@ -412,10 +417,10 @@ function renderStopList(field, store) {
     h('button.btn.btn-ghost.cond-mini', {
       type: 'button',
       text: '+ Add a stop',
-      onClick: () => {
-        requestFocus(rowId(stops.length));
-        update([...stops, { map: '', mount: 'auto', terrain: 'any' }]);
-      },
+      onClick: () => update((live) => {
+        requestFocus(rowId(live.length));
+        return [...live, { map: '', mount: 'auto', terrain: 'any' }];
+      }),
     }),
   ]));
 }
@@ -440,8 +445,25 @@ function renderConditionField(field, store) {
  * @param {import('../core/store.js').Store} store
  * @returns {HTMLElement}
  */
+function renderHelperField(field, store) {
+  const list = renderHelperMoves(
+    store.getIn(field.path) ?? [],
+    (fn) => store.update(field.path, fn, []),
+    idFor(field.path),
+  );
+  return wrap(field, list);
+}
+
+/**
+ * @param {Field} field
+ * @param {import('../core/store.js').Store} store
+ * @returns {HTMLElement}
+ */
 function renderRuleField(field, store) {
-  const list = renderRuleList(store.getIn(field.path) ?? [], (next) => store.setIn(field.path, next));
+  const list = renderRuleList(
+    store.getIn(field.path) ?? [],
+    (fn) => store.update(field.path, fn, []),
+  );
   return wrap(field, list);
 }
 
@@ -456,25 +478,25 @@ function renderBallLadder(field, store) {
   /** @type {Array<{item: string, condition: string}>} */
   const balls = store.getIn(field.path) ?? [];
   const rowId = (index, part) => `${idFor(field.path)}-${part}-${index}`;
-  const update = (next) => store.setIn(field.path, next);
+  const update = (fn) => store.update(field.path, fn, []);
   const replaceAt = (index, patch) => update(
-    balls.map((ball, i) => (i === index ? { ...ball, ...patch } : ball)),
+    (live) => live.map((ball, i) => (i === index ? { ...ball, ...patch } : ball)),
   );
-  const move = (index, delta) => {
+  const move = (index, delta) => update((live) => {
     const target = index + delta;
-    if (target < 0 || target >= balls.length) return;
-    const next = balls.slice();
+    if (target < 0 || target >= live.length) return live;
+    const next = live.slice();
     [next[index], next[target]] = [next[target], next[index]];
     // Follow the ball to its new row, so a second press moves the same ball
     // again rather than whatever slid into the old position.
     requestFocus(rowId(target, delta < 0 ? 'up' : 'down'));
-    update(next);
-  };
-  const removeAt = (index) => {
-    const next = balls.filter((_, i) => i !== index);
+    return next;
+  });
+  const removeAt = (index) => update((live) => {
+    const next = live.filter((_, i) => i !== index);
     if (next.length) requestFocus(rowId(Math.min(index, next.length - 1), 'remove'));
-    update(next);
-  };
+    return next;
+  });
 
   const rows = balls.map((ball, index) => h('div.ladder-row', {}, [
     h('span.ladder-rank', { text: String(index + 1) }),
@@ -526,7 +548,7 @@ function renderBallLadder(field, store) {
     h('button.btn.btn-ghost.ladder-add', {
       type: 'button',
       text: '+ Add a ball',
-      onClick: () => update([...balls, { item: '', condition: 'always' }]),
+      onClick: () => update((live) => [...live, { item: '', condition: 'always' }]),
     }),
   ]);
 

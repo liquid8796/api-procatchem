@@ -1,5 +1,37 @@
 # Changelog
 
+## PROCatchem content — v1.0.111
+
+*August 22, 2026*
+
+Acting on user feedback about the Script Builder.
+
+**Fixed:**
+
+- **Fishing had no rod box.** The hunting action could express the cell *or* the item, never both,
+  so a fishing setup could not be described at all. There is now a dedicated *Fish from a cell*
+  action with its own cell and rod fields; it walks onto the tile and only then casts.
+- The surf guard no longer fires for fishing: it would have stepped ashore forever while the
+  script tried to walk to a fishing cell on water.
+- A once-per-battle move was marked done the moment the script *switched* the owner in, so the
+  move itself never landed. `useMoveFromAnySlot` now reports whether the move landed, and
+  `useOnce` only sets the flag when it did.
+- List editors wrote a snapshot of their rows back to the store, so a change made while a render
+  was still pending was silently discarded. They now derive every change from the live value
+  through the new `Store.update`.
+
+**Added:**
+
+- **Preparation moves** in the basic battle plan: Soak, Skill Swap, Thief and anything else worth
+  one turn before weakening, each used at most once per battle. Triggers are *every battle*,
+  *opponent has type* (Soak against Ghost so False Swipe connects), *opponent is named*, and
+  *my slot shows ability* — which is how a Trace lead exposes the opponent's ability, since the
+  host offers no `getOpponentAbility`.
+- A matching `Slot shows ability` condition for the rules engine and the custom farm guard.
+- A show/hide toggle for the generated script. Collapsing it widens the form by about a third;
+  Copy, Download and Diagnostics stay on screen, and the choice is remembered.
+
+
 ## PROCatchem content — v1.0.110
 
 *August 22, 2026*

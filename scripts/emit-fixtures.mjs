@@ -38,7 +38,24 @@ const FARM_ACTIONS = [
   ['moveToWater', ''],
   ['moveToNormalGround', ''],
   ['moveToCell', '12, 30'],
-  ['useItem', 'Super Rod'],
+  ['fish', '12, 30'],
+  ['useItem', 'Repel'],
+];
+
+/** Preparation-move setups, including the incomplete rows that must be dropped. */
+const HELPER_SETUPS = [
+  [],
+  [{ move: 'Soak', trigger: 'oppType', type: 'Ghost', names: [], slot: 1, ability: '' }],
+  [
+    { move: 'Soak', trigger: 'oppType', type: 'Ghost', names: [], slot: 1, ability: '' },
+    { move: 'Skill Swap', trigger: 'oppName', type: '', names: ['Abra'], slot: 1, ability: '' },
+  ],
+  [
+    { move: 'Thief', trigger: 'myAbility', type: '', names: [], slot: 1, ability: 'Trace' },
+    { move: 'Growl', trigger: 'always', type: '', names: [], slot: 1, ability: '' },
+  ],
+  // Incomplete rows: the generator must skip these rather than emit half a call.
+  [{ move: 'Soak', trigger: 'oppType', type: '', names: [], slot: 1, ability: '' }],
 ];
 
 /** Zone setups, including a line zone and an empty (disabled) case. */
@@ -152,6 +169,9 @@ for (const mode of MODES) {
           config.route.farmArgs = args;
           config.route.farmMap = routeKind === 'route' ? 'Viridian Forest' : '';
           config.route.pokecenterMap = routeKind === 'route' ? 'Pokecenter Viridian' : '';
+          config.route.farmRod = 'Super Rod';
+          config.battle.helperMoves = HELPER_SETUPS[index % HELPER_SETUPS.length]
+            .map((helper) => ({ ...helper }));
           config.route.healAction = index % 4 === 0 ? 'talkToNpcOnCell' : 'usePokecenter';
           config.route.healArgs = '7, 9';
 
@@ -177,7 +197,10 @@ for (const mode of MODES) {
           config.logging.announceShiny = index % 2 === 0;
 
           // ---- V4 feature groups -------------------------------------
-          const zoneSetup = ZONE_SETUPS[index % ZONE_SETUPS.length];
+          // Zones cycle on a slower index than FARM_ACTIONS: with both keyed on
+          // `index % 6` they moved in lockstep, so a zone always shadowed the
+          // fishing action and it was never generated.
+          const zoneSetup = ZONE_SETUPS[Math.floor(index / FARM_ACTIONS.length) % ZONE_SETUPS.length];
           config.route.zones = [...zoneSetup.zones];
           config.route.zoneRotation = { ...zoneSetup.rotation };
 

@@ -14,20 +14,23 @@ import { h } from './dom.js';
 const ACTION_NEEDS = new Map(STEP_ACTIONS.map((entry) => [entry.id, entry.needs]));
 
 /**
- * @param {object[]} rules
- * @param {(next: object[]) => void} onChange
+ * @param {object[]} rules the rules to draw
+ * @param {(updater: (live: object[]) => object[]) => void} update applies a
+ *   change to the *current* list, not to the snapshot this render captured
  * @returns {HTMLElement}
  */
-export function renderRuleList(rules, onChange) {
-  const replaceAt = (index, next) => onChange(rules.map((rule, i) => (i === index ? next : rule)));
-  const removeAt = (index) => onChange(rules.filter((_, i) => i !== index));
-  const move = (index, delta) => {
+export function renderRuleList(rules, update) {
+  const replaceAt = (index, next) => update(
+    (live) => live.map((rule, i) => (i === index ? next : rule)),
+  );
+  const removeAt = (index) => update((live) => live.filter((_, i) => i !== index));
+  const move = (index, delta) => update((live) => {
     const target = index + delta;
-    if (target < 0 || target >= rules.length) return;
-    const next = rules.slice();
+    if (target < 0 || target >= live.length) return live;
+    const next = live.slice();
     [next[index], next[target]] = [next[target], next[index]];
-    onChange(next);
-  };
+    return next;
+  });
 
   return h('div.rules', {}, [
     ...(rules.length
@@ -40,7 +43,7 @@ export function renderRuleList(rules, onChange) {
     h('button.btn.btn-ghost', {
       type: 'button',
       text: '+ Add a rule',
-      onClick: () => onChange([...rules, createEmptyRule()]),
+      onClick: () => update((live) => [...live, createEmptyRule()]),
     }),
   ]);
 }

@@ -138,8 +138,10 @@ function ruleFunctionName(index) {
  */
 function emitStep(writer, step, ruleIndex, stepIndex) {
   const flag = `"r${ruleIndex + 1}s${stepIndex + 1}"`;
+  // `useOnce` checks the flag itself, so an outer guard would be redundant.
+  const flagCheckedInside = step.once && step.action === 'useMove' && step.slot === 'auto';
   const guards = [];
-  if (step.once) guards.push(`not F[${flag}]`);
+  if (step.once && !flagCheckedInside) guards.push(`not F[${flag}]`);
   if (!isEmptyCondition(step.when)) guards.push(emitCondition(step.when, writer));
 
   const body = (target) => emitStepAction(target, step, flag);
@@ -160,7 +162,7 @@ function emitStepAction(writer, step, flag) {
 
   switch (step.action) {
     case 'useMove':
-      emitUseMove(writer, step, succeed);
+      emitUseMove(writer, step, succeed, flag);
       return;
 
     case 'useItem':
@@ -213,10 +215,13 @@ function emitStepAction(writer, step, flag) {
  * @param {object} step
  * @param {string} succeed
  */
-function emitUseMove(writer, step, succeed) {
+function emitUseMove(writer, step, succeed, flag) {
   const move = luaString(step.move);
   if (step.slot === 'auto') {
-    writer.line(`if useMoveFromAnySlot(${move}) then ${succeed} end`);
+    // `useOnce` owns the flag, because only it can tell a landed move from a
+    // turn spent switching the owner in.
+    if (step.once) writer.line(`if useOnce(${flag}, ${move}) then return true end`);
+    else writer.line(`if useMoveFromAnySlot(${move}) then return true end`);
     return;
   }
 
