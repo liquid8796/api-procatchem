@@ -1,15 +1,23 @@
 /**
  * Vietnamese translation pack for the API reference page.
  *
+ * Packs register themselves into `window.PROCATCHEM_I18N` keyed by language
+ * code, so adding a language is one new file plus one <script> tag — the
+ * switcher in assets/i18n/doc-i18n.js discovers whatever is registered and
+ * needs no edit.
+ *
  * Keys in `dict` are the normalized English innerHTML of each translatable
  * element (trimmed, internal whitespace collapsed) exactly as the browser
- * serializes it. assets/i18n/doc-i18n.js looks elements up here; anything
- * missing simply stays English, so partial coverage can never blank a page.
+ * serializes it. Anything missing simply stays English, so partial coverage
+ * can never blank a page.
  *
  * `cats` maps category headings; it is applied to the heading text node so
  * the type chip the page script injects is left alone.
  */
-window.PROCATCHEM_VI = {
+window.PROCATCHEM_I18N = window.PROCATCHEM_I18N || {};
+window.PROCATCHEM_I18N.vi = {
+ "code": "vi",
+ "label": "Tiếng Việt",
  "meta": {
   "title": "Tài liệu Lua Script API — PROCatchem",
   "description": "Tài liệu Lua Script API của PROCatchem — sổ tay kiểu Pokédex cho từng hàm và callback trong script."

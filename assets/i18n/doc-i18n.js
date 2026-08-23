@@ -5,12 +5,19 @@
  * filesystem (see README), where ES modules and fetch() are blocked by the
  * browser but plain <script src> is not.
  *
- * How it works: assets/i18n/vi.js publishes a translation pack keyed by the
- * *normalized English innerHTML* of each translatable element. Applying a
- * language walks a fixed set of selectors, looks each element up in the pack,
- * stashes the English original in a data attribute, and swaps the content.
- * Anything not in the pack simply stays English — a half-translated entry can
- * never render as a blank.
+ * Adding a language: write assets/i18n/<code>.js registering itself into
+ * `window.PROCATCHEM_I18N` (see vi.js for the shape) and add one <script> tag
+ * to index.html. This file enumerates the registry and needs no change.
+ *
+ * How a pack is applied: its `dict` is keyed by the *normalized English
+ * innerHTML* of each translatable element. Applying walks a fixed set of
+ * selectors, stashes the English original in a data attribute, and swaps the
+ * content. Anything absent from the pack simply stays English, so a partial
+ * translation can never render as a blank.
+ *
+ * Switching always restores English first and then applies the target pack.
+ * That is what makes going straight from one translation to another correct:
+ * the dictionary keys only ever match against the original English.
  *
  * Category headings need special handling: the page's own script prepends a
  * type chip <span> inside every h1, so those are translated by replacing the
@@ -19,16 +26,16 @@
 (function () {
   'use strict';
 
-  var PACK = window.PROCATCHEM_VI;
-  if (!PACK || !PACK.dict) return;
-
+  var REGISTRY = window.PROCATCHEM_I18N || {};
+  var SOURCE_CODE = 'en';
+  var SOURCE_LABEL = 'English';
   var STORE_KEY = 'procatchem-doc-lang';
   var EN_ATTR = 'data-i18n-en';
   var CAT_ATTR = 'data-i18n-cat';
 
   /**
    * Everything translated through the innerHTML dictionary. Kept identical to
-   * the extraction pass that produced the pack, so keys always line up.
+   * the extraction pass that produces a pack, so keys always line up.
    */
   var SELECTORS = [
     'main .doc > p:not(.source-key):not(.signature)',
@@ -52,6 +59,41 @@
     '.nav-tag > a'
   ].join(',');
 
+  /**
+   * Registered packs that are complete enough to use, in label order so the
+   * dropdown reads predictably however the script tags happen to be ordered.
+   */
+  function collectPacks() {
+    var found = [];
+    for (var code in REGISTRY) {
+      if (!Object.prototype.hasOwnProperty.call(REGISTRY, code)) continue;
+      var pack = REGISTRY[code];
+      if (!pack || !pack.dict) continue;
+      pack.code = pack.code || code;
+      pack.label = pack.label || code.toUpperCase();
+      found.push(pack);
+    }
+    found.sort(function (a, b) { return a.label.localeCompare(b.label); });
+    return found;
+  }
+
+  var packs = collectPacks();
+  if (!packs.length) return; // Nothing to switch to; leave the page untouched.
+
+  var descriptionMeta = document.querySelector('meta[name="description"]');
+  var source = {
+    title: document.title,
+    description: descriptionMeta ? descriptionMeta.getAttribute('content') : null,
+    searchPlaceholder: null
+  };
+
+  function findPack(code) {
+    for (var i = 0; i < packs.length; i++) {
+      if (packs[i].code === code) return packs[i];
+    }
+    return null;
+  }
+
   function norm(html) {
     return html.trim().replace(/\s+/g, ' ');
   }
@@ -68,19 +110,20 @@
     }
   }
 
-  function applyVietnamese() {
+  function applyPack(pack) {
     var swapped = document.querySelectorAll(SELECTORS);
     for (var i = 0; i < swapped.length; i++) {
       var el = swapped[i];
-      var translated = PACK.dict[norm(el.innerHTML)];
+      var translated = pack.dict[norm(el.innerHTML)];
       if (translated) {
         if (!el.hasAttribute(EN_ATTR)) el.setAttribute(EN_ATTR, el.innerHTML);
         el.innerHTML = translated;
       }
     }
 
+    var cats = pack.cats || {};
     eachCategoryTextNode(function (heading, node) {
-      var translated = PACK.cats[norm(node.nodeValue)];
+      var translated = cats[norm(node.nodeValue)];
       if (translated) {
         if (!heading.hasAttribute(CAT_ATTR)) heading.setAttribute(CAT_ATTR, node.nodeValue);
         node.nodeValue = translated;
@@ -88,29 +131,24 @@
     });
 
     var search = document.getElementById('search');
-    if (search && PACK.searchPlaceholder) {
-      if (!search.hasAttribute(EN_ATTR)) search.setAttribute(EN_ATTR, search.placeholder);
-      search.placeholder = PACK.searchPlaceholder;
+    if (search && pack.searchPlaceholder) {
+      if (source.searchPlaceholder === null) source.searchPlaceholder = search.placeholder;
+      search.placeholder = pack.searchPlaceholder;
     }
 
-    if (PACK.meta && PACK.meta.title) document.title = PACK.meta.title;
-    var meta = document.querySelector('meta[name="description"]');
-    if (meta && PACK.meta && PACK.meta.description) {
-      if (!meta.hasAttribute(EN_ATTR)) meta.setAttribute(EN_ATTR, meta.getAttribute('content'));
-      meta.setAttribute('content', PACK.meta.description);
+    var meta = pack.meta || {};
+    if (meta.title) document.title = meta.title;
+    if (descriptionMeta && meta.description) {
+      descriptionMeta.setAttribute('content', meta.description);
     }
-    document.documentElement.lang = 'vi';
-    document.documentElement.setAttribute('data-doc-lang', 'vi');
+    document.documentElement.lang = pack.code;
   }
 
-  function restoreEnglish() {
+  function restoreSource() {
     var swapped = document.querySelectorAll('[' + EN_ATTR + ']');
     for (var i = 0; i < swapped.length; i++) {
-      var el = swapped[i];
-      if (el.id === 'search') el.placeholder = el.getAttribute(EN_ATTR);
-      else if (el.tagName === 'META') el.setAttribute('content', el.getAttribute(EN_ATTR));
-      else el.innerHTML = el.getAttribute(EN_ATTR);
-      el.removeAttribute(EN_ATTR);
+      swapped[i].innerHTML = swapped[i].getAttribute(EN_ATTR);
+      swapped[i].removeAttribute(EN_ATTR);
     }
 
     var headings = document.querySelectorAll('[' + CAT_ATTR + ']');
@@ -126,9 +164,16 @@
       headings[h].removeAttribute(CAT_ATTR);
     }
 
-    if (PACK.meta && PACK.meta.originalTitle) document.title = PACK.meta.originalTitle;
-    document.documentElement.lang = 'en';
-    document.documentElement.setAttribute('data-doc-lang', 'en');
+    var search = document.getElementById('search');
+    if (search && source.searchPlaceholder !== null) {
+      search.placeholder = source.searchPlaceholder;
+    }
+
+    document.title = source.title;
+    if (descriptionMeta && source.description !== null) {
+      descriptionMeta.setAttribute('content', source.description);
+    }
+    document.documentElement.lang = SOURCE_CODE;
   }
 
   function readSaved() {
@@ -139,74 +184,102 @@
     }
   }
 
-  function save(lang) {
+  function save(code) {
     try {
-      localStorage.setItem(STORE_KEY, lang);
+      localStorage.setItem(STORE_KEY, code);
     } catch (_) {
-      // Remembering the choice is a convenience; the toggle still works.
+      // Remembering the choice is a convenience; the switcher still works.
     }
   }
 
-  var current = 'en';
+  /**
+   * @param {string} code a registered language code, or the source code
+   * @param {boolean} [persist] pass false when restoring a saved choice on load
+   */
+  function setLanguage(code, persist) {
+    var pack = findPack(code);
+    var target = pack ? pack.code : SOURCE_CODE;
 
-  function setLanguage(lang) {
-    if (lang === 'vi') applyVietnamese();
-    else restoreEnglish();
-    current = lang;
-    save(lang);
-    var buttons = document.querySelectorAll('.lang-btn');
-    for (var i = 0; i < buttons.length; i++) {
-      var active = buttons[i].getAttribute('data-lang') === lang;
-      buttons[i].classList.toggle('is-active', active);
-      buttons[i].setAttribute('aria-pressed', String(active));
-    }
+    // Always back to English first: dictionary keys are English, so applying a
+    // pack on top of another translation would match nothing.
+    restoreSource();
+    if (pack) applyPack(pack);
+
+    document.documentElement.setAttribute('data-doc-lang', target);
+    if (persist !== false) save(target);
+
+    var select = document.getElementById('doc-lang-select');
+    if (select && select.value !== target) select.value = target;
   }
 
-  function buildToggle() {
-    var host = document.querySelector('.search');
-    if (!host) return;
-
+  function injectStyles() {
     var style = document.createElement('style');
     style.textContent = [
-      '.lang-toggle{display:flex;gap:6px;margin-top:8px}',
-      '.lang-btn{flex:1;padding:11px 0;cursor:pointer;border-radius:8px;',
-      '  background:#0E1B14;border:2px solid #245239;color:#5F8F74;',
-      '  font:800 11px var(--ff-mono,monospace);letter-spacing:.08em;',
-      '  transition:background .15s ease,color .15s ease,border-color .15s ease}',
-      '.lang-btn:hover{color:#D7F5DF;border-color:#3A7A55}',
-      '.lang-btn.is-active{background:#78C850;border-color:#20242B;color:#0A1811}',
-      // Press Start 2P has no Vietnamese diacritics; swap the pixel headings to
-      // the body face while Vietnamese is active so they render cleanly.
-      'html[data-doc-lang="vi"] .tag-section h1{font-family:var(--ff-body);font-weight:800;font-size:24px;letter-spacing:.01em}',
-      'html[data-doc-lang="vi"] .hero-eyebrow{font-family:var(--ff-body);font-weight:800;font-size:13px;letter-spacing:.14em;text-transform:uppercase}'
+      '.lang-picker{position:fixed;top:16px;right:24px;z-index:60;',
+      // Padding plus the select line-height keeps the hit area at ~46px, above
+      // the 44px touch-target guideline, without making the pill look heavy.
+      '  display:flex;align-items:center;gap:8px;padding:10px 12px 10px 14px;',
+      '  background:#fff;border:2px solid var(--shell-ink,#20242B);border-radius:999px;',
+      '  box-shadow:0 3px 0 var(--shell-ink,#20242B)}',
+      '.lang-picker::before{content:"";width:13px;height:13px;border-radius:50%;flex:none;',
+      '  background:conic-gradient(from 140deg,#6890F0,#78C850,#F2C94C,#E3350D,#6890F0);',
+      '  border:2px solid var(--shell-ink,#20242B)}',
+      '.lang-select{appearance:none;-webkit-appearance:none;cursor:pointer;',
+      '  border:0;background-color:transparent;padding:0 17px 0 0;line-height:22px;',
+      '  font:800 12.5px/22px var(--ff-body,sans-serif);color:var(--shell-ink,#20242B);',
+      '  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),',
+      '   linear-gradient(135deg,currentColor 50%,transparent 50%);',
+      '  background-position:calc(100% - 8px) 55%,calc(100% - 4px) 55%;',
+      '  background-size:4px 4px,4px 4px;background-repeat:no-repeat}',
+      '.lang-select:focus-visible{outline:3px dashed var(--gold,#F2C94C);outline-offset:4px}',
+      // Press Start 2P has no Vietnamese diacritics, and that will hold for most
+      // non-Latin packs too; fall back to the body face whenever a translation
+      // is active so accents render instead of dropping out.
+      'html:not([data-doc-lang="en"]) .tag-section h1{font-family:var(--ff-body);',
+      '  font-weight:800;font-size:24px;letter-spacing:.01em}',
+      'html:not([data-doc-lang="en"]) .hero-eyebrow{font-family:var(--ff-body);',
+      '  font-weight:800;font-size:13px;letter-spacing:.14em;text-transform:uppercase}',
+      // The hero headline is the one block the picker could reach on a narrow
+      // screen, so keep its text clear of the control.
+      '@media(max-width:980px){.lang-picker{top:10px;right:12px;padding:9px 11px 9px 13px}',
+      '  .lang-select{font-size:12px}}'
     ].join('\n');
     document.head.appendChild(style);
-
-    var wrap = document.createElement('div');
-    wrap.className = 'lang-toggle';
-    wrap.setAttribute('role', 'group');
-    wrap.setAttribute('aria-label', 'Language / Ngôn ngữ');
-
-    [['en', 'English'], ['vi', 'Tiếng Việt']].forEach(function (pair) {
-      var button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'lang-btn';
-      button.setAttribute('data-lang', pair[0]);
-      button.setAttribute('aria-pressed', 'false');
-      button.title = pair[1];
-      button.textContent = pair[0].toUpperCase();
-      button.addEventListener('click', function () {
-        if (current !== pair[0]) setLanguage(pair[0]);
-      });
-      wrap.appendChild(button);
-    });
-
-    host.appendChild(wrap);
   }
 
-  PACK.meta = PACK.meta || {};
-  PACK.meta.originalTitle = document.title;
+  function buildSwitcher() {
+    injectStyles();
 
-  buildToggle();
-  setLanguage(readSaved() === 'vi' ? 'vi' : 'en');
+    var picker = document.createElement('div');
+    picker.className = 'lang-picker';
+
+    var select = document.createElement('select');
+    select.className = 'lang-select';
+    select.id = 'doc-lang-select';
+    select.setAttribute('aria-label', 'Language / Ngôn ngữ');
+    select.title = 'Language / Ngôn ngữ';
+
+    var options = [{ code: SOURCE_CODE, label: SOURCE_LABEL }].concat(packs);
+    for (var i = 0; i < options.length; i++) {
+      var option = document.createElement('option');
+      option.value = options[i].code;
+      option.textContent = options[i].label;
+      select.appendChild(option);
+    }
+
+    select.addEventListener('change', function () {
+      setLanguage(select.value);
+    });
+
+    picker.appendChild(select);
+    document.body.appendChild(picker);
+    return select;
+  }
+
+  var switcher = buildSwitcher();
+  // A saved code whose pack is no longer shipped falls back to English.
+  var saved = readSaved();
+  var initial = findPack(saved) ? saved : SOURCE_CODE;
+  switcher.value = initial;
+  setLanguage(initial, false);
 })();

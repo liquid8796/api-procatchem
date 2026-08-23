@@ -1,5 +1,29 @@
 # Changelog
 
+## PROCatchem content — v1.0.113
+
+*August 23, 2026*
+
+**Changed:**
+
+- The language control is now a **dropdown in the top-right corner** of the API reference page,
+  replacing the two EN/VI buttons under the search box. It stays reachable at any scroll position.
+- Translation packs **register themselves** into `window.PROCATCHEM_I18N`, and the switcher builds
+  its options from whatever it finds. Adding a language is one new file plus one `<script>` tag —
+  no edit to the switcher.
+- Switching now restores English before applying the target pack, so going straight from one
+  translation to another is correct. The previous two-state toggle would have matched nothing when
+  applying a second pack over already-translated content.
+
+**Handled:**
+
+- A saved language whose pack is no longer shipped falls back to English instead of leaving the
+  page half-translated.
+- A pack with no `label` falls back to its code; a pack with no `dict` is ignored rather than
+  breaking the dropdown.
+- With no packs present at all, the switcher renders nothing and leaves the page untouched.
+
+
 ## PROCatchem content — v1.0.112
 
 *August 23, 2026*
