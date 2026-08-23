@@ -1,5 +1,23 @@
 # Changelog
 
+## PROCatchem content — v1.0.112
+
+*August 23, 2026*
+
+**Added:**
+
+- **Vietnamese language option** on the API reference page. An EN/VI switcher sits under the
+  search box; the choice persists across visits. All 242 API entries — descriptions, practical
+  scenarios, parameter tables, category headings, hero, and sidebar — were translated by hand
+  (399 unique strings) in a natural, reader-first tone; Lua code samples stay untouched.
+- The pack ships as classic scripts (`assets/i18n/vi.js` + `assets/i18n/doc-i18n.js`) so the page
+  keeps working when opened straight from the filesystem, where ES modules cannot load.
+- Untranslated content can never blank the page: anything missing from the pack simply stays
+  English, and switching back to English restores the exact original markup.
+- While Vietnamese is active, headings set in the pixel font (which has no Vietnamese diacritics)
+  render in the body face instead, so accents display correctly.
+
+
 ## PROCatchem content — v1.0.111
 
 *August 22, 2026*

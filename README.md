@@ -42,6 +42,19 @@ A **Workflow** category documents `executeSteps(steps [, options])` — a Lua gl
 - Added `examples/opponent-gender-and-dismount.lua`.
 - Synchronized `openapi.yaml`, `source/index.md`, `LUA_API_SLATE.md`, `index.html`, and deployable `dist/` output.
 
+## Vietnamese language option (v1.0.112)
+
+The API reference page has an EN/VI switcher under the search box. The Vietnamese pack lives in
+`assets/i18n/vi.js` as a map from the *normalized English innerHTML* of each translatable element
+to its translation; `assets/i18n/doc-i18n.js` applies it, stashing the English original so
+switching back restores the page byte-for-byte. Both are classic scripts on purpose — the page
+still works when opened from the filesystem, where ES modules cannot load.
+
+Because lookups are content-keyed, a newly added API entry simply stays English until its strings
+are added to the pack — nothing breaks. `tests/i18n.test.mjs` guards the pack: category coverage,
+structural labels, and that no translation alters inline `<code>` snippets, `{template}`
+placeholders, or markup structure.
+
 ## Script Builder (v1.0.109)
 
 A form-driven generator at **`builder.html`** (linked from the sidebar and the hero of the API
