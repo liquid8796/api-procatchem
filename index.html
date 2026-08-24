@@ -69,21 +69,20 @@ button,input,select,textarea{font-family:inherit}
 .nav a:hover{background:#1B2E24;color:#EAFBEF}
 .nav a.active{background:#1B2E24;color:#fff;box-shadow:inset 3px 0 0 var(--gold)}
 .nav ul a{padding-left:40px;font:500 12px var(--ff-mono);color:#8FBFA0}
-.nav-tag>a,.nav-tag-header>a{font-family:var(--ff-body);font-size:11px;font-weight:800;letter-spacing:.1em;
+.nav-tag>a{font-family:var(--ff-body);font-size:11px;font-weight:800;letter-spacing:.1em;
   text-transform:uppercase;color:#EAF9EF;margin-top:6px;display:flex;align-items:center;gap:9px}
-.nav-tag>a::before,.nav-tag-header>a::before{content:'';width:9px;height:9px;border-radius:3px;flex:none;
+.nav-tag>a::before{content:'';width:9px;height:9px;border-radius:3px;flex:none;
   background:var(--type,#A8A878);box-shadow:0 0 7px var(--type,#A8A878)}
-.nav-tag-header{display:flex;align-items:stretch;position:relative;cursor:pointer}
-.nav-tag-header>a{flex:1;min-width:0;padding-right:6px;cursor:pointer}
-.nav-tag-header:hover>a,.nav-tag-header:focus-within>a{background:#1B2E24;color:#fff}
-.nav-toggle{width:34px;align-self:stretch;margin-top:6px;border:0;background:transparent;color:#6FA383;
-  cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center}
-.nav-toggle:hover,.nav-toggle:focus-visible{background:#1B2E24;color:#EAFBEF;outline:none}
-.nav-toggle .nav-caret{display:inline-block;transition:transform .16s ease}
-.nav-tag.collapsed>.nav-tag-header .nav-caret{transform:rotate(-90deg)}
+/* One control per category: the caret is drawn on the link rather than in a
+   button beside it, so the row is a single focus stop. It has to stay a
+   pseudo-element — the translation pass keys on the link's innerHTML, and a
+   child node would stop the category names matching their dictionary entry. */
+.nav-tag>a::after{content:'\25BC';margin-left:auto;flex:none;color:#6FA383;letter-spacing:0;
+  transition:transform .16s ease}
+.nav-tag.collapsed>a::after{transform:rotate(-90deg)}
 .nav-tag.collapsed>ul{display:none}
 .nav.searching .nav-tag.collapsed>ul{display:block}
-.nav-tag.has-active>.nav-tag-header>a{color:#fff}
+.nav-tag.has-active>a{color:#fff}
 
 /* ============================== content column (trainer's log) */
 .content{margin-left:300px;background:var(--paper);min-height:100vh}
@@ -2060,15 +2059,9 @@ end</code></pre></div></article></section></main><script>
   }
 
   function setCollapsed(tag,collapsed,persist){
-    const categoryLink=tag.querySelector('.nav-tag-header>a')||getDirectChild(tag,'a');
+    const categoryLink=getDirectChild(tag,'a');
     const key=categoryLink?categoryLink.getAttribute('href')||categoryLink.textContent.trim():tag.textContent.trim();
     tag.classList.toggle('collapsed',collapsed);
-    const button=tag.querySelector('.nav-toggle');
-    if(button){
-      button.setAttribute('aria-expanded',String(!collapsed));
-      button.setAttribute('aria-label',(collapsed?'Expand ':'Collapse ')+(categoryLink?categoryLink.textContent.trim():'category'));
-      button.title=collapsed?'Expand category':'Collapse category';
-    }
     if(categoryLink){
       categoryLink.setAttribute('aria-expanded',String(!collapsed));
       categoryLink.setAttribute('title',(collapsed?'Expand ':'Collapse ')+categoryLink.textContent.trim());
@@ -2088,30 +2081,19 @@ end</code></pre></div></article></section></main><script>
     const childList=getDirectChild(tag,'ul');
     if(!categoryLink||!childList)return;
 
-    const header=document.createElement('div');
-    header.className='nav-tag-header';
-    tag.insertBefore(header,categoryLink);
-    header.appendChild(categoryLink);
-
-    const button=document.createElement('button');
-    button.className='nav-toggle';
-    button.type='button';
-    button.innerHTML='<span class="nav-caret" aria-hidden="true">▼</span>';
-    header.appendChild(button);
-
     const key=categoryLink.getAttribute('href')||categoryLink.textContent.trim();
     const hasStoredState=Object.prototype.hasOwnProperty.call(collapsedState,key);
     setCollapsed(tag,hasStoredState?collapsedState[key]===true:true,false);
 
+    categoryLink.setAttribute('role','button');
     categoryLink.addEventListener('click',event=>{
       event.preventDefault();
       event.stopPropagation();
       toggleTag(tag);
     });
-
-    button.addEventListener('click',event=>{
+    categoryLink.addEventListener('keydown',event=>{
+      if(event.key!==' ')return;
       event.preventDefault();
-      event.stopPropagation();
       toggleTag(tag);
     });
   });
@@ -2136,7 +2118,7 @@ end</code></pre></div></article></section></main><script>
     const q=query.toLowerCase().trim();
     nav&&nav.classList.toggle('searching',!!q);
     tags.forEach(tag=>{
-      const categoryLink=tag.querySelector('.nav-tag-header>a')||getDirectChild(tag,'a');
+      const categoryLink=getDirectChild(tag,'a');
       const categoryText=(categoryLink?categoryLink.textContent:'').toLowerCase();
       const childItems=[...tag.querySelectorAll(':scope > ul > li')];
       let matchedChild=false;

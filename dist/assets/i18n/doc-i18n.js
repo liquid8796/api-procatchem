@@ -65,7 +65,6 @@
     '.builder-link .bl-sub',
     // Category links in the sidebar nav hold the same plain-text names the
     // cats map covers, so the generic dictionary handles them too.
-    '.nav-tag-header > a',
     '.nav-tag > a'
   ].join(',');
 

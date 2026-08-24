@@ -56,6 +56,22 @@
   `select` and `textarea` now inherit the family on both pages — family only, so every control
   keeps its own size and weight — and the test suite fails if that line is ever dropped.
 
+**Changed:**
+
+- **Each sidebar category is one control again.** The collapsible category row on the API
+  reference carried two: the label and a separate caret button beside it, both wired to the same
+  toggle. That meant two tab stops and two hit targets for one action. The row is now the single
+  control, with the caret drawn as a pseudo-element on it — it has to stay a pseudo-element,
+  because the translation pass matches on the link's own `innerHTML` and a child node would stop
+  the category names finding their dictionary entry.
+- The control never navigated (every click was already cancelled in favour of toggling), so it now
+  says as much: `role="button"` with `aria-expanded`, and it answers Space as well as Enter, which
+  is what the caret button used to provide. The role is applied from script, so with JavaScript off
+  the sidebar is still a plain list of links that jump to their section.
+- Removed with it: the `.nav-tag-header` wrapper that existed only to sit the two controls side by
+  side, the `.nav-toggle` and `.nav-caret` rules, and the now-unreachable `.nav-tag-header > a`
+  selector in the translation runtime.
+
 ## PROCatchem content — v1.0.114
 
 *August 24, 2026*
