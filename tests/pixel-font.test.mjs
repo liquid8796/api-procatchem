@@ -1,9 +1,14 @@
 /**
- * Pixel-font / translation guard.
+ * Guards that translated text always lands in a face that can draw it.
  *
- * Press Start 2P ships latin and latin-ext only — Google Fonts serves no
- * Vietnamese subset for it — so any translated text set in that face loses its
- * diacritics mid-word ("Giới thiệu" rendering as "Gi?i thi?u").
+ * Two ways it has gone wrong, both invisible in English:
+ *
+ * 1. Press Start 2P ships latin and latin-ext only — Google Fonts serves no
+ *    Vietnamese subset for it — so translated text set in that face loses its
+ *    diacritics mid-word ("Giới thiệu" rendering as "Gi?i thi?u").
+ * 2. Form controls do not inherit font-family, so a button that names no font
+ *    of its own renders in the UA face. Arial Bold carries no precomposed
+ *    Vietnamese glyphs, so bold button labels broke glyph by glyph.
  *
  * The pages defend against that by inverting the default: `--ff-pixel` is
  * retargeted to the body face while a translation is active, so every element
@@ -43,14 +48,26 @@ const LATIN_ONLY = {
   },
 };
 
-/** @param {string} file @returns {string} just the CSS of that file */
+/**
+ * The CSS of a file, with comments removed.
+ *
+ * Stripping matters: the crude rule splitter below treats everything before a
+ * `{` as the selector, so prose containing a comma would otherwise be read as
+ * extra selectors — and a comment naming a font would look like a declaration.
+ *
+ * @param {string} file
+ * @returns {string}
+ */
 function styleSheet(file) {
   const source = readFileSync(file, 'utf8');
-  if (!file.endsWith('.html')) return source;
-  const start = source.indexOf('<style>');
-  const end = source.indexOf('</style>');
-  assert.ok(start > 0 && end > start, `${file}: no inline <style> block`);
-  return source.slice(start, end);
+  let css = source;
+  if (file.endsWith('.html')) {
+    const start = source.indexOf('<style>');
+    const end = source.indexOf('</style>');
+    assert.ok(start > 0 && end > start, `${file}: no inline <style> block`);
+    css = source.slice(start, end);
+  }
+  return css.replace(/\/\*[\s\S]*?\*\//g, ' ');
 }
 
 /**
@@ -109,6 +126,25 @@ for (const [file, allowed] of Object.entries(LATIN_ONLY)) {
     // out twice would let the two drift apart.
     assert.match(styleSheet(file), /--ff-pixel:\s*var\(--ff-pixel-latin\)/,
       `${file}: --ff-pixel must derive from ${LATIN_TOKEN}`);
+  });
+}
+
+for (const file of ['index.html', 'assets/builder/builder.css']) {
+  test(`${file}: form controls inherit the page font`, () => {
+    // Without this the UA face leaks into any control that names no font of
+    // its own, and Arial Bold cannot draw ắ ạ ộ ệ — the bug that broke the
+    // segmented controls and mode cards. Only the family is inherited, so
+    // each component keeps its own size and weight.
+    const css = styleSheet(file);
+    const inherits = new Set();
+    for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      if (!/font-family:\s*inherit/.test(body)) continue;
+      for (const part of selector.split(',')) inherits.add(part.trim().replace(/\s+/g, ' '));
+    }
+    for (const control of ['button', 'input', 'select', 'textarea']) {
+      assert.ok(inherits.has(control),
+        `${file}: \`${control}\` must inherit font-family, or the UA font leaks in`);
+    }
   });
 }
 

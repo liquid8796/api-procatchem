@@ -47,6 +47,14 @@
 - `tests/pixel-font.test.mjs` holds the opt-out to an allowlist that documents why each entry's
   text can never be translated, so pinning the pixel face on translatable text has to be a
   deliberate edit rather than an accident.
+- **Button labels broke mid-word in Vietnamese** — the farm-mode cards and the segmented controls
+  ("Bắt đúng con khớp bộ lọc", "Đánh trainer đó") mixed two typefaces inside a single word. Form
+  controls do not inherit `font-family`, so every button that named no font of its own had been
+  rendering in the browser's own face rather than Nunito. That passed unnoticed for as long as the
+  UI was English; it broke visibly in Vietnamese because Arial **Bold** carries no precomposed
+  Vietnamese glyphs (`ạ ắ ẹ ệ ỉ ộ ớ`), so bold labels fell back glyph by glyph. `button`, `input`,
+  `select` and `textarea` now inherit the family on both pages — family only, so every control
+  keeps its own size and weight — and the test suite fails if that line is ever dropped.
 
 ## PROCatchem content — v1.0.114
 

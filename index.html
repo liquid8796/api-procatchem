@@ -15,6 +15,11 @@
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;font-family:var(--ff-body);font-size:15px;color:var(--ink);background:var(--paper)}
+/* Controls do not inherit font-family from the page; without this the UA face
+   (Arial) leaks in, and Arial Bold has no precomposed Vietnamese glyphs, so
+   translated labels break glyph by glyph mid-word. Family only — each control
+   keeps its own size and weight. */
+button,input,select,textarea{font-family:inherit}
 ::selection{background:var(--gold);color:var(--shell-ink)}
 :focus-visible{outline:3px dashed var(--gold);outline-offset:2px}
 

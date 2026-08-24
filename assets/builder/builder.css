@@ -86,6 +86,20 @@ body {
   background: var(--paper);
 }
 
+/*
+ * Form controls do not inherit font-family — the UA stylesheet pins them to
+ * its own face — so every button that does not name a font of its own renders
+ * outside the design. That went unnoticed while the UI was English, because
+ * the UA face is close enough to pass at a glance; in Vietnamese it broke
+ * loudly, since Arial Bold carries no precomposed Vietnamese glyphs and
+ * "Bắt đúng con khớp bộ lọc" fell back glyph by glyph mid-word.
+ *
+ * Inheriting fixes every control at once, including ones added later. Only the
+ * family is inherited: size, weight and line-height stay with the component,
+ * so nothing here changes any control's proportions.
+ */
+button, input, select, textarea { font-family: inherit; }
+
 ::selection { background: var(--gold); color: var(--shell-ink); }
 :focus-visible { outline: 3px dashed var(--gold); outline-offset: 2px; }
 
