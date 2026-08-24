@@ -7,8 +7,10 @@
  */
 
 import { Store } from '../core/store.js';
+import { scanLuaCalls } from '../domain/api-call.js';
 import { createDefaultConfig, normaliseConfig } from '../domain/config.js';
 import { LinkGraph } from '../domain/link-graph.js';
+import { findTemplate } from '../domain/templates.js';
 import { generateScript, parseConfigHeader } from '../generators/index.js';
 import { runLint } from '../lint/rules.js';
 import {
@@ -27,6 +29,8 @@ const GRAPH_KEY = 'procatchem-script-builder-linkgraph-v1';
 const PREVIEW_KEY = 'procatchem-script-builder-preview-hidden-v1';
 const TOAST_MS = 2600;
 const SEVERITY_ICON = { error: '✕', warning: '!', info: 'i' };
+/** Enough of a Lua script to be worth scanning even without a .lua extension. */
+const LOOKS_LIKE_LUA = /\bfunction\s+on(?:Start|PathAction|BattleAction)\s*\(/;
 
 export class BuilderApp {
   /**
@@ -39,12 +43,21 @@ export class BuilderApp {
     this._linkGraph = loadGraph();
     /** @type {import('../generators/index.js').GenerationResult | null} */
     this._result = null;
+    /**
+     * Findings from a script the builder did not write. They belong to a file,
+     * not to the configuration, so they are cleared the moment a setting
+     * changes and the diagnostics go back to describing the current script.
+     *
+     * @type {Array<{ level: string, message: string }>}
+     */
+    this._importFindings = [];
     this._refresh = rafThrottle(() => this._render());
   }
 
   /** Render once and start listening for changes. */
   start() {
     this._store.subscribe(() => {
+      this._importFindings = [];
       saveDraft(this._store.state);
       this._refresh();
     });
@@ -166,15 +179,18 @@ export class BuilderApp {
 
   /** @param {import('../generators/index.js').GenerationResult} generation */
   _renderLint(generation) {
-    const findings = runLint({
-      config: this._store.state,
-      plan: generation.plan,
-      mode: generation.mode,
-      zones: generation.zones,
-      team: generation.team,
-      unknownCalls: generation.unknownCalls,
-      retiredCalls: generation.retiredCalls,
-    });
+    const findings = [
+      ...this._importFindings,
+      ...runLint({
+        config: this._store.state,
+        plan: generation.plan,
+        mode: generation.mode,
+        zones: generation.zones,
+        team: generation.team,
+        unknownCalls: generation.unknownCalls,
+        retiredCalls: generation.retiredCalls,
+      }),
+    ];
 
     if (!findings.length) {
       replaceChildren(this._mounts.lint, [
@@ -275,12 +291,41 @@ export class BuilderApp {
       ? safeJsonParse(text)
       : parseConfigHeader(text);
 
-    if (!parsed) {
+    if (parsed) {
+      this._importFindings = [];
+      this._store.replace(normaliseConfig(parsed));
+      this.toast('Configuration loaded.', 'ok');
+      return;
+    }
+    // No embedded configuration. A .lua the builder did not write is still
+    // worth something: check every call in it against the API, which is the
+    // error the host would otherwise only report when the script is run.
+    if (!/\.lua$/i.test(file.name) && !LOOKS_LIKE_LUA.test(text)) {
       this.toast('That file has no builder configuration in it.', 'error');
       return;
     }
-    this._store.replace(normaliseConfig(parsed));
-    this.toast('Configuration loaded.', 'ok');
+    this._reportForeignScript(file.name, text);
+  }
+
+  /**
+   * Report what a scan of somebody else's script found.
+   *
+   * @param {string} fileName
+   * @param {string} source
+   */
+  _reportForeignScript(fileName, source) {
+    const problems = scanLuaCalls(source);
+    this._importFindings = problems.length
+      ? problems.map((problem) => ({
+        level: problem.level,
+        message: `${fileName}: ${problem.message}`,
+      }))
+      : [{ level: 'info', message: `${fileName}: every function it calls exists in the Lua API.` }];
+
+    this._refresh();
+    this.toast(problems.length
+      ? `${fileName}: ${problems.length} unresolved call${problems.length === 1 ? '' : 's'} — see Diagnostics.`
+      : `${fileName}: no unresolved calls.`, problems.length ? 'error' : 'ok');
   }
 
   /**
@@ -397,6 +442,21 @@ export class BuilderApp {
   reset() {
     this._store.replace(createDefaultConfig());
     this.toast('Reset to the default configuration.', 'ok');
+  }
+
+  /**
+   * Replace the configuration with a starter template.
+   *
+   * @param {string} id
+   */
+  loadTemplate(id) {
+    const template = findTemplate(id);
+    if (!template) {
+      this.toast(`No template called "${id}".`, 'error');
+      return;
+    }
+    this._store.replace(normaliseConfig(template.build()));
+    this.toast(`Loaded the "${template.label}" template.`, 'ok');
   }
 
   /**

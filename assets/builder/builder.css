@@ -956,3 +956,16 @@ body.preview-hidden .preview-toggle span[aria-hidden] { color: #0A1811; }
 @media (max-width: 560px) {
   .tool-row .input, .tool-row .btn { flex-basis: 100%; }
 }
+
+/* The template picker sits on the red shell, so it needs the LCD treatment
+   rather than the paper one the form controls use. */
+.side-select {
+  width: 100%;
+  background-color: rgba(0, 0, 0, .28);
+  border-color: rgba(0, 0, 0, .3);
+  color: #FFE9B8;
+  font-weight: 700;
+}
+.side-select option { background: var(--paper); color: var(--ink); }
+#template-about { margin: 2px 0 4px; font-size: 11.5px; }
+#template-about:empty { display: none; }

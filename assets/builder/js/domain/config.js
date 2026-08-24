@@ -617,6 +617,9 @@ const FULL_EV = 252;
 function toEvGoalList(value) {
   if (!Array.isArray(value)) return [];
   const stats = new Set(EV_STATS.map((entry) => entry.id));
+  // A row whose id has not been filled in yet is kept, not dropped: it is the
+  // shape of the table the player is still working on. The generator ignores
+  // it and the lint asks for the missing id.
   return value
     .filter(isPlainObject)
     .map((goal) => {
@@ -626,8 +629,7 @@ function toEvGoalList(value) {
         stat: stats.has(stat) ? stat : 'ATK',
         target: clampEv(goal.target),
       };
-    })
-    .filter((goal) => goal.id);
+    });
 }
 
 /**

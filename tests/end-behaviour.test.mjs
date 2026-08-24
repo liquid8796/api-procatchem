@@ -165,7 +165,7 @@ test('an EV table with no rows turns rotation off rather than looping over nothi
   assert.doesNotMatch(result.lua, /EV_GOALS/);
 });
 
-test('EV goal rows are cleaned up on load', () => {
+test('EV goal rows are cleaned up on load, but a half-typed row is kept', () => {
   const base = createDefaultConfig();
   base.team.rotation.goals = [
     { id: ' 42 ', stat: 'spd', target: '9999' },
@@ -175,6 +175,16 @@ test('EV goal rows are cleaned up on load', () => {
   const config = normaliseConfig(base);
   assert.deepEqual(config.team.rotation.goals, [
     { id: '42', stat: 'SPD', target: 252 },
+    { id: '', stat: 'ATK', target: 10 },
     { id: '7', stat: 'ATK', target: 1 },
   ]);
+});
+
+test('a row with no unique id contributes nothing to the generated table', () => {
+  const result = build((config) => {
+    config.team.rotation.mode = 'uidEv';
+    config.team.rotation.goals = [{ id: '', stat: 'ATK', target: 252 }, { id: '99', stat: 'SPD', target: 4 }];
+  });
+  assert.match(result.lua, /local EV_GOALS = \{\n {4}\{ 99, "SPD", 4 \},\n\}/);
+  assert.deepEqual(result.unknownCalls, []);
 });

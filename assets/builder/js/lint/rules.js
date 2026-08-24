@@ -335,6 +335,10 @@ lintRegistry.register('rotation-ev-table', ({ config, mode }) => {
   const seen = new Set();
   goals.forEach((goal, index) => {
     const id = String(goal.id ?? '').trim();
+    if (!id) {
+      out.push(finding('error', `EV table row ${index + 1} still needs a unique id.`, 'team'));
+      return;
+    }
     if (!/^[0-9]+$/.test(id)) {
       out.push(finding('error', `EV table row ${index + 1}: "${id}" is not a whole unique id.`, 'team'));
       return;

@@ -2,8 +2,9 @@
  * Entry point: mount the builder and bind the toolbar.
  */
 
+import { TEMPLATES } from './domain/templates.js';
 import { BuilderApp } from './ui/app.js';
-import { must, prefersReducedMotion } from './ui/dom.js';
+import { h, must, prefersReducedMotion, replaceChildren } from './ui/dom.js';
 import { LinkGraphTools } from './ui/link-graph-tools.js';
 
 const app = new BuilderApp({
@@ -39,6 +40,28 @@ const graphTools = new LinkGraphTools(
   app,
 );
 on('#btn-graph-tools', () => graphTools.open());
+
+// The template picker describes the highlighted entry, so the choice can be
+// made without loading each one to find out what it does.
+const templatePicker = /** @type {HTMLSelectElement} */ (must('#template-picker'));
+const templateAbout = must('#template-about');
+replaceChildren(templatePicker, TEMPLATES.map(
+  (template) => h('option', { value: template.id, text: template.label }),
+));
+const describeTemplate = () => {
+  const chosen = TEMPLATES.find((template) => template.id === templatePicker.value);
+  templateAbout.textContent = chosen?.description ?? '';
+};
+templatePicker.addEventListener('change', describeTemplate);
+describeTemplate();
+
+on('#btn-template', () => {
+  const chosen = TEMPLATES.find((template) => template.id === templatePicker.value);
+  if (!chosen) return;
+  if (confirm(`Replace everything with the "${chosen.label}" template?`)) {
+    app.loadTemplate(chosen.id);
+  }
+});
 on('#btn-toggle-preview', () => app.togglePreview());
 on('#btn-hide-preview', () => app.togglePreview(true));
 
