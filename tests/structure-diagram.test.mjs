@@ -159,3 +159,24 @@ test('zones replace the plain hunting action in the description', () => {
   assert.match(text, /Work the current farm zone \[2 zone\(s\), rotating onWin\]/);
   assert.match(text, /Reroll the zone after a win/);
 });
+
+test('a period that hunts its own way gets a branch in the diagram', () => {
+  const text = labels(describe((config) => {
+    Object.assign(config.route.timeOfDay, {
+      enabled: true,
+      nightAction: 'fish',
+      nightArgs: '12, 30',
+      nightRod: 'Super Rod',
+    });
+  })).join('\n');
+
+  assert.match(text, /Night\? \[look for encounters with fish\]/);
+  assert.match(text, /Look for encounters \[moveToGrass\]/, 'the main action is still the fallback');
+});
+
+test('a period that repeats the main action adds no branch', () => {
+  const text = labels(describe((config) => {
+    Object.assign(config.route.timeOfDay, { enabled: true, nightAction: 'moveToGrass' });
+  })).join('\n');
+  assert.doesNotMatch(text, /Night\?/);
+});

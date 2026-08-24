@@ -144,8 +144,11 @@ export const HANDBOOK_SECTIONS = Object.freeze([
       + 'route continues. They adjust state rather than run an arbitrary action, because '
       + 'an action has no completion signal — the script would repeat it forever. Being '
       + 'mounted, or being on land, is something the next frame can check.',
-      'Time-of-day hunting gives each period its own hunting map and its own pair of hop '
-      + 'tables, chosen at runtime by isMorning() / isNoon() / isNight().',
+      'Time-of-day hunting gives each period its own hunting map — with its own pair of hop '
+      + 'tables — its own way of finding encounters, or both, chosen at runtime by '
+      + 'isMorning() / isNoon() / isNight(). A period that only changes the style shares the '
+      + 'route; one that only changes the map shares the style. The surf guard belongs to the '
+      + 'branch it is in, so surfing all morning does not strand the script on the water at noon.',
     ],
   },
   {

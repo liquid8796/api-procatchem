@@ -9,7 +9,7 @@
  */
 
 import { isEmptyCondition } from '../domain/condition.js';
-import { toStringList } from '../domain/config.js';
+import { TIME_PERIODS, periodFields, toStringList } from '../domain/config.js';
 import { h, replaceChildren } from './dom.js';
 
 /**
@@ -193,12 +193,36 @@ function farmBranch(plan, zones, config) {
     ));
     nodes.push(step('Otherwise walk one hop towards it', `${plan.toFarm.length} hop(s)`));
   }
-  if (config.route.surfFix) nodes.push(step('Step off the water if we are surfing'));
   if (config.mounts.dismountOnFarm) nodes.push(step('Dismount'));
-  nodes.push(zones.active
-    ? step('Work the current farm zone', `${zones.zones.length} zone(s), rotating ${zones.mode}`)
-    : step('Look for encounters', config.route.farmAction));
+  if (zones.active) {
+    nodes.push(step('Work the current farm zone', `${zones.zones.length} zone(s), rotating ${zones.mode}`));
+    return nodes;
+  }
+
+  // Periods that hunt their own way are branches of their own; each carries its
+  // own surf guard, so the diagram shows them the same way the script does.
+  for (const period of periodStyles(config)) {
+    nodes.push(check(`${period.label}?`, `look for encounters with ${period.action}`));
+  }
+  nodes.push(step('Look for encounters', config.route.farmAction));
   return nodes;
+}
+
+/**
+ * Times of day that hunt differently from the main setting.
+ *
+ * @param {object} config
+ * @returns {Array<{ label: string, action: string }>}
+ */
+function periodStyles(config) {
+  const timeOfDay = config.route.timeOfDay ?? {};
+  if (!timeOfDay.enabled) return [];
+  return TIME_PERIODS
+    .map((period) => ({
+      label: period.label,
+      action: String(timeOfDay[periodFields(period.id).action] ?? '').trim(),
+    }))
+    .filter((period) => period.action && period.action !== config.route.farmAction);
 }
 
 /**
