@@ -8,6 +8,7 @@ import { BuilderApp } from './ui/app.js';
 import { h, must, prefersReducedMotion, replaceChildren } from './ui/dom.js';
 import { LinkGraphTools } from './ui/link-graph-tools.js';
 import { StructureDiagram } from './ui/structure-diagram.js';
+import { installThemeToggle } from './ui/theme.js';
 
 const app = new BuilderApp({
   panels: must('#panels'),
@@ -52,6 +53,8 @@ const structure = new StructureDiagram(
   () => app.config,
 );
 on('#btn-structure', () => structure.open());
+
+installThemeToggle(must('#btn-theme'));
 
 // The template picker describes the highlighted entry, so the choice can be
 // made without loading each one to find out what it does.
