@@ -72,15 +72,35 @@ const ZONE_SETUPS = [
 const TEAM_SETUPS = [
   {},
   { useStrongest: true },
-  { leadAbility: 'Synchronize', rotation: { mode: 'weakest', stat: 'ATK', target: 252, slots: 2, ids: [] } },
+  { leadAbility: 'Synchronize', rotation: { mode: 'weakest', stat: 'ATK', target: 252, ids: [], goals: [] } },
   {
     leadAbility: 'Synchronize',
     secondAbility: 'Trace',
-    rotation: { mode: 'ev', stat: 'SPD', target: 252, slots: 2, ids: [] },
+    rotation: { mode: 'ev', stat: 'SPD', target: 252, ids: [], goals: [] },
     leadItem: 'Leftovers',
     keepMoves: ['False Swipe', 'Surf'],
   },
-  { rotation: { mode: 'uid', stat: 'ATK', target: 252, slots: 2, ids: ['111', '222'] } },
+  { rotation: { mode: 'uid', stat: 'ATK', target: 252, ids: ['111', '222'], goals: [] } },
+  { rotation: { mode: 'highest', stat: 'ATK', target: 252, ids: [], goals: [] } },
+  {
+    rotation: {
+      mode: 'uidEv',
+      stat: 'ATK',
+      target: 252,
+      ids: [],
+      goals: [{ id: '111', stat: 'ATK', target: 252 }, { id: '222', stat: 'SPD', target: 100 }],
+    },
+  },
+];
+
+/** What happens when the keep-farming condition fails. */
+const END_SETUPS = [
+  { endBehaviour: 'pcLoop' },
+  { endBehaviour: 'healNpc', endHealCell: '59, 13', endHealMoney: null },
+  { endBehaviour: 'healNpc', endHealCell: '59, 13', endHealMoney: 1500 },
+  { endBehaviour: 'stop', endMessage: 'Session finished.' },
+  { endBehaviour: 'logout', endMessage: '' },
+  { endBehaviour: 'idle' },
 ];
 
 /** Every step action, so each emitter is executed at least once. */
@@ -252,6 +272,12 @@ for (const mode of MODES) {
           config.safety.breaks.enabled = index % 2 === 0;
           config.safety.afkTimeout = index % 3 === 0 ? 300 : null;
           config.safety.onTrapped = ['', 'run', 'relog'][index % 3];
+          config.safety.relogDelay = index % 6 === 2 ? 90 : 30;
+
+          // `index` alternates route kind, so selecting on `index` directly
+          // would pin every end behaviour to one of them. Halving it first
+          // gives each behaviour a turn on both.
+          Object.assign(config.route, END_SETUPS[Math.floor(index / 2) % END_SETUPS.length]);
 
           config.logging.counters = index % 5 !== 0;
           config.logging.announceShiny = index % 2 === 0;

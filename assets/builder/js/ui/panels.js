@@ -9,6 +9,7 @@
 
 import {
   BALL_CONDITIONS,
+  END_BEHAVIOURS,
   EV_STATS,
   FARM_ACTIONS,
   FISHING_ACTION,
@@ -496,6 +497,38 @@ export const PANELS = [
       },
       {
         type: 'select',
+        path: 'route.endBehaviour',
+        label: 'When that condition fails',
+        options: END_BEHAVIOURS.map((entry) => ({
+          value: entry.id,
+          label: `${entry.label} — ${entry.hint}`,
+        })),
+      },
+      {
+        type: 'text',
+        path: 'route.endHealCell',
+        label: 'Nurse cell on this map',
+        placeholder: '59, 13',
+        visibleWhen: (config) => config.route.endBehaviour === 'healNpc',
+      },
+      {
+        type: 'number',
+        path: 'route.endHealMoney',
+        label: 'Only heal with at least',
+        placeholder: 'any amount',
+        min: 1, nullable: true,
+        hint: 'These healers charge; below this the script stops rather than looping.',
+        visibleWhen: (config) => config.route.endBehaviour === 'healNpc',
+      },
+      {
+        type: 'text',
+        path: 'route.endMessage',
+        label: 'Message to log',
+        placeholder: 'Farming condition no longer holds.',
+        visibleWhen: (config) => ['stop', 'logout'].includes(config.route.endBehaviour),
+      },
+      {
+        type: 'select',
         path: 'team.rotation.mode',
         label: 'Rotate the team',
         options: ROTATION_MODES.map((entry) => ({
@@ -525,6 +558,14 @@ export const PANELS = [
         addLabel: '+ Add an id',
         hint: 'The first one that can still fight takes the lead.',
         visibleWhen: (config) => config.team.rotation.mode === 'uid',
+      },
+      {
+        type: 'evGoals',
+        path: 'team.rotation.goals',
+        label: 'EV table',
+        hint: 'Worked top to bottom: the first Pokémon still short of its target leads. '
+          + 'In EV farm mode the encounter filter follows whichever stat that is.',
+        visibleWhen: (config) => config.team.rotation.mode === 'uidEv',
       },
       {
         type: 'text',
@@ -604,6 +645,14 @@ export const PANELS = [
         hint: 'Applied to encounters this mode does not want — a target is never abandoned.',
         options: asOptions(TRAPPED_POLICIES),
         visibleWhen: () => !mode.traits.engagesEveryEncounter,
+      },
+      {
+        type: 'number',
+        path: 'safety.relogDelay',
+        label: 'Seconds to stay out before reconnecting',
+        min: 1, max: 3600,
+        visibleWhen: (config) => !mode.traits.engagesEveryEncounter
+          && config.safety.onTrapped === 'relog',
       },
       {
         type: 'toggle',

@@ -325,6 +325,88 @@ lintRegistry.register('rotation-uid-list', ({ config }) => {
   return finding('error', `Unique ids must be whole numbers: "${bad}" is not.`, 'team');
 });
 
+lintRegistry.register('rotation-ev-table', ({ config, mode }) => {
+  if (config.team.rotation.mode !== 'uidEv') return null;
+  const goals = config.team.rotation.goals ?? [];
+  if (!goals.length) return finding('error', 'The EV table has no Pokémon in it.', 'team');
+
+  /** @type {Finding[]} */
+  const out = [];
+  const seen = new Set();
+  goals.forEach((goal, index) => {
+    const id = String(goal.id ?? '').trim();
+    if (!/^[0-9]+$/.test(id)) {
+      out.push(finding('error', `EV table row ${index + 1}: "${id}" is not a whole unique id.`, 'team'));
+      return;
+    }
+    if (seen.has(id)) {
+      out.push(finding(
+        'warning',
+        `EV table row ${index + 1}: ${id} is listed twice; only the first row is ever reached.`,
+        'team',
+      ));
+    }
+    seen.add(id);
+  });
+
+  if (mode.id !== 'ev') {
+    out.push(finding(
+      'info',
+      'The EV table also drives the encounter filter, but only in EV farm mode. '
+      + 'Here it just decides who leads.',
+      'team',
+    ));
+  }
+  return out;
+});
+
+lintRegistry.register('ev-stat-ignored', ({ config, mode }) => {
+  if (mode.id !== 'ev' || config.team.rotation.mode !== 'uidEv') return null;
+  return finding(
+    'info',
+    'The EV table is in charge, so the single stat above is ignored — the filter follows '
+    + 'whichever Pokémon is currently leading.',
+    'mode',
+  );
+});
+
+lintRegistry.register('end-behaviour-arguments', ({ config, plan }) => {
+  const behaviour = config.route.endBehaviour;
+  /** @type {Finding[]} */
+  const out = [];
+
+  if (behaviour === 'healNpc'
+    && !/^-?\d+\s*[,;]\s*-?\d+$/.test(String(config.route.endHealCell ?? '').trim())) {
+    out.push(finding('error', 'Healing at an NPC needs its cell, e.g. "59, 13".', 'team'));
+  }
+  if (behaviour !== 'pcLoop' && plan.travels) {
+    out.push(finding(
+      'info',
+      'The route still walks to the hunting map, but it never walks back — the return '
+      + 'trip is only used for breaks now.',
+      'team',
+    ));
+  }
+  return out;
+});
+
+lintRegistry.register('zone-reroll-unreachable', ({ config, zones }) => {
+  if (!zones.eventDriven || zones.mode !== 'onHeal') return null;
+  if (config.route.endBehaviour === 'pcLoop') return null;
+  return finding(
+    'warning',
+    'Zones reroll on every heal, but the farm loop no longer heals — so the zone never changes.',
+    'zones',
+  );
+});
+
+lintRegistry.register('relog-delay', ({ config, mode }) => {
+  if (mode.traits.engagesEveryEncounter || config.safety.onTrapped !== 'relog') return null;
+  const delay = Number.parseInt(String(config.safety.relogDelay ?? ''), 10);
+  if (Number.isFinite(delay) && delay > 0) return null;
+  return finding('warning', 'The relog delay must be above zero; 30 seconds is used instead.', 'safety');
+});
+
 lintRegistry.register('custom-guard-overrides', ({ config }) => {
   if (isEmptyCondition(config.team.customGuard)) return null;
   return finding(

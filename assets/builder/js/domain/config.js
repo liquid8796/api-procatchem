@@ -27,6 +27,21 @@ export const HEAL_ACTIONS = Object.freeze([
   { id: 'talkToNpcOnCell', label: 'Talk to a nurse on a cell', args: 'cell' },
 ]);
 
+/**
+ * What happens when the keep-farming condition stops holding.
+ *
+ * The Pokécenter loop is the usual answer, but a run that cannot be resumed
+ * unattended — an EV session with a fixed target, a rented account — is better
+ * off stopping cleanly than walking in circles.
+ */
+export const END_BEHAVIOURS = Object.freeze([
+  { id: 'pcLoop', label: 'Walk back and heal', hint: 'The Pokécenter trip, then carry on' },
+  { id: 'healNpc', label: 'Heal here, at an NPC', hint: 'No travel — a nurse on this map' },
+  { id: 'stop', label: 'Stop the bot', hint: 'Logs a message and halts' },
+  { id: 'logout', label: 'Log out', hint: 'Leaves the game running no longer' },
+  { id: 'idle', label: 'Stand still', hint: 'Stays logged in and does nothing' },
+]);
+
 /** Stat keys accepted by the host's effort-value functions. */
 export const EV_STATS = Object.freeze([
   { id: 'HP', label: 'HP' },
@@ -100,8 +115,10 @@ export const STOP_TERRAINS = Object.freeze([
 export const ROTATION_MODES = Object.freeze([
   { id: 'off', label: 'No rotation', hint: 'Keep the team as it is' },
   { id: 'weakest', label: 'Lowest level first', hint: 'Levels the whole team evenly' },
+  { id: 'highest', label: 'Highest level first', hint: 'Fastest knock-outs, for money runs' },
   { id: 'ev', label: 'Until an EV target', hint: 'Rotates a slot out once its EV is capped' },
   { id: 'uid', label: 'Through a unique-id list', hint: 'Exactly the Pokémon you name' },
+  { id: 'uidEv', label: 'A list, each with its own EV goal', hint: 'Trains several spreads in one run' },
 ]);
 
 /** What a battle step does when its guard passes. */
@@ -321,6 +338,11 @@ export function createDefaultConfig() {
       pokecenterMap: '',
       healAction: 'usePokecenter',
       healArgs: '',
+      // What happens when teamIsReady() stops holding.
+      endBehaviour: 'pcLoop',
+      endHealCell: '',
+      endHealMoney: null,
+      endMessage: '',
       surfFix: true,
       // Group 1 — several rectangles to work, and when to move between them.
       zones: [],
@@ -361,7 +383,7 @@ export function createDefaultConfig() {
       // A non-empty tree replaces the two simple conditions above.
       customGuard: emptyGroup('and'),
       // Group 2 — rotation and lead management.
-      rotation: { mode: 'off', stat: 'ATK', target: 252, slots: 2, ids: [] },
+      rotation: { mode: 'off', stat: 'ATK', target: 252, ids: [], goals: [] },
       leadAbility: '',
       secondAbility: '',
       useStrongest: false,
@@ -377,6 +399,7 @@ export function createDefaultConfig() {
       breaks: { enabled: false, everyMin: 10, everyMax: 30, lengthMin: 30, lengthMax: 180 },
       afkTimeout: null,
       onTrapped: 'run',
+      relogDelay: 30,
     },
     logging: {
       counters: true,
@@ -409,7 +432,12 @@ export function normaliseConfig(loaded) {
 
   merged.route.zones = toStringList(merged.route.zones);
   merged.route.stops = toStopList(merged.route.stops);
+  merged.route.endBehaviour = END_BEHAVIOURS.some((entry) => entry.id === merged.route.endBehaviour)
+    ? merged.route.endBehaviour
+    : 'pcLoop';
+  merged.route.endHealMoney = toNullableInt(merged.route.endHealMoney);
   merged.team.rotation.ids = toStringList(merged.team.rotation.ids);
+  merged.team.rotation.goals = toEvGoalList(merged.team.rotation.goals);
   merged.team.keepMoves = toStringList(merged.team.keepMoves);
   merged.team.customGuard = normaliseCondition(merged.team.customGuard) ?? emptyGroup('and');
   merged.rules = toRuleList(merged.rules, base.rules);
@@ -577,6 +605,49 @@ function toStepList(value, depth = 0) {
         message: String(step.message ?? '').trim(),
       };
     });
+}
+
+/** The default EV target when a goal row does not name one. */
+const FULL_EV = 252;
+
+/**
+ * @param {unknown} value
+ * @returns {Array<{ id: string, stat: string, target: number }>}
+ */
+function toEvGoalList(value) {
+  if (!Array.isArray(value)) return [];
+  const stats = new Set(EV_STATS.map((entry) => entry.id));
+  return value
+    .filter(isPlainObject)
+    .map((goal) => {
+      const stat = String(goal.stat ?? '').toUpperCase();
+      return {
+        id: String(goal.id ?? '').trim(),
+        stat: stats.has(stat) ? stat : 'ATK',
+        target: clampEv(goal.target),
+      };
+    })
+    .filter((goal) => goal.id);
+}
+
+/**
+ * @param {unknown} value
+ * @returns {number} a target between 1 and a maxed-out stat
+ */
+function clampEv(value) {
+  const parsed = toNullableInt(value);
+  if (parsed === null) return FULL_EV;
+  return Math.min(FULL_EV, Math.max(1, parsed));
+}
+
+/**
+ * A blank per-Pokémon EV goal for the "add" button.
+ *
+ * @param {Partial<object>} [overrides]
+ * @returns {{ id: string, stat: string, target: number }}
+ */
+export function createEvGoal(overrides = {}) {
+  return { id: '', stat: 'ATK', target: FULL_EV, ...overrides };
 }
 
 /**

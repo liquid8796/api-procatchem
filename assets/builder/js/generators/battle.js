@@ -303,8 +303,17 @@ function ballGuard(writer, condition, lowHpPercent) {
   }
 }
 
-/** Seconds to wait before reconnecting when a trap forces a relog. */
-const RELOG_DELAY_SECONDS = 30;
+/** Fallback wait before reconnecting when a trap forces a relog. */
+const DEFAULT_RELOG_DELAY = 30;
+
+/**
+ * @param {object} config
+ * @returns {number} seconds to wait before reconnecting
+ */
+function relogDelay(config) {
+  const configured = Number.parseInt(String(config.safety.relogDelay ?? ''), 10);
+  return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_RELOG_DELAY;
+}
 
 /**
  * Whether the configured trap escape would emit anything.
@@ -347,7 +356,7 @@ export function emitTrappedEscape(writer, config) {
     writer.comment('Switching is blocked — reconnect to clear it.');
     writer.block('if relogArmed then', (inner) => {
       inner.line('relogArmed = false');
-      inner.line(`relog(${RELOG_DELAY_SECONDS}, "Trapped in battle — reconnecting.")`);
+      inner.line(`relog(${relogDelay(config)}, "Trapped in battle — reconnecting.")`);
       inner.line('return true');
     });
     writer.blank();

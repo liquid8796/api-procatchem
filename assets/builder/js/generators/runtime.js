@@ -633,10 +633,73 @@ export function emitOnPathAction(writer, context) {
       emitFarmTick(inner, context);
     });
     w.blank();
-    w.comment('Team is spent — head back and heal.');
-    emitHealTick(w, context);
+    emitEndOfFarm(w, context);
   });
   writer.blank();
+}
+
+/**
+ * What happens once the keep-farming condition stops holding.
+ *
+ * @param {LuaWriter} writer
+ * @param {EmitContext} context
+ */
+function emitEndOfFarm(writer, context) {
+  const { config } = context;
+  switch (config.route.endBehaviour) {
+    case 'healNpc':
+      emitHealHere(writer, config);
+      return;
+    case 'stop':
+      writer.useHost('fatal');
+      writer.comment('Configured to stop rather than resume once farming is done.');
+      writer.line(`fatal(${luaString(config.route.endMessage || 'Farming condition no longer holds.')})`);
+      writer.line('return true');
+      return;
+    case 'logout':
+      writer.useHost('logout');
+      writer.line(`logout(${luaString(config.route.endMessage || 'Farming condition no longer holds.')})`);
+      writer.line('return true');
+      return;
+    case 'idle':
+      writer.comment('Configured to stand still: stay logged in and take no action.');
+      writer.line('return false');
+      return;
+    case 'pcLoop':
+    default:
+      writer.comment('Team is spent — head back and heal.');
+      emitHealTick(writer, context);
+  }
+}
+
+/**
+ * Heal at a nurse on the map the bot is already standing on.
+ *
+ * The money gate exists because these healers charge; failing it means the run
+ * genuinely cannot continue, so it stops rather than looping on a cell it can
+ * do nothing with.
+ *
+ * @param {LuaWriter} writer
+ * @param {object} config
+ */
+function emitHealHere(writer, config) {
+  const [x, y] = splitList(config.route.endHealCell);
+  const money = config.route.endHealMoney;
+
+  writer.comment('Team is spent — heal here rather than walking to a Pokécenter.');
+  writer.useHosts(['isSurfing', 'moveToNormalGround', 'talkToNpcOnCell']);
+  writer.line('if isSurfing() then return moveToNormalGround() end');
+
+  const heal = `return talkToNpcOnCell(${luaNumber(x, 0)}, ${luaNumber(y, 0)})`;
+  if (money === null || money <= 0) {
+    writer.line(heal);
+    return;
+  }
+  writer.useHosts(['getMoney', 'fatal']);
+  writer.block(`if getMoney() >= ${luaNumber(money, 0)} then`, (inner) => inner.line(heal));
+  writer.comment('Below the threshold there is no way to heal, so do not spin on it.');
+  writer.line(`fatal(${luaString(`Not enough money to heal — needs ${luaNumber(money, 0)}.`)})`);
+  writer.line('return true');
 }
 
 /**
