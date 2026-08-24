@@ -9,7 +9,13 @@
  */
 
 import { luaKey, luaNumber, luaString, section } from '../core/lua-writer.js';
-import { splitList, toStringList } from '../domain/config.js';
+import {
+  FISHING_ACTION,
+  TIME_PERIODS,
+  periodFields,
+  splitList,
+  toStringList,
+} from '../domain/config.js';
 import {
   CONDITION_HELPERS,
   collectConditionFlags,
@@ -758,26 +764,75 @@ function emitFarmTick(writer, context) {
  * @param {EmitContext} context
  */
 function emitFarmAction(writer, { config, zones }) {
-  const { farmAction, surfFix } = config.route;
-  // Fishing gets its encounters from the rod, not the terrain, and the cell may
-  // well be on water — stepping ashore first would fight the walk to it forever.
-  const terrainIsChosen = farmAction === 'moveToWater' || farmAction === 'fish';
-
-  if (surfFix && !terrainIsChosen && !zones.active) {
-    writer.useHosts(['isSurfing', 'moveToNormalGround']);
-    writer.comment('Surfing when we want land encounters: step back onto dry ground first.');
-    writer.line('if isSurfing() then return moveToNormalGround() end');
-  }
   if (config.mounts.dismountOnFarm) {
     writer.useHosts(['isMounted', 'disMount']);
     writer.line('if isMounted() then return disMount() end');
   }
   if (zones.active) {
+    // The surf guard belongs to a plain hunting action; a zone walks to
+    // coordinates and decides its own terrain.
     writer.comment('Zones replace the plain hunting action.');
     writer.line('return farmZone()');
     return;
   }
-  emitFarmCall(writer, farmAction, config.route);
+
+  // A period that hunts a different way gets its own branch, with its own surf
+  // guard — hunting grass at noon still wants to leave the water even if the
+  // morning is spent surfing. The main action is the fallback for every period
+  // that did not ask for one.
+  for (const override of periodOverrides(config)) {
+    writer.useHost(override.host);
+    writer.block(`if ${override.host}() then`, (inner) => {
+      emitSurfGuard(inner, override.farmAction, config.route.surfFix);
+      emitFarmCall(inner, override.farmAction, override);
+    });
+  }
+  emitSurfGuard(writer, config.route.farmAction, config.route.surfFix);
+  emitFarmCall(writer, config.route.farmAction, config.route);
+}
+
+/**
+ * Step ashore before hunting on land.
+ *
+ * Skipped for the two actions that choose their own terrain: surfing obviously,
+ * and fishing — its cell may well be on water, so stepping ashore would fight
+ * the walk to it forever.
+ *
+ * @param {LuaWriter} writer
+ * @param {string} action
+ * @param {boolean} surfFix
+ */
+function emitSurfGuard(writer, action, surfFix) {
+  if (!surfFix || action === 'moveToWater' || action === FISHING_ACTION) return;
+  writer.useHosts(['isSurfing', 'moveToNormalGround']);
+  writer.comment('Surfing when we want land encounters: step back onto dry ground first.');
+  writer.line('if isSurfing() then return moveToNormalGround() end');
+}
+
+/**
+ * Periods that hunt differently from the main setting.
+ *
+ * @param {object} config
+ * @returns {Array<{ id: string, host: string, farmAction: string, farmArgs: string, farmRod: string }>}
+ */
+function periodOverrides(config) {
+  const timeOfDay = config.route.timeOfDay ?? {};
+  if (!timeOfDay.enabled) return [];
+
+  const overrides = [];
+  for (const period of TIME_PERIODS) {
+    const fields = periodFields(period.id);
+    const action = String(timeOfDay[fields.action] ?? '').trim();
+    if (!action || action === config.route.farmAction) continue;
+    overrides.push({
+      id: period.id,
+      host: period.host,
+      farmAction: action,
+      farmArgs: String(timeOfDay[fields.args] ?? '').trim(),
+      farmRod: String(timeOfDay[fields.rod] ?? '').trim(),
+    });
+  }
+  return overrides;
 }
 
 /**

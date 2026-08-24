@@ -10,7 +10,14 @@
 import { Registry } from '../core/registry.js';
 import { looksLikeBareWord, looksLikeUnquotedText, validateCall } from '../domain/api-call.js';
 import { isEmptyCondition } from '../domain/condition.js';
-import { CHAIN_ACTIONS, EV_STATS, toStringList } from '../domain/config.js';
+import {
+  CHAIN_ACTIONS,
+  EV_STATS,
+  FISHING_ACTION,
+  TIME_PERIODS,
+  periodFields,
+  toStringList,
+} from '../domain/config.js';
 import { parseZone } from '../domain/zone.js';
 
 /**
@@ -295,14 +302,55 @@ lintRegistry.register('stop-force-mount', ({ config, plan }) => {
 lintRegistry.register('time-of-day-empty', ({ config }) => {
   const timeOfDay = config.route.timeOfDay ?? {};
   if (!timeOfDay.enabled) return null;
-  const named = [timeOfDay.morningMap, timeOfDay.noonMap, timeOfDay.nightMap]
-    .filter((map) => String(map ?? '').trim());
-  if (named.length) return null;
+
+  const changes = TIME_PERIODS.some((period) => {
+    const fields = periodFields(period.id);
+    return String(timeOfDay[fields.map] ?? '').trim()
+      || String(timeOfDay[fields.action] ?? '').trim();
+  });
+  if (changes) return null;
   return finding(
     'warning',
-    'Time-of-day hunting is on but no period names a map, so it has no effect.',
+    'Time-of-day hunting is on but no period changes anything, so it has no effect.',
     'stops',
   );
+});
+
+lintRegistry.register('time-of-day-arguments', ({ config, zones }) => {
+  const timeOfDay = config.route.timeOfDay ?? {};
+  if (!timeOfDay.enabled) return null;
+
+  /** @type {Finding[]} */
+  const out = [];
+  let overrides = 0;
+
+  for (const period of TIME_PERIODS) {
+    const fields = periodFields(period.id);
+    const action = String(timeOfDay[fields.action] ?? '').trim();
+    if (!action) continue;
+    overrides += 1;
+
+    const args = String(timeOfDay[fields.args] ?? '').trim();
+    const isCell = /^-?\d+\s*[,;]\s*-?\d+$/.test(args);
+    if ((action === 'moveToCell' || action === FISHING_ACTION) && !isCell) {
+      out.push(finding('error', `${period.label}: hunting this way needs a cell, e.g. "12, 30".`, 'stops'));
+    }
+    if (action === FISHING_ACTION && !String(timeOfDay[fields.rod] ?? '').trim()) {
+      out.push(finding('error', `${period.label}: fishing needs a rod, e.g. "Super Rod".`, 'stops'));
+    }
+    if (action === 'useItem' && !args) {
+      out.push(finding('error', `${period.label}: this needs an item name, e.g. "Repel".`, 'stops'));
+    }
+  }
+
+  if (overrides && zones.active) {
+    out.push(finding(
+      'warning',
+      'Farm zones replace the hunting action, so the per-period ones never run.',
+      'zones',
+    ));
+  }
+  return out;
 });
 
 lintRegistry.register('rotation-conflicts-with-pins', ({ team }) => {

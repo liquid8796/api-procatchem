@@ -16,10 +16,12 @@ import {
   HEAL_ACTIONS,
   OTHER_POLICIES,
   ROTATION_MODES,
+  TIME_PERIODS,
   TRAINER_POLICIES,
   TRAPPED_POLICIES,
   WEAKEN_MODES,
   ZONE_ROTATION_MODES,
+  periodFields,
   toStringList,
 } from '../domain/config.js';
 import { modeRegistry } from '../generators/mode-registry.js';
@@ -44,6 +46,64 @@ const asOptions = (entries) => entries.map((entry) => ({
   label: entry.label,
   hint: entry.hint,
 }));
+
+/**
+ * The four fields one time-of-day period offers: where to hunt, how, and the
+ * arguments that "how" needs. Every one is optional — anything left blank
+ * falls back to the main setting, so a period that only changes the map still
+ * costs one field.
+ *
+ * @param {{ id: string, label: string }} period
+ * @returns {import('./fields.js').Field[]}
+ */
+function periodFieldSet(period) {
+  const fields = periodFields(period.id);
+  const base = `route.timeOfDay.${fields.action}`;
+  const shown = (config) => config.route.timeOfDay.enabled;
+  const action = (config) => config.route.timeOfDay[fields.action];
+
+  return [
+    {
+      type: 'text',
+      path: `route.timeOfDay.${fields.map}`,
+      label: `${period.label} map`,
+      placeholder: 'leave blank to use the main map',
+      visibleWhen: shown,
+    },
+    {
+      type: 'select',
+      path: base,
+      label: `${period.label} — how to find encounters`,
+      options: [
+        { value: '', label: 'Same as the main setting' },
+        ...FARM_ACTIONS.map((entry) => ({ value: entry.id, label: `${entry.label} — ${entry.hint}` })),
+      ],
+      visibleWhen: shown,
+    },
+    {
+      type: 'text',
+      path: `route.timeOfDay.${fields.args}`,
+      label: `${period.label} — cell to stand on`,
+      placeholder: '12, 30',
+      visibleWhen: (config) => shown(config)
+        && ['moveToCell', FISHING_ACTION].includes(action(config)),
+    },
+    {
+      type: 'text',
+      path: `route.timeOfDay.${fields.rod}`,
+      label: `${period.label} — rod to cast`,
+      placeholder: 'Super Rod',
+      visibleWhen: (config) => shown(config) && action(config) === FISHING_ACTION,
+    },
+    {
+      type: 'text',
+      path: `route.timeOfDay.${fields.args}`,
+      label: `${period.label} — item to use`,
+      placeholder: 'Repel',
+      visibleWhen: (config) => shown(config) && action(config) === 'useItem',
+    },
+  ];
+}
 
 /** True when the current farm action needs a cell coordinate. */
 const needsCell = (config) => config.route.farmAction === 'moveToCell'
@@ -296,30 +356,11 @@ export const PANELS = [
       {
         type: 'toggle',
         path: 'route.timeOfDay.enabled',
-        label: 'Hunt a different map depending on the time',
-        hint: 'Each period gets its own outbound and return route.',
+        label: 'Hunt differently depending on the time',
+        hint: 'Each period can take its own map — with its own outbound and return '
+          + 'route — its own way of finding encounters, or both.',
       },
-      {
-        type: 'text',
-        path: 'route.timeOfDay.morningMap',
-        label: 'Morning map',
-        placeholder: 'leave blank to use the main map',
-        visibleWhen: (config) => config.route.timeOfDay.enabled,
-      },
-      {
-        type: 'text',
-        path: 'route.timeOfDay.noonMap',
-        label: 'Noon map',
-        placeholder: 'leave blank to use the main map',
-        visibleWhen: (config) => config.route.timeOfDay.enabled,
-      },
-      {
-        type: 'text',
-        path: 'route.timeOfDay.nightMap',
-        label: 'Night map',
-        placeholder: 'leave blank to use the main map',
-        visibleWhen: (config) => config.route.timeOfDay.enabled,
-      },
+      ...TIME_PERIODS.flatMap(periodFieldSet),
     ], store)],
   },
 

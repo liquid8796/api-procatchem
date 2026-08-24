@@ -21,6 +21,33 @@ export const FARM_ACTIONS = Object.freeze([
 /** Farm actions that need a rod as well as a cell. */
 export const FISHING_ACTION = 'fish';
 
+/**
+ * Time-of-day periods, with the host predicate that selects each.
+ *
+ * `night` is tested before `noon` because the generated selector returns on the
+ * first match, and the two are the ones players most often set together.
+ */
+export const TIME_PERIODS = Object.freeze([
+  { id: 'morning', label: 'Morning', host: 'isMorning' },
+  { id: 'night', label: 'Night', host: 'isNight' },
+  { id: 'noon', label: 'Noon', host: 'isNoon' },
+]);
+
+/**
+ * The field names one period uses inside `route.timeOfDay`.
+ *
+ * @param {string} period
+ * @returns {{ map: string, action: string, args: string, rod: string }}
+ */
+export function periodFields(period) {
+  return {
+    map: `${period}Map`,
+    action: `${period}Action`,
+    args: `${period}Args`,
+    rod: `${period}Rod`,
+  };
+}
+
 /** How the script gets healed once the team runs dry. */
 export const HEAL_ACTIONS = Object.freeze([
   { id: 'usePokecenter', label: 'Use the Pokécenter', args: 'none' },
@@ -350,7 +377,15 @@ export function createDefaultConfig() {
       // Group 4 — extra legs between the Pokécenter and the hunting map, and a
       // different hunting map per time of day.
       stops: [],
-      timeOfDay: { enabled: false, morningMap: '', noonMap: '', nightMap: '' },
+      // A period may change the hunting map, the way encounters are found, or
+      // both. A blank action means "whatever the main setting says", so the
+      // common case — one spot, one style — stays a single field.
+      timeOfDay: {
+        enabled: false,
+        morningMap: '', morningAction: '', morningArgs: '', morningRod: '',
+        noonMap: '', noonAction: '', noonArgs: '', noonRod: '',
+        nightMap: '', nightAction: '', nightArgs: '', nightRod: '',
+      },
     },
     mounts: {
       land: [],

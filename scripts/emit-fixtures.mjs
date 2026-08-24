@@ -296,9 +296,22 @@ for (const mode of MODES) {
 
           // `index` is even on the 'here' pass and odd on the 'route' pass, so the
           // selector must be odd for time-of-day to ever reach a routed fixture.
-          config.route.timeOfDay = routeKind === 'route' && index % 6 === 1
-            ? { enabled: true, morningMap: 'Route 21', noonMap: '', nightMap: '' }
-            : { enabled: false, morningMap: '', noonMap: '', nightMap: '' };
+          config.route.timeOfDay = { ...createDefaultConfig().route.timeOfDay };
+          if (routeKind === 'route' && index % 6 === 1) {
+            Object.assign(config.route.timeOfDay, { enabled: true, morningMap: 'Route 21' });
+          }
+          // A period that hunts a different way, on both route kinds.
+          if (index % 10 === 4) {
+            Object.assign(config.route.timeOfDay, {
+              enabled: true,
+              nightAction: 'fish',
+              nightArgs: '12, 30',
+              nightRod: 'Super Rod',
+              morningAction: 'moveToWater',
+              noonAction: 'useItem',
+              noonArgs: 'Repel',
+            });
+          }
 
           Object.assign(config.team, TEAM_SETUPS[index % TEAM_SETUPS.length]);
           config.team.customGuard = GUARDS[index % GUARDS.length];
