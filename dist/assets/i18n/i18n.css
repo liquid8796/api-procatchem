@@ -216,21 +216,44 @@
 
 /* --------------------------------------------- translated-heading fallback */
 
-/* Press Start 2P ships no Vietnamese diacritics, and that holds for most
-   non-Latin packs too; fall back to the body face whenever a translation is
-   active so accents render instead of dropping out. */
-html:not([data-doc-lang="en"]) .tag-section h1 {
-  font-family: var(--ff-body);
+/* Press Start 2P ships latin and latin-ext only — there is no Vietnamese
+   subset — so a translated heading set in it loses its diacritics mid-word,
+   and the same holds for most non-Latin packs.
+ *
+ * The swap is done on the token rather than on a list of headings: keeping
+ * such a list in step with the pages is what let "Giới thiệu" and the HP
+ * label slip through, so the default is inverted instead. Every element that
+ * asks for --ff-pixel is safe here automatically; text that is never
+ * translated — product names, type chips, function signatures, the COPY and
+ * NEW badges — opts out by asking for --ff-pixel-latin and keeps the pixel
+ * face. Adding a pixel-font heading now needs no edit to this file.
+ *
+ * `html:not([data-doc-lang="en"])` outweighs the `:root` that defines the
+ * token, so this wins wherever the page's own stylesheet sits. */
+html:not([data-doc-lang="en"]) {
+  --ff-pixel: var(--ff-body);
+}
+
+/* Proportion only — the family is already handled above. The pixel face is
+   tuned at 8–17px, sizes at which the body face reads far too small, so the
+   headings that carry translated text restate the size they want. Anything
+   page-specific lives in that page's own stylesheet. Deliberately no
+   text-transform here: each page's own rule still governs that, and forcing
+   uppercase from a shared file shouted the builder's hero eyebrow. */
+html:not([data-doc-lang="en"]) .tag-section h1,
+html:not([data-doc-lang="en"]) .intro-h {
   font-weight: 800;
   font-size: 24px;
   letter-spacing: .01em;
 }
 html:not([data-doc-lang="en"]) .hero-eyebrow {
-  font-family: var(--ff-body);
   font-weight: 800;
   font-size: 13px;
   letter-spacing: .14em;
-  text-transform: uppercase;
+}
+html:not([data-doc-lang="en"]) .hp-label {
+  font-weight: 800;
+  font-size: 11px;
 }
 
 /* ----------------------------------------------- responsive + motion prefs */

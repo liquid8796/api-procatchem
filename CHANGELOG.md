@@ -27,6 +27,27 @@
   `t()`, every option list, condition kind, farm mode, template, and handbook section must have an
   entry — a feature added without its translation fails in CI, not on the live page.
 
+**Fixed:**
+
+- **Vietnamese headings lost their diacritics** where the pixel font was still in play — "Giới
+  thiệu" rendered as broken glyphs on the API reference, along with the "Docs coverage" label.
+  Press Start 2P ships latin and latin-ext only; Google Fonts serves no Vietnamese subset for it,
+  so those characters fell back mid-word.
+- The cause was the fix's shape rather than its coverage: the fallback was a hand-kept list of
+  headings to exempt, and keeping that list in step with the pages had already failed twice. The
+  default is now inverted — `--ff-pixel` itself retargets to the body face while a translation is
+  active, so every element is safe without being listed. Text that is never translated (product
+  names, type chips, function signatures, the `COPY`/`GET`/`NEW` badges) opts out through the new
+  `--ff-pixel-latin` and keeps the pixel face. A missed size rule now costs a little visual
+  weight instead of a broken word.
+- The shared switcher stylesheet was also forcing `text-transform: uppercase` on the hero eyebrow,
+  which the reference page sets for itself but the Script Builder does not — it shouted the
+  builder's Vietnamese eyebrow. The shared rules now adjust size and weight only and leave each
+  page's own typography alone.
+- `tests/pixel-font.test.mjs` holds the opt-out to an allowlist that documents why each entry's
+  text can never be translated, so pinning the pixel face on translatable text has to be a
+  deliberate edit rather than an accident.
+
 ## PROCatchem content — v1.0.114
 
 *August 24, 2026*

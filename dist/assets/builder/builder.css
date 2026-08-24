@@ -52,7 +52,11 @@
   --tint-active-deep: #FFE3DA;
   --tint-active-ink: #A0553F;
 
-  --ff-pixel: 'Press Start 2P', ui-monospace, monospace;
+  /* Text that is never translated keeps the pixel face through -latin; the
+     plain token falls back to the body face while a translation is active
+     (see assets/i18n/i18n.css), because Press Start 2P has no Vietnamese. */
+  --ff-pixel-latin: 'Press Start 2P', ui-monospace, monospace;
+  --ff-pixel: var(--ff-pixel-latin);
   --ff-body: 'Nunito', system-ui, 'Segoe UI', sans-serif;
   --ff-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
@@ -166,7 +170,7 @@ code {
 }
 
 .brand h1 {
-  font-family: var(--ff-pixel); font-size: 13px; line-height: 1.55;
+  font-family: var(--ff-pixel-latin); font-size: 13px; line-height: 1.55;
   color: #fff; text-shadow: 0 2px 0 var(--dex-red-deep); margin: 0;
 }
 .brand-sub { margin: 12px 0 0; color: #FFD9CC; font-size: 12px; font-weight: 600; }
@@ -239,7 +243,7 @@ code {
   letter-spacing: .1em; color: var(--dex-red);
 }
 .hero h1 {
-  margin: 0 0 14px; font-family: var(--ff-pixel); font-size: 26px; line-height: 1.45;
+  margin: 0 0 14px; font-family: var(--ff-pixel-latin); font-size: 26px; line-height: 1.45;
   color: var(--heading-ink); text-shadow: 0 3px 0 var(--paper-line);
 }
 .hero h1 span { color: var(--dex-red); }
@@ -1197,18 +1201,18 @@ body.preview-hidden .preview-toggle span[aria-hidden] { color: #0A1811; }
   white-space: pre;
 }
 
-/* ================================================ translated-heading fallback
-   Press Start 2P ships no Vietnamese diacritics. Whenever a translation is
-   active (the language switcher stamps data-doc-lang on <html>), every
-   pixel-font element that carries translated text falls back to the body face
-   at an equivalent visual size. The two "Script Builder" titles keep the pixel
-   font: the name is never translated. */
-html:not([data-doc-lang="en"]) .side-h { font-family: var(--ff-body); font-weight: 800; font-size: 12.5px; }
-html:not([data-doc-lang="en"]) .panel-title { font-family: var(--ff-body); font-weight: 800; font-size: 17px; }
-html:not([data-doc-lang="en"]) .mode-name { font-family: var(--ff-body); font-weight: 800; font-size: 15px; }
-html:not([data-doc-lang="en"]) .screen-name { font-family: var(--ff-body); font-weight: 800; font-size: 11px; letter-spacing: .02em; }
-html:not([data-doc-lang="en"]) .diag-h { font-family: var(--ff-body); font-weight: 800; font-size: 14px; }
-html:not([data-doc-lang="en"]) .tool-title { font-family: var(--ff-body); font-weight: 800; font-size: 15px; }
-html:not([data-doc-lang="en"]) .tool-subtitle { font-family: var(--ff-body); font-weight: 800; font-size: 13px; }
-html:not([data-doc-lang="en"]) .api-subhead { font-family: var(--ff-body); font-weight: 800; font-size: 12.5px; }
-html:not([data-doc-lang="en"]) .drop-veil span { font-family: var(--ff-body); font-weight: 800; font-size: 17px; }
+/* ============================================== translated-heading proportions
+   The face swap itself lives in assets/i18n/i18n.css, which retargets
+   --ff-pixel for every element at once. What is left here is proportion: the
+   pixel face is tuned at 7–11px, sizes at which the body face reads far too
+   small, so each slot restates the size it wants once a translation is active.
+   Missing one of these costs a little visual weight, never a broken glyph. */
+html:not([data-doc-lang="en"]) .side-h { font-weight: 800; font-size: 12.5px; }
+html:not([data-doc-lang="en"]) .panel-title { font-weight: 800; font-size: 17px; }
+html:not([data-doc-lang="en"]) .mode-name { font-weight: 800; font-size: 15px; }
+html:not([data-doc-lang="en"]) .screen-name { font-weight: 800; font-size: 11px; letter-spacing: .02em; }
+html:not([data-doc-lang="en"]) .diag-h { font-weight: 800; font-size: 14px; }
+html:not([data-doc-lang="en"]) .tool-title { font-weight: 800; font-size: 15px; }
+html:not([data-doc-lang="en"]) .tool-subtitle { font-weight: 800; font-size: 13px; }
+html:not([data-doc-lang="en"]) .api-subhead { font-weight: 800; font-size: 12.5px; }
+html:not([data-doc-lang="en"]) .drop-veil span { font-weight: 800; font-size: 17px; }
