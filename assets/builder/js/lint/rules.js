@@ -8,8 +8,9 @@
  */
 
 import { Registry } from '../core/registry.js';
+import { looksLikeBareWord, looksLikeUnquotedText, validateCall } from '../domain/api-call.js';
 import { isEmptyCondition } from '../domain/condition.js';
-import { EV_STATS } from '../domain/config.js';
+import { CHAIN_ACTIONS, EV_STATS, toStringList } from '../domain/config.js';
 import { parseZone } from '../domain/zone.js';
 
 /**
@@ -343,20 +344,234 @@ lintRegistry.register('rule-step-arguments', ({ config, mode }) => {
   if (mode.id !== 'rules') return null;
   /** @type {Finding[]} */
   const out = [];
-  (config.rules ?? []).forEach((rule, ruleIndex) => {
-    const where = rule.label || `Rule ${ruleIndex + 1}`;
-    (rule.steps ?? []).forEach((step, stepIndex) => {
-      const at = `${where}, step ${stepIndex + 1}`;
-      if (step.action === 'useMove' && !step.move) out.push(finding('error', `${at}: no move name.`, 'rules'));
-      if (step.action === 'useItem' && !step.item) out.push(finding('error', `${at}: no item name.`, 'rules'));
-      if (step.action === 'throwBalls' && !step.balls.length) {
-        out.push(finding('error', `${at}: no balls listed.`, 'rules'));
+  for (const { step, where } of eachRuleStep(config)) {
+    out.push(...checkStep(step, where));
+  }
+  return out;
+});
+
+/**
+ * Every step in every rule, groups included, paired with a label that names
+ * where it sits.
+ *
+ * @param {object} config
+ * @returns {Generator<{ step: object, where: string }>}
+ */
+function* eachRuleStep(config) {
+  for (const [ruleIndex, rule] of (config.rules ?? []).entries()) {
+    const label = rule.label || `Rule ${ruleIndex + 1}`;
+    yield* walkSteps(rule.steps, label);
+  }
+}
+
+/**
+ * @param {unknown} steps
+ * @param {string} prefix
+ * @returns {Generator<{ step: object, where: string }>}
+ */
+function* walkSteps(steps, prefix) {
+  for (const [index, step] of (Array.isArray(steps) ? steps : []).entries()) {
+    if (!step) continue;
+    const where = `${prefix}, step ${index + 1}`;
+    yield { step, where };
+    if (step.action === 'group') yield* walkSteps(step.steps, where);
+  }
+}
+
+/**
+ * @param {object} step
+ * @param {string} at
+ * @returns {Finding[]}
+ */
+function checkStep(step, at) {
+  /** @type {Finding[]} */
+  const out = [];
+  switch (step.action) {
+    case 'useMove':
+      if (!step.move) out.push(finding('error', `${at}: no move name.`, 'rules'));
+      break;
+    case 'useItem':
+      if (!step.item) out.push(finding('error', `${at}: no item name.`, 'rules'));
+      break;
+    case 'throwBalls':
+      if (!step.balls?.length) out.push(finding('error', `${at}: no balls listed.`, 'rules'));
+      break;
+    case 'rawLua':
+      if (!step.expr) out.push(finding('error', `${at}: the raw Lua step is empty.`, 'rules'));
+      break;
+    case 'group':
+      if (!step.steps?.length) {
+        out.push(finding('warning', `${at}: the group is empty, so it does nothing.`, 'rules'));
       }
-      if (step.action === 'rawLua' && !step.expr) {
-        out.push(finding('error', `${at}: the raw Lua step is empty.`, 'rules'));
+      break;
+    case 'chain':
+      out.push(...checkChain(step, at));
+      break;
+    case 'apiCall':
+      out.push(...checkApiCall(step.fn, step.args, at));
+      break;
+    case 'stopBot':
+    case 'logout':
+      if (!String(step.message ?? '').trim()) {
+        out.push(finding('info', `${at}: no message, so a default one is logged.`, 'rules'));
       }
-    });
+      break;
+    default:
+      break;
+  }
+  return out;
+}
+
+/**
+ * @param {object} step
+ * @param {string} at
+ * @returns {Finding[]}
+ */
+function checkChain(step, at) {
+  const links = Array.isArray(step.chain) ? step.chain : [];
+  if (!links.length) return [finding('error', `${at}: the chain has no fallbacks.`, 'rules')];
+
+  /** @type {Finding[]} */
+  const out = [];
+  links.forEach((link, index) => {
+    const spec = CHAIN_ACTIONS.find((entry) => entry.id === link.action);
+    if (spec && spec.needs !== 'none' && !String(link.value ?? '').trim()) {
+      out.push(finding('error', `${at}, fallback ${index + 1}: ${spec.label} needs a value.`, 'rules'));
+    }
   });
+
+  // Everything after an unconditional action is dead: `run()` and `attack()`
+  // only fail in situations where the ones after them would fail too.
+  const alwaysActs = links.findIndex((link) => ALWAYS_ACTS.has(link.action));
+  if (alwaysActs >= 0 && alwaysActs < links.length - 1) {
+    out.push(finding(
+      'info',
+      `${at}: ${links[alwaysActs].action}() almost always succeeds, so the `
+      + `${links.length - alwaysActs - 1} fallback(s) after it rarely run.`,
+      'rules',
+    ));
+  }
+  return out;
+}
+
+/** Chain links that succeed in nearly every battle state. */
+const ALWAYS_ACTS = new Set(['attack', 'weakAttack', 'sendAnyPokemon']);
+
+/**
+ * Check a hand-written call: does the function exist, and do the arguments fit?
+ *
+ * @param {unknown} name
+ * @param {unknown} args
+ * @param {string} at
+ * @returns {Finding[]}
+ */
+function checkApiCall(name, args, at) {
+  const fn = String(name ?? '').trim();
+  if (!fn) return [finding('error', `${at}: no function chosen.`, 'rules')];
+  return validateCall(fn, String(args ?? '')).map(
+    (problem) => finding(problem.level, `${at}: ${problem.message}`, 'rules'),
+  );
+}
+
+lintRegistry.register('condition-api-calls', ({ config }) => {
+  /** @type {Finding[]} */
+  const out = [];
+  const trees = [
+    { node: config.team.customGuard, panel: 'team', where: 'The keep-farming condition' },
+    ...(config.rules ?? []).map((rule, index) => ({
+      node: rule.match,
+      panel: 'rules',
+      where: `"${rule.label || `Rule ${index + 1}`}" matches when`,
+    })),
+    ...[...eachRuleStep(config)].map(({ step, where }) => ({
+      node: step.when,
+      panel: 'rules',
+      where: `${where}'s guard`,
+    })),
+  ];
+
+  for (const tree of trees) {
+    for (const leaf of eachLeaf(tree.node)) {
+      if (leaf.kind !== 'apiCall') continue;
+      out.push(...checkApiCall(leaf.params?.fn, leaf.params?.args, tree.where)
+        .map((item) => ({ ...item, panel: tree.panel })));
+      out.push(...checkComparisonValue(leaf.params, tree.where, tree.panel));
+    }
+  }
+  return out;
+});
+
+/**
+ * A bare word on the right of a comparison is almost always a forgotten pair of
+ * quotes: Lua reads it as an undefined global, which compares equal to nothing.
+ *
+ * @param {object} params
+ * @param {string} where
+ * @param {string} panel
+ * @returns {Finding[]}
+ */
+function checkComparisonValue(params, where, panel) {
+  const cmp = String(params?.cmp ?? '');
+  if (!cmp) return [];
+  const value = String(params?.value ?? '').trim();
+  if (!value) return [finding('error', `${where}: no value to compare against.`, panel)];
+  if (looksLikeUnquotedText(value)) {
+    return [finding(
+      'error',
+      `${where}: ${value} is not valid Lua. Text has to be quoted: "${value}".`,
+      panel,
+    )];
+  }
+  if (!looksLikeBareWord(value)) return [];
+  return [finding(
+    'warning',
+    `${where}: ${value} is read as a variable name. Did you mean "${value}" in quotes?`,
+    panel,
+  )];
+}
+
+/**
+ * @param {unknown} node
+ * @returns {Generator<object>} every leaf of a condition tree
+ */
+function* eachLeaf(node) {
+  if (!node || typeof node !== 'object') return;
+  if (Array.isArray(node.items)) {
+    for (const child of node.items) yield* eachLeaf(child);
+    return;
+  }
+  yield node;
+}
+
+lintRegistry.register('message-flag-phrases', ({ config }) => {
+  /** @type {Finding[]} */
+  const out = [];
+  const seen = new Set();
+  const trees = [
+    config.team.customGuard,
+    ...(config.rules ?? []).flatMap((rule) => [rule.match]),
+    ...[...eachRuleStep(config)].map(({ step }) => step.when),
+  ];
+
+  for (const tree of trees) {
+    for (const leaf of eachLeaf(tree)) {
+      const phrases = leaf.kind === 'heardText' ? leaf.params?.on : (leaf.kind === 'oppAbility' ? leaf.params?.names : null);
+      if (!phrases) continue;
+      const list = toStringList(phrases);
+      const key = `${leaf.kind}:${list.join('|')}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (!list.length) {
+        out.push(finding(
+          'error',
+          leaf.kind === 'heardText'
+            ? 'A "heard in the battle log" condition has no phrase to listen for.'
+            : 'An "opponent ability was announced" condition names no ability.',
+          'rules',
+        ));
+      }
+    }
+  }
   return out;
 });
 

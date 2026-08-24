@@ -6,12 +6,34 @@
  * rule readable.
  */
 
-import { RULE_FALLBACKS, STEP_ACTIONS, createEmptyRule, createStep, splitList } from '../domain/config.js';
+import { apiEntry } from '../domain/api-catalog.js';
+import {
+  CHAIN_ACTIONS,
+  GROUP_ACTION,
+  RULE_FALLBACKS,
+  STEP_ACTIONS,
+  createChainLink,
+  createEmptyRule,
+  createStep,
+  splitList,
+} from '../domain/config.js';
+import { apiDatalistId } from './api-datalist.js';
 import { renderConditionTree } from './condition-editor.js';
 import { h } from './dom.js';
 
 /** Which extra inputs each action shows, keyed by action id. */
 const ACTION_NEEDS = new Map(STEP_ACTIONS.map((entry) => [entry.id, entry.needs]));
+/** What each chain link needs typing in next to it. */
+const CHAIN_NEEDS = new Map(CHAIN_ACTIONS.map((entry) => [entry.id, entry]));
+
+/**
+ * Actions that always end the turn, so "once per battle" would be meaningless —
+ * and a group, whose children carry their own flags.
+ */
+const NO_ONCE_ACTIONS = new Set([GROUP_ACTION, 'stopBot', 'logout']);
+
+/** How deep the editor lets groups nest before it stops offering another. */
+const MAX_GROUP_DEPTH = 3;
 
 /**
  * @param {object[]} rules the rules to draw
@@ -57,17 +79,6 @@ export function renderRuleList(rules, update) {
  */
 function renderRule(rule, index, total, handlers) {
   const update = (patch) => handlers.onChange({ ...rule, ...patch });
-  const replaceStep = (stepIndex, next) => update({
-    steps: rule.steps.map((step, i) => (i === stepIndex ? next : step)),
-  });
-  const removeStep = (stepIndex) => update({ steps: rule.steps.filter((_, i) => i !== stepIndex) });
-  const moveStep = (stepIndex, delta) => {
-    const target = stepIndex + delta;
-    if (target < 0 || target >= rule.steps.length) return;
-    const next = rule.steps.slice();
-    [next[stepIndex], next[target]] = [next[target], next[stepIndex]];
-    update({ steps: next });
-  };
 
   return h('article.rule', {}, [
     h('header.rule-head', {}, [
@@ -105,16 +116,7 @@ function renderRule(rule, index, total, handlers) {
 
       h('div.rule-steps', {}, [
         h('p.field-label', { text: 'Steps, in order' }),
-        ...rule.steps.map((step, stepIndex) => renderStep(step, stepIndex, rule.steps.length, {
-          onChange: (next) => replaceStep(stepIndex, next),
-          onRemove: () => removeStep(stepIndex),
-          onMove: (delta) => moveStep(stepIndex, delta),
-        })),
-        h('button.btn.btn-ghost.cond-mini', {
-          type: 'button',
-          text: '+ Add a step',
-          onClick: () => update({ steps: [...rule.steps, createStep()] }),
-        }),
+        renderStepList(rule.steps, (next) => update({ steps: next }), 0),
       ]),
 
       h('div.field', {}, [
@@ -132,29 +134,73 @@ function renderRule(rule, index, total, handlers) {
 }
 
 /**
+ * An ordered list of steps, with the add button underneath.
+ *
+ * Groups hold their own list, so this renders itself recursively; `depth` only
+ * controls how much further nesting is offered.
+ *
+ * @param {object[]} steps
+ * @param {(next: object[]) => void} onChange
+ * @param {number} depth
+ * @returns {HTMLElement}
+ */
+function renderStepList(steps, onChange, depth) {
+  const list = Array.isArray(steps) ? steps : [];
+  const replaceAt = (index, next) => onChange(list.map((step, i) => (i === index ? next : step)));
+  const removeAt = (index) => onChange(list.filter((_, i) => i !== index));
+  const move = (index, delta) => {
+    const target = index + delta;
+    if (target < 0 || target >= list.length) return;
+    const next = list.slice();
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  };
+
+  return h('div.step-list', {}, [
+    ...list.map((step, index) => renderStep(step, index, list.length, depth, {
+      onChange: (next) => replaceAt(index, next),
+      onRemove: () => removeAt(index),
+      onMove: (delta) => move(index, delta),
+    })),
+    h('button.btn.btn-ghost.cond-mini', {
+      type: 'button',
+      text: '+ Add a step',
+      onClick: () => onChange([...list, createStep()]),
+    }),
+  ]);
+}
+
+/**
  * @param {object} step
  * @param {number} index
  * @param {number} total
+ * @param {number} depth
  * @param {{ onChange: (next: object) => void, onRemove: () => void, onMove: (delta: number) => void }} handlers
  * @returns {HTMLElement}
  */
-function renderStep(step, index, total, handlers) {
+function renderStep(step, index, total, depth, handlers) {
   const update = (patch) => handlers.onChange({ ...step, ...patch });
   const needs = ACTION_NEEDS.get(step.action) ?? [];
+  const isGroup = step.action === GROUP_ACTION;
 
-  return h('div.step', {}, [
+  return h('div.step', { class: isGroup ? 'step-group' : '' }, [
     h('div.step-head', {}, [
       h('span.step-rank', { text: `${index + 1}` }),
       h('select.input.select.step-action', {
         'aria-label': `Step ${index + 1} action`,
         onChange: (event) => update({ action: event.target.value }),
-      }, STEP_ACTIONS.map((entry) => h('option', {
-        value: entry.id,
-        selected: entry.id === step.action,
-        text: entry.label,
-      }))),
+      }, STEP_ACTIONS
+        // Offering a group at the limit would produce one nothing can go into.
+        .filter((entry) => entry.id !== GROUP_ACTION || depth < MAX_GROUP_DEPTH || isGroup)
+        .map((entry) => h('option', {
+          value: entry.id,
+          selected: entry.id === step.action,
+          text: entry.label,
+        }))),
       ...needs.map((need) => renderStepInput(need, step, update, index)),
-      h('label.step-once', { title: 'Run this step at most once per battle' }, [
+      NO_ONCE_ACTIONS.has(step.action) ? null : h('label.step-once', {
+        title: 'Run this step at most once per battle',
+      }, [
         h('input', {
           type: 'checkbox',
           checked: Boolean(step.once),
@@ -183,7 +229,92 @@ function renderStep(step, index, total, handlers) {
         }),
       ]),
     ]),
-    renderConditionTree(step.when, (next) => update({ when: next }), { label: 'Only when', depth: 1 }),
+    renderConditionTree(step.when, (next) => update({ when: next }), {
+      label: isGroup ? 'Enter the group when' : 'Only when',
+      depth: 1,
+    }),
+    step.action === 'chain'
+      ? renderChainEditor(step.chain, (next) => update({ chain: next }), index)
+      : null,
+    isGroup
+      ? h('div.step-children', {}, [
+        renderStepList(step.steps, (next) => update({ steps: next }), depth + 1),
+      ])
+      : null,
+  ]);
+}
+
+/**
+ * The `a() or b() or c()` ladder of a chain step.
+ *
+ * @param {Array<{ action: string, value: string }>} chain
+ * @param {(next: Array<{ action: string, value: string }>) => void} onChange
+ * @param {number} stepIndex
+ * @returns {HTMLElement}
+ */
+function renderChainEditor(chain, onChange, stepIndex) {
+  const links = Array.isArray(chain) ? chain : [];
+  const replaceAt = (index, patch) => onChange(
+    links.map((link, i) => (i === index ? { ...link, ...patch } : link)),
+  );
+  const removeAt = (index) => onChange(links.filter((_, i) => i !== index));
+  const move = (index, delta) => {
+    const target = index + delta;
+    if (target < 0 || target >= links.length) return;
+    const next = links.slice();
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  };
+
+  return h('div.chain', {}, [
+    h('p.field-hint', {
+      text: 'Tried left to right; the first one that manages to act ends the turn.',
+    }),
+    ...links.map((link, index) => {
+      const spec = CHAIN_NEEDS.get(link.action);
+      return h('div.chain-link', {}, [
+        h('span.chain-rank', { text: `${index + 1}` }),
+        h('select.input.select', {
+          'aria-label': `Step ${stepIndex + 1} chain link ${index + 1}`,
+          onChange: (event) => replaceAt(index, { action: event.target.value }),
+        }, CHAIN_ACTIONS.map((entry) => h('option', {
+          value: entry.id,
+          selected: entry.id === link.action,
+          text: entry.label,
+        }))),
+        spec && spec.needs !== 'none' ? h('input.input.chain-value', {
+          type: spec.needs === 'number' ? 'number' : 'text',
+          value: link.value ?? '',
+          placeholder: spec.placeholder ?? '',
+          'aria-label': `${spec.label} value`,
+          onInput: (event) => replaceAt(index, { value: event.target.value }),
+        }) : null,
+        h('div.ladder-tools', {}, [
+          h('button.icon-btn', {
+            type: 'button', text: '◀', title: 'Move earlier',
+            'aria-label': `Move link ${index + 1} earlier`,
+            disabled: index === 0,
+            onClick: () => move(index, -1),
+          }),
+          h('button.icon-btn', {
+            type: 'button', text: '▶', title: 'Move later',
+            'aria-label': `Move link ${index + 1} later`,
+            disabled: index === links.length - 1,
+            onClick: () => move(index, 1),
+          }),
+          h('button.icon-btn.icon-btn-danger', {
+            type: 'button', text: '×', title: 'Remove',
+            'aria-label': `Remove link ${index + 1}`,
+            onClick: () => removeAt(index),
+          }),
+        ]),
+      ]);
+    }),
+    h('button.btn.btn-ghost.cond-mini', {
+      type: 'button',
+      text: '+ Add a fallback',
+      onClick: () => onChange([...links, createChainLink()]),
+    }),
   ]);
 }
 
@@ -261,6 +392,38 @@ function renderStepInput(need, step, update, index) {
         'aria-label': `Step ${index + 1} Lua`,
         title: 'Emitted verbatim; anything it calls is checked against the API',
         onInput: (event) => update({ expr: event.target.value }),
+      });
+
+    case 'fn': {
+      const entry = apiEntry(step.fn ?? '');
+      return h('input.input.step-input', {
+        type: 'text',
+        value: step.fn ?? '',
+        list: apiDatalistId(),
+        placeholder: 'useItem',
+        'aria-label': `Step ${index + 1} function`,
+        title: entry ? entry.signature : 'Any function from the API reference',
+        onChange: (event) => update({ fn: event.target.value.trim() }),
+      });
+    }
+
+    case 'args':
+      return h('input.input.step-input.step-wide', {
+        type: 'text',
+        value: step.args ?? '',
+        placeholder: '"Repel"',
+        'aria-label': `Step ${index + 1} arguments`,
+        title: 'Lua syntax — quote every text value',
+        onInput: (event) => update({ args: event.target.value }),
+      });
+
+    case 'message':
+      return h('input.input.step-input.step-wide', {
+        type: 'text',
+        value: step.message ?? '',
+        placeholder: 'Why the script is stopping',
+        'aria-label': `Step ${index + 1} message`,
+        onInput: (event) => update({ message: event.target.value }),
       });
 
     default:

@@ -12,6 +12,7 @@ import { luaKey, luaNumber, luaString, section } from '../core/lua-writer.js';
 import { splitList, toStringList } from '../domain/config.js';
 import {
   CONDITION_HELPERS,
+  collectConditionFlags,
   collectConditionHelpers,
   emitCondition,
   isEmptyCondition,
@@ -40,6 +41,8 @@ const NO_STATUS_LITERAL = '""';
  * @property {boolean} zoneReroll     a zone rotation is triggered by an event
  * @property {boolean} stopUpkeep     at least one stop emits a branch
  * @property {Set<string>} conditionHelpers helper ids the condition trees need
+ * @property {Map<string, import('../domain/condition.js').ConditionFlag>} conditionFlags
+ *           battle-log flags the condition trees latch
  *
  * @typedef {object} EmitContext
  * @property {object} config
@@ -98,6 +101,7 @@ export function analyseNeeds(config, plan, modeTraits) {
       ...collectConditionHelpers(config.team.customGuard),
       ...helperConditionHelpers,
     ]),
+    conditionFlags: collectConditionFlags(config.team.customGuard),
     // Preparation moves go through `useOnce`, which needs both the slot helpers
     // and the once-per-battle table.
     slotHelpers: moves.length > 0 || helpers.length > 0,
@@ -159,7 +163,44 @@ export function emitState(writer, { needs }) {
   if (needs.onceFlags) {
     writer.line('local F           = {} -- once-per-battle step flags, cleared between battles');
   }
+  emitFlagState(writer, needs);
   writer.blank();
+}
+
+/**
+ * Declare the battle-log flags the conditions latch.
+ *
+ * A latching flag is a boolean; a timed one holds the turn it was heard on, so
+ * `0` doubles as "not heard" and the expiry check is a plain comparison.
+ *
+ * @param {LuaWriter} writer
+ * @param {Needs} needs
+ */
+function emitFlagState(writer, needs) {
+  const flags = sortedFlags(needs);
+  if (!flags.length) return;
+  writer.comment('Set by onBattleMessage; the game only ever says these out loud.');
+  for (const flag of flags) {
+    const heard = flag.on.map((phrase) => `"${phrase}"`).join(', ');
+    writer.line(`local ${flag.name} = ${flagResetValue(flag)} -- ${heard}`);
+  }
+}
+
+/**
+ * @param {Needs} needs
+ * @returns {import('../domain/condition.js').ConditionFlag[]} in a stable order
+ */
+function sortedFlags(needs) {
+  return [...(needs.conditionFlags ?? new Map()).values()]
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * @param {import('../domain/condition.js').ConditionFlag} flag
+ * @returns {string}
+ */
+function flagResetValue(flag) {
+  return flag.turns ? '0' : 'false';
 }
 
 /**
@@ -549,6 +590,11 @@ export function emitOnPathAction(writer, context) {
       w.comment('This callback only runs between battles, so it is where once-per-battle resets.');
       w.line('F = {}');
     }
+    const flags = sortedFlags(needs);
+    if (flags.length) {
+      w.comment('Battle-log flags describe the battle that just ended.');
+      for (const flag of flags) w.line(`${flag.name} = ${flagResetValue(flag)}`);
+    }
     // `map` is only read when the script has to tell maps apart. Hunting in
     // place with no Pokécenter never does, so declaring it there would leave an
     // unused local in the output.
@@ -776,7 +822,8 @@ function emitHealAction(writer, { config, zones }) {
  */
 export function emitOnBattleMessage(writer, { config, needs, zones }) {
   const armsZoneReroll = zones.eventDriven && zones.mode === 'onWin';
-  if (!needs.trapFlag && !needs.counters && !armsZoneReroll) return;
+  const flags = sortedFlags(needs);
+  if (!needs.trapFlag && !needs.counters && !armsZoneReroll && !flags.length) return;
 
   const trapPhrases = [
     'wrapped',
@@ -801,6 +848,7 @@ export function emitOnBattleMessage(writer, { config, needs, zones }) {
       w.comment('Winning a battle is the trigger for picking a different zone.');
       w.line('if stringContains(message, "You have won") then zoneReroll = true end');
     }
+    emitFlagUpdates(w, flags);
     if (needs.counters) {
       w.line('if stringContains(message, "A Wild SHINY ") then shinySeen = shinySeen + 1 end');
       w.line('if stringContains(message, "A Wild ") then wildSeen = wildSeen + 1 end');
@@ -814,6 +862,34 @@ export function emitOnBattleMessage(writer, { config, needs, zones }) {
     }
   });
   writer.blank();
+}
+
+/**
+ * Raise and clear the battle-log flags.
+ *
+ * The clearing clause is emitted after the raising one so a message that both
+ * ends an effect and mentions it — "the taunt wore off" — leaves the flag down.
+ *
+ * @param {LuaWriter} writer
+ * @param {import('../domain/condition.js').ConditionFlag[]} flags
+ */
+function emitFlagUpdates(writer, flags) {
+  for (const flag of flags) {
+    const raised = flag.turns ? `${writer.useHost('getBattleTurn')}()` : 'true';
+    writer.line(`if ${anyPhrase(flag.on)} then ${flag.name} = ${raised} end`);
+    if (!flag.off.length) continue;
+    writer.line(`if ${anyPhrase(flag.off)} then ${flag.name} = ${flagResetValue(flag)} end`);
+  }
+}
+
+/**
+ * @param {string[]} phrases
+ * @returns {string} a Lua boolean expression over `message`
+ */
+function anyPhrase(phrases) {
+  return phrases
+    .map((phrase) => `stringContains(message, ${luaString(phrase)})`)
+    .join(' or ');
 }
 
 /**

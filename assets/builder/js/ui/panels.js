@@ -358,10 +358,12 @@ export const PANELS = [
         type: 'select',
         path: 'target.gender',
         label: 'Gender',
+        // The host reports "M" / "F"; the old "Male" / "Female" values here
+        // produced a comparison that could never be true.
         options: [
           { value: '', label: 'Any gender' },
-          { value: 'Male', label: 'Male only' },
-          { value: 'Female', label: 'Female only' },
+          { value: 'M', label: 'Male only' },
+          { value: 'F', label: 'Female only' },
         ],
       },
     ], store)],

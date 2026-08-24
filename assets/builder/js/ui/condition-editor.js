@@ -8,8 +8,10 @@
  * where to store it.
  */
 
+import { apiEntry } from '../domain/api-catalog.js';
 import { COMPARATORS, CONDITION_KINDS, createLeaf, emptyGroup, isGroup } from '../domain/condition.js';
 import { EV_STATS, splitList } from '../domain/config.js';
+import { apiDatalistId } from './api-datalist.js';
 import { h } from './dom.js';
 
 /** Condition kinds grouped by their `group` field, for the add menu. */
@@ -240,6 +242,22 @@ function renderParam(param, value, onChange) {
         selected: stat.id === value,
         text: stat.label,
       })));
+
+    case 'apiFunction': {
+      const name = String(value ?? '');
+      const entry = apiEntry(name);
+      return h('input.input.cond-param.cond-text.cond-fn', {
+        type: 'text',
+        value: name,
+        list: apiDatalistId(),
+        placeholder: param.placeholder ?? '',
+        'aria-label': param.label,
+        // Showing the signature on hover is what turns the datalist from a
+        // guess into a reminder of what the function actually takes.
+        title: entry ? entry.signature : (param.hint ?? param.label),
+        onChange: (event) => onChange(event.target.value.trim()),
+      });
+    }
 
     case 'chips':
       // A comma-separated field keeps a nested tree row compact; the model

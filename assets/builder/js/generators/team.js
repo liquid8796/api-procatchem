@@ -12,6 +12,7 @@
 
 import { luaNumber, luaString, section } from '../core/lua-writer.js';
 import { toStringList } from '../domain/config.js';
+import { planRules } from './rules.js';
 
 /**
  * @typedef {import('../core/lua-writer.js').LuaWriter} LuaWriter
@@ -54,6 +55,12 @@ export function planTeam(config) {
   const leadItem = String(team.leadItem ?? '').trim();
   const keepMoves = toStringList(team.keepMoves);
 
+  // A "send the strongest Pokémon" step calls `strongestSlot()`, so the helper
+  // has to exist whether or not the team panel's toggle is on. Asking the rules
+  // plan is cheaper than making the user find the toggle to fix a broken script.
+  const useStrongest = Boolean(team.useStrongest)
+    || (config.mode === 'rules' && planRules(config).usesStrongest);
+
   return {
     leadAbility,
     secondAbility,
@@ -65,10 +72,10 @@ export function planTeam(config) {
     uids,
     leadItem,
     keepMoves,
-    useStrongest: Boolean(team.useStrongest),
+    useStrongest,
     needsAbilityLookup: Boolean(leadAbility || secondAbility),
     active: Boolean(
-      leadAbility || secondAbility || leadItem || rotationMode !== 'off' || team.useStrongest,
+      leadAbility || secondAbility || leadItem || rotationMode !== 'off' || useStrongest,
     ),
   };
 }

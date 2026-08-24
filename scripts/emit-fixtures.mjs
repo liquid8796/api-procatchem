@@ -104,6 +104,35 @@ const STEP_SETS = [
     createStep({ action: 'sendAnyPokemon' }),
     createStep({ action: 'rawLua', expr: 'useItem("Repel")' }),
   ],
+  [
+    createStep({
+      action: 'group',
+      when: { op: 'and', negate: false, items: [{ kind: 'oppHpPercent', params: { cmp: '>', value: 25 }, negate: false }] },
+      steps: [
+        createStep({ action: 'useMove', move: 'False Swipe', slot: 'auto' }),
+        createStep({
+          action: 'chain',
+          chain: [
+            { action: 'useMove', value: 'Spore' },
+            { action: 'useItem', value: 'Ultra Ball' },
+            { action: 'sendPokemon', value: '3' },
+            { action: 'useAnyMove', value: '' },
+            { action: 'rawLua', value: 'weakAttack()' },
+            { action: 'attack', value: '' },
+          ],
+        }),
+      ],
+    }),
+    createStep({ action: 'sendStrongest' }),
+    createStep({ action: 'apiCall', fn: 'useItem', args: '"Repel"', once: true }),
+  ],
+  [
+    // A terminal step followed by more of them: `return` has to end its own
+    // block or the file will not even compile.
+    createStep({ action: 'stopBot', message: 'Out of balls.' }),
+    createStep({ action: 'logout', message: 'Done for the session.' }),
+    createStep({ action: 'attack' }),
+  ],
 ];
 
 /** Condition trees exercised as rule matchers, including nesting and negation. */
@@ -126,6 +155,29 @@ const MATCHERS = [
       { kind: 'battleTurn', params: { cmp: '>', value: 2 }, negate: true },
     ],
   },
+  {
+    op: 'and',
+    negate: false,
+    items: [
+      { kind: 'heardText', params: { on: ['was taunted'], off: ['shook off the taunt'], turns: 0 }, negate: false },
+      { kind: 'heardText', params: { on: ['is confused'], off: [], turns: 3 }, negate: false },
+      { kind: 'oppAbility', params: { names: ['Contrary', 'Intimidate'] }, negate: false },
+      { kind: 'oppForm', params: {}, negate: false },
+      { kind: 'oppGender', params: { gender: 'F' }, negate: false },
+    ],
+  },
+  {
+    op: 'and',
+    negate: false,
+    items: [
+      { kind: 'slotEv', params: { slot: 1, stat: 'ATK', cmp: '<', value: 252 }, negate: false },
+      { kind: 'slotGender', params: { slot: 2, gender: 'M' }, negate: false },
+      { kind: 'activeSlot', params: { slot: 1 }, negate: false },
+      { kind: 'activeUsable', params: {}, negate: false },
+      { kind: 'apiCall', params: { fn: 'getPlayerX', args: '', cmp: '>=', value: '10' }, negate: false },
+      { kind: 'apiCall', params: { fn: 'isOutside', args: '', cmp: '', value: '' }, negate: false },
+    ],
+  },
   { op: 'or', negate: false, items: [] },
 ];
 
@@ -138,6 +190,14 @@ const GUARDS = [
     items: [
       { kind: 'usableCount', params: { cmp: '>=', value: 2 }, negate: false },
       { kind: 'itemCount', params: { item: 'Ultra Ball', cmp: '>', value: 0 }, negate: false },
+    ],
+  },
+  {
+    op: 'and',
+    negate: false,
+    items: [
+      { kind: 'money', params: { cmp: '>=', value: 5000 }, negate: false },
+      { kind: 'slotEv', params: { slot: 1, stat: 'SPD', cmp: '<', value: 252 }, negate: false },
     ],
   },
 ];
@@ -183,7 +243,7 @@ for (const mode of MODES) {
           config.target.requireAll = index % 7 === 0;
           config.target.levelMin = index % 3 === 0 ? 10 : null;
           config.target.levelMax = index % 3 === 0 ? 40 : null;
-          config.target.gender = index % 6 === 0 ? 'Female' : '';
+          config.target.gender = index % 6 === 0 ? 'F' : '';
           config.target.notCaught = index % 2 === 1;
 
           config.team.healBelowUsable = index % 4 === 0 ? null : 2;

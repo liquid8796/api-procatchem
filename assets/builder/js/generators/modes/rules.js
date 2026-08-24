@@ -30,6 +30,7 @@ export const rulesMode = {
       trapFlag: plan.usesTrapFlag,
       onceFlags: plan.usesOnce,
       conditionHelpers: plan.conditionHelpers,
+      conditionFlags: plan.conditionFlags,
     };
   },
 

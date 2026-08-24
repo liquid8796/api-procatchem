@@ -6,7 +6,7 @@
  * adding a field here plus the generator code that consumes it.
  */
 
-import { emptyGroup, normaliseCondition } from './condition.js';
+import { emptyGroup, normaliseCondition, normaliseGender } from './condition.js';
 
 /** Farm actions that need no arguments. */
 export const FARM_ACTIONS = Object.freeze([
@@ -110,12 +110,42 @@ export const STEP_ACTIONS = Object.freeze([
   { id: 'useItem', label: 'Use an item', needs: ['item'] },
   { id: 'throwBalls', label: 'Throw balls in order', needs: ['balls'] },
   { id: 'sendPokemon', label: 'Switch to a slot', needs: ['slotNumber'] },
+  { id: 'sendStrongest', label: 'Send the strongest Pokémon', needs: [] },
   { id: 'attack', label: 'Attack', needs: [] },
   { id: 'weakAttack', label: 'Weak attack', needs: [] },
   { id: 'run', label: 'Run away', needs: [] },
   { id: 'sendUsablePokemon', label: 'Send a usable Pokémon', needs: [] },
   { id: 'sendAnyPokemon', label: 'Send any Pokémon', needs: [] },
+  { id: 'chain', label: 'Try each of these in turn', needs: ['chain'] },
+  { id: 'group', label: 'Group of steps under one condition', needs: [] },
+  { id: 'apiCall', label: 'Call an API function', needs: ['fn', 'args'] },
+  { id: 'stopBot', label: 'Stop the bot', needs: ['message'] },
+  { id: 'logout', label: 'Log out of the game', needs: ['message'] },
   { id: 'rawLua', label: 'Raw Lua statement', needs: ['expr'] },
+]);
+
+/** Step actions that hold other steps rather than acting themselves. */
+export const GROUP_ACTION = 'group';
+
+/**
+ * Links available inside a "try each of these in turn" chain.
+ *
+ * Every one returns a boolean, because the chain is emitted as
+ * `a() or b() or c()` — a void call such as `logout()` would evaluate to nil,
+ * silently fall through, and make the rest of the chain run as well. Those get
+ * their own step actions instead.
+ */
+export const CHAIN_ACTIONS = Object.freeze([
+  { id: 'attack', label: 'attack()', needs: 'none' },
+  { id: 'weakAttack', label: 'weakAttack()', needs: 'none' },
+  { id: 'run', label: 'run()', needs: 'none' },
+  { id: 'useAnyMove', label: 'useAnyMove()', needs: 'none' },
+  { id: 'sendUsablePokemon', label: 'sendUsablePokemon()', needs: 'none' },
+  { id: 'sendAnyPokemon', label: 'sendAnyPokemon()', needs: 'none' },
+  { id: 'useMove', label: 'useMove(move)', needs: 'text', placeholder: 'Spore' },
+  { id: 'useItem', label: 'useItem(item)', needs: 'text', placeholder: 'Ultra Ball' },
+  { id: 'sendPokemon', label: 'sendPokemon(slot)', needs: 'number', placeholder: '5' },
+  { id: 'rawLua', label: 'a Lua expression', needs: 'text', placeholder: 'myHelper()' },
 ]);
 
 /** What a rule does when every one of its steps declined to act. */
@@ -189,8 +219,25 @@ export function createStep(overrides = {}) {
     item: '',
     balls: [],
     expr: '',
+    // Only the matching action reads these, but keeping them present means
+    // switching action back and forth never loses what was typed.
+    chain: [],
+    steps: [],
+    fn: '',
+    args: '',
+    message: '',
     ...overrides,
   };
+}
+
+/**
+ * A blank link for a "try each of these in turn" chain.
+ *
+ * @param {Partial<object>} [overrides]
+ * @returns {{ action: string, value: string }}
+ */
+export function createChainLink(overrides = {}) {
+  return { action: 'attack', value: '', ...overrides };
 }
 
 /**
@@ -369,6 +416,9 @@ export function normaliseConfig(loaded) {
 
   merged.target.levelMin = toNullableInt(merged.target.levelMin);
   merged.target.levelMax = toNullableInt(merged.target.levelMax);
+  // Drafts saved before the "M" / "F" fix still hold "Male" / "Female", which
+  // the host never returns; migrate rather than silently filtering nothing.
+  merged.target.gender = normaliseGender(merged.target.gender);
   merged.team.healBelowUsable = toNullableInt(merged.team.healBelowUsable);
   merged.safety.afkTimeout = toNullableInt(merged.safety.afkTimeout);
 
@@ -489,26 +539,58 @@ function toRuleList(value, fallback) {
     }));
 }
 
+/** Guards against a hand-edited config nesting groups deeply enough to matter. */
+const MAX_STEP_DEPTH = 6;
+
 /**
  * @param {unknown} value
+ * @param {number} [depth]
  * @returns {object[]}
  */
-function toStepList(value) {
+function toStepList(value, depth = 0) {
   if (!Array.isArray(value)) return [];
   const actions = new Set(STEP_ACTIONS.map((entry) => entry.id));
   return value
     .filter(isPlainObject)
-    .map((step) => ({
-      id: typeof step.id === 'string' && step.id ? step.id : newEntityId('step'),
-      when: normaliseCondition(step.when) ?? emptyGroup('and'),
-      once: Boolean(step.once),
-      action: actions.has(step.action) ? step.action : 'attack',
-      move: String(step.move ?? '').trim(),
-      slot: step.slot === 'auto' ? 'auto' : (toNullableInt(step.slot) ?? 'auto'),
-      slotNumber: toNullableInt(step.slotNumber) ?? 1,
-      item: String(step.item ?? '').trim(),
-      balls: toStringList(step.balls),
-      expr: String(step.expr ?? '').trim(),
+    .map((step) => {
+      const action = actions.has(step.action) ? step.action : 'attack';
+      // A group at the depth limit has nowhere to put its children, so it is
+      // flattened to a plain action rather than silently dropping them.
+      const nested = action === GROUP_ACTION && depth < MAX_STEP_DEPTH
+        ? toStepList(step.steps, depth + 1)
+        : [];
+      return {
+        id: typeof step.id === 'string' && step.id ? step.id : newEntityId('step'),
+        when: normaliseCondition(step.when) ?? emptyGroup('and'),
+        once: Boolean(step.once),
+        action: action === GROUP_ACTION && !nested.length && depth >= MAX_STEP_DEPTH ? 'attack' : action,
+        move: String(step.move ?? '').trim(),
+        slot: step.slot === 'auto' ? 'auto' : (toNullableInt(step.slot) ?? 'auto'),
+        slotNumber: toNullableInt(step.slotNumber) ?? 1,
+        item: String(step.item ?? '').trim(),
+        balls: toStringList(step.balls),
+        expr: String(step.expr ?? '').trim(),
+        chain: toChainList(step.chain),
+        steps: nested,
+        fn: String(step.fn ?? '').trim(),
+        args: String(step.args ?? '').trim(),
+        message: String(step.message ?? '').trim(),
+      };
+    });
+}
+
+/**
+ * @param {unknown} value
+ * @returns {Array<{ action: string, value: string }>}
+ */
+function toChainList(value) {
+  if (!Array.isArray(value)) return [];
+  const actions = new Set(CHAIN_ACTIONS.map((entry) => entry.id));
+  return value
+    .filter(isPlainObject)
+    .map((link) => ({
+      action: actions.has(link.action) ? link.action : 'attack',
+      value: String(link.value ?? '').trim(),
     }));
 }
 

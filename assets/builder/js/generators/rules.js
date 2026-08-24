@@ -14,6 +14,7 @@
 
 import { luaNumber, luaString } from '../core/lua-writer.js';
 import {
+  collectConditionFlags,
   collectConditionHelpers,
   emitCondition,
   isEmptyCondition,
@@ -41,7 +42,10 @@ const SIMPLE_ACTIONS = Object.freeze({
  * @property {boolean} usesOnce     any step is once-per-battle
  * @property {boolean} usesMoveHelper  any step uses a move from an automatic slot
  * @property {boolean} usesTrapFlag    switching is attempted somewhere
+ * @property {boolean} usesStrongest   a step asks for the strongest slot
  * @property {Set<string>} conditionHelpers helper ids the conditions need
+ * @property {Map<string, import('../domain/condition.js').ConditionFlag>} conditionFlags
+ *           message flags the conditions latch
  */
 
 /**
@@ -55,18 +59,30 @@ export function planRules(config) {
 
   /** @type {Set<string>} */
   const conditionHelpers = new Set();
+  /** @type {Map<string, import('../domain/condition.js').ConditionFlag>} */
+  const conditionFlags = new Map();
   let usesOnce = false;
   let usesMoveHelper = false;
   let usesSwitch = false;
+  let usesStrongest = false;
 
   for (const rule of rules) {
     collectConditionHelpers(rule.match, conditionHelpers);
-    for (const step of rule.steps) {
+    collectConditionFlags(rule.match, conditionFlags);
+    for (const step of eachStep(rule.steps)) {
       collectConditionHelpers(step.when, conditionHelpers);
+      collectConditionFlags(step.when, conditionFlags);
       if (step.once) usesOnce = true;
       if (step.action === 'useMove' && step.slot === 'auto') usesMoveHelper = true;
       if (step.action === 'useMove' && step.slot !== 'auto') usesSwitch = true;
       if (step.action === 'sendPokemon') usesSwitch = true;
+      if (step.action === 'sendStrongest') {
+        usesSwitch = true;
+        usesStrongest = true;
+      }
+      if (step.action === 'chain' && chainOf(step).some((link) => link.action === 'sendPokemon')) {
+        usesSwitch = true;
+      }
     }
   }
 
@@ -75,9 +91,33 @@ export function planRules(config) {
     active: rules.length > 0,
     usesOnce,
     usesMoveHelper,
+    usesStrongest,
     usesTrapFlag: usesMoveHelper || usesSwitch,
     conditionHelpers,
+    conditionFlags,
   };
+}
+
+/**
+ * Walk a step list, descending into groups.
+ *
+ * @param {object[]} steps
+ * @returns {Generator<object>}
+ */
+function* eachStep(steps) {
+  for (const step of Array.isArray(steps) ? steps : []) {
+    if (!step) continue;
+    yield step;
+    if (step.action === 'group') yield* eachStep(step.steps);
+  }
+}
+
+/**
+ * @param {object} step
+ * @returns {object[]} the links of a fallback chain
+ */
+function chainOf(step) {
+  return Array.isArray(step.chain) ? step.chain : [];
 }
 
 /**
@@ -92,7 +132,7 @@ export function emitRules(writer, plan) {
   plan.rules.forEach((rule, index) => {
     writer.comment(`Rule ${index + 1}: ${rule.label || 'unnamed'}`);
     writer.fn(`${ruleFunctionName(index)}()`, (w) => {
-      rule.steps.forEach((step, stepIndex) => emitStep(w, step, index, stepIndex));
+      emitSteps(w, rule.steps, `r${index + 1}`);
       w.blank();
       emitFallback(w, rule.fallback, rule.label || `rule ${index + 1}`);
     }, { local: true });
@@ -129,22 +169,34 @@ function ruleFunctionName(index) {
 }
 
 /**
+ * Emit a list of steps in order.
+ *
+ * @param {LuaWriter} writer
+ * @param {object[]} steps
+ * @param {string} path identifies this list for once-per-battle flag names
+ */
+function emitSteps(writer, steps, path) {
+  (Array.isArray(steps) ? steps : []).forEach((step, index) => {
+    emitStep(writer, step, `${path}s${index + 1}`);
+  });
+}
+
+/**
  * Emit one step: guard, action, and the once-per-battle bookkeeping.
  *
  * @param {LuaWriter} writer
  * @param {object} step
- * @param {number} ruleIndex
- * @param {number} stepIndex
+ * @param {string} path
  */
-function emitStep(writer, step, ruleIndex, stepIndex) {
-  const flag = `"r${ruleIndex + 1}s${stepIndex + 1}"`;
+function emitStep(writer, step, path) {
+  const flag = luaString(path);
   // `useOnce` checks the flag itself, so an outer guard would be redundant.
   const flagCheckedInside = step.once && step.action === 'useMove' && step.slot === 'auto';
   const guards = [];
   if (step.once && !flagCheckedInside) guards.push(`not F[${flag}]`);
   if (!isEmptyCondition(step.when)) guards.push(emitCondition(step.when, writer));
 
-  const body = (target) => emitStepAction(target, step, flag);
+  const body = (target) => emitStepAction(target, step, flag, path);
   if (!guards.length) {
     body(writer);
     return;
@@ -156,11 +208,18 @@ function emitStep(writer, step, ruleIndex, stepIndex) {
  * @param {LuaWriter} writer
  * @param {object} step
  * @param {string} flag
+ * @param {string} path
  */
-function emitStepAction(writer, step, flag) {
+function emitStepAction(writer, step, flag, path) {
   const succeed = step.once ? `F[${flag}] = true; return true` : 'return true';
 
   switch (step.action) {
+    case 'group':
+      // The guard has already been emitted around this body, so the children
+      // only have to describe what to try inside it.
+      emitSteps(writer, step.steps, path);
+      return;
+
     case 'useMove':
       emitUseMove(writer, step, succeed, flag);
       return;
@@ -188,6 +247,44 @@ function emitStepAction(writer, step, flag) {
       writer.line(`if not trapped and sendPokemon(${luaNumber(step.slotNumber, 1)}) then ${succeed} end`);
       return;
 
+    case 'sendStrongest':
+      // `strongestSlot` comes from the team panel; the lint rule insists on it.
+      writer.useHosts(['getActivePokemonNumber', 'sendPokemon']);
+      writer.line('local best = strongestSlot()');
+      writer.line(`if best and best ~= getActivePokemonNumber() and not trapped and sendPokemon(best) then ${succeed} end`);
+      return;
+
+    case 'chain': {
+      const expression = emitChain(writer, step.chain);
+      if (!expression) {
+        writer.comment('Empty chain step.');
+        return;
+      }
+      writer.line(`if ${expression} then ${succeed} end`);
+      return;
+    }
+
+    case 'apiCall': {
+      const fn = String(step.fn ?? '').trim();
+      if (!fn) {
+        writer.comment('No function chosen for this step.');
+        return;
+      }
+      writer.line(`if ${writer.useHost(fn)}(${String(step.args ?? '').trim()}) then ${succeed} end`);
+      return;
+    }
+
+    case 'stopBot':
+      writer.useHost('fatal');
+      writer.comment('Deliberate stop: fatal() logs the message and halts the bot.');
+      emitTerminal(writer, `fatal(${luaString(step.message || 'Script stopped by a battle rule.')})`);
+      return;
+
+    case 'logout':
+      writer.useHost('logout');
+      emitTerminal(writer, `logout(${luaString(step.message || 'Logging out from a battle rule.')})`);
+      return;
+
     case 'rawLua': {
       const expression = String(step.expr ?? '').trim();
       if (!expression) {
@@ -203,6 +300,69 @@ function emitStepAction(writer, step, flag) {
       if (!host) throw new Error(`Unknown step action: ${step.action}`);
       writer.useHost(host);
       writer.line(`if ${host}() then ${succeed} end`);
+    }
+  }
+}
+
+/**
+ * Emit a call that always ends the turn, wrapped so it can sit anywhere.
+ *
+ * Lua requires `return` to be the last statement of its block, so a step that
+ * returns unconditionally cannot simply be written inline — the rule's own
+ * fallback follows it. `do … end` opens a block of its own for it.
+ *
+ * @param {LuaWriter} writer
+ * @param {string} call
+ */
+function emitTerminal(writer, call) {
+  writer.block('do', (inner) => {
+    inner.line(call);
+    inner.line('return true');
+  });
+}
+
+/**
+ * Render a fallback chain as `a() or b() or c()`.
+ *
+ * Every link returns a boolean, so the first one that manages to act ends the
+ * evaluation — which is exactly the "try these in turn" the editor promises.
+ *
+ * @param {LuaWriter} writer
+ * @param {Array<{ action: string, value: string }>} chain
+ * @returns {string} '' when nothing usable was configured
+ */
+function emitChain(writer, chain) {
+  const links = (Array.isArray(chain) ? chain : [])
+    .map((link) => emitChainLink(writer, link))
+    .filter(Boolean);
+  return links.join(' or ');
+}
+
+/**
+ * @param {LuaWriter} writer
+ * @param {{ action: string, value: string }} link
+ * @returns {string} '' when the link is incomplete
+ */
+function emitChainLink(writer, link) {
+  const value = String(link?.value ?? '').trim();
+  switch (link?.action) {
+    case 'useMove':
+      if (!value) return '';
+      return `${writer.useHost('useMove')}(${luaString(value)})`;
+    case 'useItem':
+      if (!value) return '';
+      return `${writer.useHost('useItem')}(${luaString(value)})`;
+    case 'sendPokemon':
+      if (!value) return '';
+      // Switching while trapped always fails, so skip it rather than burn a turn.
+      return `(not trapped and ${writer.useHost('sendPokemon')}(${luaNumber(value, 1)}))`;
+    case 'rawLua':
+      return value ? `(${value})` : '';
+    case 'useAnyMove':
+      return `${writer.useHost('useAnyMove')}()`;
+    default: {
+      const host = SIMPLE_ACTIONS[link?.action];
+      return host ? `${writer.useHost(host)}()` : '';
     }
   }
 }
