@@ -7,6 +7,7 @@ import { ApiBrowser } from './ui/api-browser.js';
 import { BuilderApp } from './ui/app.js';
 import { h, must, prefersReducedMotion, replaceChildren } from './ui/dom.js';
 import { LinkGraphTools } from './ui/link-graph-tools.js';
+import { Handbook } from './ui/handbook.js';
 import { StructureDiagram } from './ui/structure-diagram.js';
 import { installThemeToggle } from './ui/theme.js';
 
@@ -53,6 +54,9 @@ const structure = new StructureDiagram(
   () => app.config,
 );
 on('#btn-structure', () => structure.open());
+
+const handbook = new Handbook(/** @type {HTMLDialogElement} */ (must('#handbook-dialog')));
+on('#btn-handbook', () => handbook.open());
 
 installThemeToggle(must('#btn-theme'));
 

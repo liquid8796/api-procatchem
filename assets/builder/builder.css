@@ -1161,3 +1161,38 @@ body.preview-hidden .preview-toggle span[aria-hidden] { color: #0A1811; }
    dark rule of its own — the hero's gradient included. */
 
 .theme-icon { margin-right: 7px; font-size: 13px; }
+
+/* Drag-to-reorder. The rank doubles as the handle, so a row gains a gesture
+   without gaining a control. */
+[data-drag-handle] { cursor: grab; }
+[data-drag-handle]:active { cursor: grabbing; }
+.ladder-row.is-dragging { opacity: .45; }
+.ladder-row.is-drop-target { outline: 3px dashed var(--dex-red); outline-offset: 2px; }
+
+/* ================================================================= Handbook */
+
+.handbook-toc {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 14px; padding: 11px;
+  border: 2px solid var(--paper-line); border-radius: 12px;
+  background: var(--surface-sunk);
+}
+.handbook-toc a {
+  padding: 5px 10px; border-radius: 999px;
+  background: var(--surface-raised); border: 2px solid var(--paper-line);
+  color: var(--ink); text-decoration: none;
+  font-size: 12px; font-weight: 700;
+}
+.handbook-toc a:hover { background: var(--gold); border-color: var(--shell-ink); color: var(--shell-ink); }
+
+.handbook-text { margin: 0; font-size: 13.5px; line-height: 1.7; color: var(--prose-ink); }
+.handbook-lua {
+  margin: 2px 0 0; padding: 11px 13px; overflow-x: auto;
+  border: 2px solid var(--lcd-frame); border-radius: 10px;
+  background: var(--lcd);
+}
+.handbook-lua code {
+  background: none; border: 0; padding: 0;
+  font: 400 12.5px/1.65 var(--ff-mono); color: var(--lcd-text);
+  white-space: pre;
+}

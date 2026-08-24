@@ -20,6 +20,7 @@ import {
   toNullableInt,
 } from '../domain/config.js';
 import { renderConditionTree } from './condition-editor.js';
+import { makeReorderable, moveEntry } from './drag-reorder.js';
 import { renderHelperMoves } from './helper-moves.js';
 import { renderRuleList } from './rule-editor.js';
 import { h, requestFocus } from './dom.js';
@@ -570,8 +571,15 @@ function renderBallLadder(field, store) {
     return next;
   });
 
-  const rows = balls.map((ball, index) => h('div.ladder-row', {}, [
-    h('span.ladder-rank', { text: String(index + 1) }),
+  const rows = balls.map((ball, index) => h('div.ladder-row', {
+    draggable: 'true',
+    dataset: { row: String(index) },
+  }, [
+    h('span.ladder-rank', {
+      dataset: { dragHandle: 'true' },
+      title: 'Drag to reorder',
+      text: String(index + 1),
+    }),
     h('input.input.ladder-item', {
       id: rowId(index, 'item'),
       type: 'text',
@@ -623,6 +631,10 @@ function renderBallLadder(field, store) {
       onClick: () => update((live) => [...live, { item: '', condition: 'always' }]),
     }),
   ]);
+
+  // Dragging complements the arrow buttons rather than replacing them: those
+  // are how the ladder is reordered from the keyboard.
+  makeReorderable(ladder, (from, to) => update((live) => moveEntry(live, from, to)));
 
   return wrap(field, ladder);
 }
