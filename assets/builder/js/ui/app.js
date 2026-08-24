@@ -227,17 +227,26 @@ export class BuilderApp {
   /** Copy the generated script to the clipboard. */
   async copy() {
     if (!this._result) return;
-    const text = this._result.document;
+    await this.copyText(this._result.document, 'Script copied to the clipboard.');
+  }
+
+  /**
+   * Copy arbitrary text, falling back to the old selection trick where the
+   * async clipboard is unavailable (an insecure origin, or a file:// page).
+   *
+   * @param {string} text
+   * @param {string} okMessage
+   */
+  async copyText(text, okMessage) {
     try {
       await navigator.clipboard.writeText(text);
-      this.toast('Script copied to the clipboard.', 'ok');
+      this.toast(okMessage, 'ok');
+      return;
     } catch {
-      if (legacyCopy(text)) {
-        this.toast('Script copied to the clipboard.', 'ok');
-      } else {
-        this.toast('Could not reach the clipboard — select the code and copy it manually.', 'error');
-      }
+      // Fall through to the legacy path rather than reporting failure yet.
     }
+    if (legacyCopy(text)) this.toast(okMessage, 'ok');
+    else this.toast('Could not reach the clipboard — select the text and copy it manually.', 'error');
   }
 
   /** Download the generated script as a `.lua` file. */
@@ -280,19 +289,69 @@ export class BuilderApp {
    * @param {File} file
    */
   async importLinkGraph(file) {
-    const text = await file.text();
-    const { graph, stats } = LinkGraph.parse(text);
+    this.replaceLinkGraph(await file.text());
+  }
 
+  /**
+   * Replace the graph with what `text` describes.
+   *
+   * @param {string} text
+   * @returns {boolean} whether anything usable was found
+   */
+  replaceLinkGraph(text) {
+    const { graph, stats } = LinkGraph.parse(text);
     if (graph.isEmpty) {
-      this.toast('No usable links in that file — is it maps-cache/link_graph.txt?', 'error');
-      return;
+      this.toast('No usable links in that text — is it maps-cache/link_graph.txt?', 'error');
+      return false;
     }
     this._linkGraph = graph;
-    saveGraph(text);
+    saveGraph(graph.toText());
     this._refresh();
 
     const skipped = stats.skipped ? `, ${stats.skipped} lines skipped` : '';
     this.toast(`Loaded ${stats.maps} maps and ${stats.cells} warp cells${skipped}.`, 'ok');
+    return true;
+  }
+
+  /**
+   * Add links to what is already loaded.
+   *
+   * Merging goes through the serialised form so the existing graph's own
+   * de-duplication decides what is genuinely new.
+   *
+   * @param {string} text
+   * @returns {boolean} whether anything was added
+   */
+  mergeLinkGraph(text) {
+    const before = this._linkGraph.cellCount;
+    const { graph } = LinkGraph.parse(`${this._linkGraph.toText()}\n${text}`);
+    const added = graph.cellCount - before;
+
+    if (added <= 0) {
+      this.toast(added === 0 ? 'Nothing new in that text.' : 'No usable links in that text.', 'error');
+      return false;
+    }
+    this._linkGraph = graph;
+    saveGraph(graph.toText());
+    this._refresh();
+    this.toast(`Added ${added} warp cell${added === 1 ? '' : 's'}.`, 'ok');
+    return true;
+  }
+
+  /** Save the loaded graph back out as a `link_graph.txt`. */
+  exportLinkGraph() {
+    const text = this._linkGraph.toText();
+    if (!text) {
+      this.toast('Nothing to export — no link graph is loaded.', 'error');
+      return;
+    }
+    downloadText('link_graph.txt', text);
+    this.toast('Saved link_graph.txt.', 'ok');
+  }
+
+  /** @returns {LinkGraph} the graph the preview is generated against */
+  get linkGraph() {
+    return this._linkGraph;
   }
 
   /** Forget the loaded link graph. */

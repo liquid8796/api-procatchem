@@ -4,6 +4,7 @@
 
 import { BuilderApp } from './ui/app.js';
 import { must, prefersReducedMotion } from './ui/dom.js';
+import { LinkGraphTools } from './ui/link-graph-tools.js';
 
 const app = new BuilderApp({
   panels: must('#panels'),
@@ -32,6 +33,12 @@ on('#btn-reset', () => {
   if (confirm('Reset every setting back to the defaults?')) app.reset();
 });
 on('#btn-clear-graph', () => app.clearLinkGraph());
+
+const graphTools = new LinkGraphTools(
+  /** @type {HTMLDialogElement} */ (must('#graph-dialog')),
+  app,
+);
+on('#btn-graph-tools', () => graphTools.open());
 on('#btn-toggle-preview', () => app.togglePreview());
 on('#btn-hide-preview', () => app.togglePreview(true));
 

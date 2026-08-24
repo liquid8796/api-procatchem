@@ -48,6 +48,7 @@
     <div id="graph-status" class="graph-status"></div>
     <div class="side-actions">
       <button class="btn btn-lcd" id="btn-load-graph" type="button">Load link graph</button>
+      <button class="btn btn-lcd btn-quiet" id="btn-graph-tools" type="button">Edit, check, repair…</button>
       <button class="btn btn-lcd btn-quiet" id="btn-clear-graph" type="button">Clear</button>
     </div>
   </div>
@@ -115,6 +116,8 @@
         aria-controls="code-out" title="Show or hide the generated script">
   <span aria-hidden="true">&lt;/&gt;</span><span class="preview-toggle-text">Script</span>
 </button>
+
+<dialog class="tool-dialog" id="graph-dialog" aria-label="Link graph tools"></dialog>
 
 <div aria-live="polite" class="toasts" id="toasts"></div>
 <div class="drop-veil" aria-hidden="true"><span>Drop a link graph or a generated script</span></div>
