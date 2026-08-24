@@ -399,6 +399,19 @@ export class BuilderApp {
     return this._linkGraph;
   }
 
+  /** @returns {object} the configuration currently on screen (read-only) */
+  get config() {
+    return this._store.state;
+  }
+
+  /**
+   * @returns {import('../generators/index.js').GenerationResult | null}
+   *   the last successful generation, or null after a generator failure
+   */
+  get result() {
+    return this._result;
+  }
+
   /** Forget the loaded link graph. */
   clearLinkGraph() {
     this._linkGraph = new LinkGraph();

@@ -26,6 +26,14 @@
     <p class="brand-sub">Assemble a run<span class="ver">v1.0.108</span></p>
   </div>
 
+  <div class="side-block">
+    <h2 class="side-h">Look things up</h2>
+    <div class="side-actions">
+      <button class="btn btn-lcd" id="btn-api-browser" type="button">Search the Lua API</button>
+      <button class="btn btn-lcd btn-quiet" id="btn-structure" type="button">Show the script structure</button>
+    </div>
+  </div>
+
   <nav aria-label="Builder sections" class="side-nav">
     <a href="#panel-meta"><span aria-hidden="true">❒</span>Script details</a>
     <a href="#panel-mode"><span aria-hidden="true">◈</span>Farm mode</a>
@@ -131,6 +139,8 @@
 </button>
 
 <dialog class="tool-dialog" id="graph-dialog" aria-label="Link graph tools"></dialog>
+<dialog class="tool-dialog tool-dialog-wide" id="api-dialog" aria-label="Lua API reference"></dialog>
+<dialog class="tool-dialog" id="structure-dialog" aria-label="Script structure"></dialog>
 
 <div aria-live="polite" class="toasts" id="toasts"></div>
 <div class="drop-veil" aria-hidden="true"><span>Drop a link graph or a generated script</span></div>

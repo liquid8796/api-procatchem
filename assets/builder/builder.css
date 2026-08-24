@@ -969,3 +969,85 @@ body.preview-hidden .preview-toggle span[aria-hidden] { color: #0A1811; }
 .side-select option { background: var(--paper); color: var(--ink); }
 #template-about { margin: 2px 0 4px; font-size: 11.5px; }
 #template-about:empty { display: none; }
+
+/* ================================================== API browser & structure */
+
+.tool-dialog-wide { width: min(980px, calc(100vw - 32px)); }
+
+.api-filters { margin-bottom: 12px; }
+.api-filters .input[type="search"] { flex: 2 1 240px; }
+
+.api-body {
+  display: grid; gap: 12px;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  align-items: start;
+}
+.api-list {
+  display: grid; gap: 4px;
+  max-height: 52vh; overflow: auto;
+  padding: 6px; border: 2px solid var(--paper-line); border-radius: 12px;
+  background: var(--surface-card);
+}
+.api-item {
+  display: grid; gap: 1px; text-align: left;
+  padding: 7px 9px; border: 2px solid transparent; border-radius: 8px;
+  background: transparent; color: var(--ink); cursor: pointer;
+  transition: background .14s var(--ease), border-color .14s var(--ease);
+}
+.api-item:hover { background: var(--surface-sunk); }
+.api-item.is-active { background: var(--gold); border-color: var(--shell-ink); }
+.api-item-name { font: 700 12.5px var(--ff-mono); }
+.api-item-group { font-size: 10.5px; font-weight: 700; color: var(--muted-ink); }
+.api-item.is-active .api-item-group { color: #5A3E00; }
+
+.api-detail {
+  min-width: 0;
+  padding: 14px; border: 2px solid var(--paper-line); border-radius: 12px;
+  background: var(--surface-card);
+}
+.api-detail:empty { display: none; }
+.api-name { margin: 0 0 3px; font: 700 12px var(--ff-mono); color: var(--dex-red-deep); }
+.api-kind { margin: 0 0 10px; font-size: 11.5px; font-weight: 700; color: var(--muted-ink); }
+.api-signature {
+  margin: 0 0 10px; padding: 9px 11px; overflow-x: auto;
+  border: 2px solid var(--paper-dash); border-radius: 9px; background: var(--surface-sunk);
+}
+.api-signature code { background: none; border: 0; padding: 0; font-size: 12.5px; }
+.api-summary { margin: 0 0 10px; font-size: 13px; line-height: 1.6; }
+.api-subhead { margin: 0 0 5px; font: 700 8px var(--ff-pixel); color: var(--dex-red-deep); }
+.api-params ul { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 5px; font-size: 12.5px; line-height: 1.55; }
+.api-type { margin-left: 6px; font: 600 11px var(--ff-mono); color: var(--sea); }
+.api-optional { margin-left: 6px; font-size: 10.5px; font-weight: 800; color: var(--muted-ink); }
+.api-returns { margin: 0 0 12px; font-size: 12.5px; font-weight: 700; color: var(--muted-ink); }
+
+@media (max-width: 720px) {
+  .api-body { grid-template-columns: minmax(0, 1fr); }
+  .api-list { max-height: 30vh; }
+}
+
+/* The structure view: nesting is the whole message, so children are indented
+   from a rail rather than drawn as separate boxes. */
+.flow { display: grid; gap: 8px; }
+.flow-node { display: grid; gap: 6px; }
+.flow-label {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  padding: 8px 11px; border-radius: 9px;
+  border: 2px solid var(--paper-line); background: var(--surface-card);
+}
+.flow-title { font-size: 13px; font-weight: 800; }
+.flow-detail { font-size: 11.5px; font-weight: 700; color: var(--muted-ink); }
+.flow-children {
+  display: grid; gap: 6px;
+  margin-left: 12px; padding-left: 12px;
+  border-left: 3px solid var(--paper-dash);
+}
+.flow-callback > .flow-label {
+  background: var(--shell-ink); border-color: #000; color: var(--lcd-text);
+}
+.flow-callback > .flow-label .flow-title { font-family: var(--ff-mono); font-size: 12.5px; }
+.flow-callback > .flow-label .flow-detail { color: var(--lcd-dim); }
+.flow-check > .flow-label { background: #FBF3D6; border-color: var(--gold); }
+.flow-note > .flow-label {
+  padding: 3px 9px; border-style: dashed; background: transparent;
+}
+.flow-note > .flow-label .flow-title { font-size: 11.5px; color: var(--muted-ink); }

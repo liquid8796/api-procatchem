@@ -3,9 +3,11 @@
  */
 
 import { TEMPLATES } from './domain/templates.js';
+import { ApiBrowser } from './ui/api-browser.js';
 import { BuilderApp } from './ui/app.js';
 import { h, must, prefersReducedMotion, replaceChildren } from './ui/dom.js';
 import { LinkGraphTools } from './ui/link-graph-tools.js';
+import { StructureDiagram } from './ui/structure-diagram.js';
 
 const app = new BuilderApp({
   panels: must('#panels'),
@@ -40,6 +42,16 @@ const graphTools = new LinkGraphTools(
   app,
 );
 on('#btn-graph-tools', () => graphTools.open());
+
+const apiBrowser = new ApiBrowser(/** @type {HTMLDialogElement} */ (must('#api-dialog')), app);
+on('#btn-api-browser', () => apiBrowser.open());
+
+const structure = new StructureDiagram(
+  /** @type {HTMLDialogElement} */ (must('#structure-dialog')),
+  () => app.result,
+  () => app.config,
+);
+on('#btn-structure', () => structure.open());
 
 // The template picker describes the highlighted entry, so the choice can be
 // made without loading each one to find out what it does.
