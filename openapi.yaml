@@ -2093,7 +2093,7 @@ paths:
                   description: One-based Pokémon index in the current team.
                 statType:
                   type: string
-                  description: Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`.
+                  description: Stat name: `HP`, `ATK`, `DEF`, `SPATK`, `SPDEF`, or `SPD` (speed). The long forms `HEALTH`, `ATTACK`, `DEFENCE`/`DEFENSE`, `SPATTACK`, `SPDEFENCE`/`SPDEFENSE` and `SPEED` also work; anything else stops the script.
               required:
               - pokemonIndex
               - statType
@@ -2137,7 +2137,7 @@ paths:
                   description: One-based Pokémon index in the current team.
                 statType:
                   type: string
-                  description: Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`.
+                  description: Stat name: `HP`, `ATK`, `DEF`, `SPATK`, `SPDEF`, or `SPD` (speed). The long forms `HEALTH`, `ATTACK`, `DEFENCE`/`DEFENSE`, `SPATTACK`, `SPDEFENCE`/`SPDEFENSE` and `SPEED` also work; anything else stops the script.
               required:
               - pokemonIndex
               - statType
@@ -2180,7 +2180,7 @@ paths:
                   description: One-based Pokémon index in the current team.
                 statType:
                   type: string
-                  description: Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`.
+                  description: Stat name: `HP`, `ATK`, `DEF`, `SPATK`, `SPDEF`, or `SPD` (speed). The long forms `HEALTH`, `ATTACK`, `DEFENCE`/`DEFENSE`, `SPATTACK`, `SPDEFENCE`/`SPDEFENSE` and `SPEED` also work; anything else stops the script.
               required:
               - pokemonIndex
               - statType
@@ -5208,7 +5208,7 @@ paths:
                   description: One-based Pokémon position inside the selected PC box.
                 statType:
                   type: string
-                  description: Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`.
+                  description: Stat name: `HP`, `ATK`, `DEF`, `SPATK`, `SPDEF`, or `SPD` (speed). The long forms `HEALTH`, `ATTACK`, `DEFENCE`/`DEFENSE`, `SPATTACK`, `SPDEFENCE`/`SPDEFENSE` and `SPEED` also work; anything else stops the script.
               required:
               - boxId
               - boxPokemonId
@@ -5258,7 +5258,7 @@ paths:
                   description: One-based Pokémon position inside the selected PC box.
                 statType:
                   type: string
-                  description: Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`.
+                  description: Stat name: `HP`, `ATK`, `DEF`, `SPATK`, `SPDEF`, or `SPD` (speed). The long forms `HEALTH`, `ATTACK`, `DEFENCE`/`DEFENSE`, `SPATTACK`, `SPDEFENCE`/`SPDEFENSE` and `SPEED` also work; anything else stops the script.
               required:
               - boxId
               - boxPokemonId
@@ -5308,7 +5308,7 @@ paths:
                   description: One-based Pokémon position inside the selected PC box.
                 statType:
                   type: string
-                  description: Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`.
+                  description: Stat name: `HP`, `ATK`, `DEF`, `SPATK`, `SPDEF`, or `SPD` (speed). The long forms `HEALTH`, `ATTACK`, `DEFENCE`/`DEFENSE`, `SPATTACK`, `SPDEFENCE`/`SPDEFENSE` and `SPEED` also work; anything else stops the script.
               required:
               - boxId
               - boxPokemonId
@@ -6004,7 +6004,7 @@ paths:
               properties:
                 statType:
                   type: string
-                  description: Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`.
+                  description: Stat name: `HP`, `ATK`, `DEF`, `SPATK`, `SPDEF`, or `SPD` (speed). The long forms `HEALTH`, `ATTACK`, `DEFENCE`/`DEFENSE`, `SPATTACK`, `SPDEFENCE`/`SPDEFENSE` and `SPEED` also work; anything else stops the script.
               required:
               - statType
             example:
@@ -6042,7 +6042,7 @@ paths:
               properties:
                 statType:
                   type: string
-                  description: Stat name such as `HP`, `ATK`, `DEF`, `SPA`, `SPD`, or `SPE`.
+                  description: Stat name: `HP`, `ATK`, `DEF`, `SPATK`, `SPDEF`, or `SPD` (speed). The long forms `HEALTH`, `ATTACK`, `DEFENCE`/`DEFENSE`, `SPATTACK`, `SPDEFENCE`/`SPDEFENSE` and `SPEED` also work; anything else stops the script.
               required:
               - statType
             example:

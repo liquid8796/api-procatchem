@@ -9,6 +9,12 @@
  * `window.PROCATCHEM_I18N` (see vi.js for the shape) and add one <script> tag
  * to index.html. This file enumerates the registry and needs no change.
  *
+ * The control is a hand-rolled ARIA listbox rather than a <select>, because
+ * native <option> elements cannot be styled and the plain OS dropdown looked
+ * nothing like the rest of the page. Styling lives in assets/i18n/i18n.css.
+ * The keyboard contract below is the APG select-only combobox: DOM focus stays
+ * on the trigger and `aria-activedescendant` names the option under the cursor.
+ *
  * How a pack is applied: its `dict` is keyed by the *normalized English
  * innerHTML* of each translatable element. Applying walks a fixed set of
  * selectors, stashes the English original in a data attribute, and swaps the
@@ -32,6 +38,10 @@
   var STORE_KEY = 'procatchem-doc-lang';
   var EN_ATTR = 'data-i18n-en';
   var CAT_ATTR = 'data-i18n-cat';
+  var LIST_ID = 'doc-lang-list';
+  var OPTION_ID_PREFIX = 'doc-lang-opt-';
+  /** How long a typeahead buffer stays open, matching native select behaviour. */
+  var TYPEAHEAD_RESET_MS = 700;
 
   /**
    * Everything translated through the innerHTML dictionary. Kept identical to
@@ -207,79 +217,271 @@
 
     document.documentElement.setAttribute('data-doc-lang', target);
     if (persist !== false) save(target);
-
-    var select = document.getElementById('doc-lang-select');
-    if (select && select.value !== target) select.value = target;
+    syncControl(target);
   }
 
-  function injectStyles() {
-    var style = document.createElement('style');
-    style.textContent = [
-      '.lang-picker{position:fixed;top:16px;right:24px;z-index:60;',
-      // Padding plus the select line-height keeps the hit area at ~46px, above
-      // the 44px touch-target guideline, without making the pill look heavy.
-      '  display:flex;align-items:center;gap:8px;padding:10px 12px 10px 14px;',
-      '  background:#fff;border:2px solid var(--shell-ink,#20242B);border-radius:999px;',
-      '  box-shadow:0 3px 0 var(--shell-ink,#20242B)}',
-      '.lang-picker::before{content:"";width:13px;height:13px;border-radius:50%;flex:none;',
-      '  background:conic-gradient(from 140deg,#6890F0,#78C850,#F2C94C,#E3350D,#6890F0);',
-      '  border:2px solid var(--shell-ink,#20242B)}',
-      '.lang-select{appearance:none;-webkit-appearance:none;cursor:pointer;',
-      '  border:0;background-color:transparent;padding:0 17px 0 0;line-height:22px;',
-      '  font:800 12.5px/22px var(--ff-body,sans-serif);color:var(--shell-ink,#20242B);',
-      '  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),',
-      '   linear-gradient(135deg,currentColor 50%,transparent 50%);',
-      '  background-position:calc(100% - 8px) 55%,calc(100% - 4px) 55%;',
-      '  background-size:4px 4px,4px 4px;background-repeat:no-repeat}',
-      '.lang-select:focus-visible{outline:3px dashed var(--gold,#F2C94C);outline-offset:4px}',
-      // Press Start 2P has no Vietnamese diacritics, and that will hold for most
-      // non-Latin packs too; fall back to the body face whenever a translation
-      // is active so accents render instead of dropping out.
-      'html:not([data-doc-lang="en"]) .tag-section h1{font-family:var(--ff-body);',
-      '  font-weight:800;font-size:24px;letter-spacing:.01em}',
-      'html:not([data-doc-lang="en"]) .hero-eyebrow{font-family:var(--ff-body);',
-      '  font-weight:800;font-size:13px;letter-spacing:.14em;text-transform:uppercase}',
-      // The hero headline is the one block the picker could reach on a narrow
-      // screen, so keep its text clear of the control.
-      '@media(max-width:980px){.lang-picker{top:10px;right:12px;padding:9px 11px 9px 13px}',
-      '  .lang-select{font-size:12px}}'
-    ].join('\n');
-    document.head.appendChild(style);
+  // -------------------------------------------------------------- the control
+
+  var currentCode = SOURCE_CODE;
+  /** @type {{picker: Element, trigger: Element, label: Element, options: Array}} */
+  var ui;
+  var activeIndex = 0;
+  var typed = '';
+  var typedTimer = 0;
+
+  function isOpen() {
+    return ui.picker.classList.contains('is-open');
+  }
+
+  /**
+   * Move the keyboard cursor. DOM focus stays on the trigger throughout, which
+   * is what `aria-activedescendant` is for.
+   *
+   * @param {number} index already clamped into range by the caller
+   */
+  function setActive(index) {
+    activeIndex = index;
+    for (var i = 0; i < ui.options.length; i++) {
+      var on = i === index;
+      ui.options[i].el.classList.toggle('is-active', on);
+      if (!on) continue;
+      ui.trigger.setAttribute('aria-activedescendant', ui.options[i].el.id);
+      // Only when the panel actually scrolls: on a short list the nearest
+      // scrollable ancestor is the page, and nudging that would jump the doc.
+      var list = ui.options[i].el.parentNode;
+      if (list.scrollHeight > list.clientHeight && ui.options[i].el.scrollIntoView) {
+        ui.options[i].el.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }
+
+  function indexOfCode(code) {
+    for (var i = 0; i < ui.options.length; i++) {
+      if (ui.options[i].code === code) return i;
+    }
+    return 0;
+  }
+
+  function onDocumentPointerDown(event) {
+    if (!ui.picker.contains(event.target)) closeList(false);
+  }
+
+  function openList() {
+    if (isOpen()) return;
+    ui.picker.classList.add('is-open');
+    ui.trigger.setAttribute('aria-expanded', 'true');
+    setActive(indexOfCode(currentCode));
+    // Registered only while open. The trigger sits inside the picker, so the
+    // very click that opened the list cannot immediately close it again.
+    document.addEventListener('mousedown', onDocumentPointerDown);
+  }
+
+  /** @param {boolean} returnFocus pass false when focus is leaving anyway */
+  function closeList(returnFocus) {
+    if (!isOpen()) return;
+    ui.picker.classList.remove('is-open');
+    ui.trigger.setAttribute('aria-expanded', 'false');
+    ui.trigger.removeAttribute('aria-activedescendant');
+    document.removeEventListener('mousedown', onDocumentPointerDown);
+    if (returnFocus !== false) ui.trigger.focus();
+  }
+
+  function commitActive() {
+    var option = ui.options[activeIndex];
+    if (option && option.code !== currentCode) setLanguage(option.code);
+  }
+
+  /** Jump to the next option whose label starts with the buffered letters. */
+  function typeahead(character) {
+    clearTimeout(typedTimer);
+    typed += character.toLowerCase();
+    typedTimer = setTimeout(function () { typed = ''; }, TYPEAHEAD_RESET_MS);
+
+    // A single letter starts searching after the cursor so repeated presses
+    // cycle through the matches; a longer buffer re-searches from the cursor.
+    var from = typed.length > 1 ? 0 : 1;
+    for (var offset = 0; offset < ui.options.length; offset++) {
+      var i = (activeIndex + offset + from) % ui.options.length;
+      if (ui.options[i].label.toLowerCase().indexOf(typed) === 0) {
+        setActive(i);
+        return;
+      }
+    }
+  }
+
+  function onTriggerKeydown(event) {
+    var key = event.key;
+
+    if (!isOpen()) {
+      if (key === 'Enter' || key === ' ' || key === 'ArrowDown' || key === 'ArrowUp') {
+        event.preventDefault();
+        openList();
+      }
+      return;
+    }
+
+    switch (key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        setActive(Math.min(activeIndex + 1, ui.options.length - 1));
+        return;
+      case 'ArrowUp':
+        event.preventDefault();
+        setActive(Math.max(activeIndex - 1, 0));
+        return;
+      case 'Home':
+        event.preventDefault();
+        setActive(0);
+        return;
+      case 'End':
+        event.preventDefault();
+        setActive(ui.options.length - 1);
+        return;
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        commitActive();
+        closeList(true);
+        return;
+      case 'Escape':
+        event.preventDefault();
+        closeList(true);
+        return;
+      case 'Tab':
+        // APG: Tab commits the cursor, then focus moves on normally.
+        commitActive();
+        closeList(false);
+        return;
+      default:
+        if (key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          event.preventDefault();
+          typeahead(key);
+        }
+    }
+  }
+
+  /** Reflect the language in use on the trigger and in the list. */
+  function syncControl(code) {
+    if (!ui) return;
+    currentCode = code;
+    for (var i = 0; i < ui.options.length; i++) {
+      var option = ui.options[i];
+      var selected = option.code === code;
+      option.el.classList.toggle('is-selected', selected);
+      option.el.setAttribute('aria-selected', String(selected));
+      if (selected) ui.label.textContent = option.label;
+    }
+  }
+
+  /**
+   * @param {{code: string, label: string}} entry
+   * @param {Element} list
+   * @returns {{code: string, label: string, el: Element}}
+   */
+  function buildOption(entry, list) {
+    var el = document.createElement('li');
+    el.className = 'lang-option';
+    el.id = OPTION_ID_PREFIX + entry.code;
+    el.setAttribute('role', 'option');
+    el.setAttribute('aria-selected', 'false');
+
+    var ball = document.createElement('span');
+    ball.className = 'opt-ball';
+    ball.setAttribute('aria-hidden', 'true');
+
+    var text = document.createElement('span');
+    text.className = 'opt-label';
+    text.textContent = entry.label;
+
+    var code = document.createElement('span');
+    code.className = 'opt-code';
+    code.setAttribute('aria-hidden', 'true');
+    code.textContent = entry.code.toUpperCase();
+
+    el.appendChild(ball);
+    el.appendChild(text);
+    el.appendChild(code);
+    list.appendChild(el);
+
+    el.addEventListener('click', function () {
+      if (entry.code !== currentCode) setLanguage(entry.code);
+      closeList(true);
+    });
+
+    return { code: entry.code, label: entry.label, el: el };
   }
 
   function buildSwitcher() {
-    injectStyles();
+    var entries = [{ code: SOURCE_CODE, label: SOURCE_LABEL }].concat(packs);
 
     var picker = document.createElement('div');
     picker.className = 'lang-picker';
 
-    var select = document.createElement('select');
-    select.className = 'lang-select';
-    select.id = 'doc-lang-select';
-    select.setAttribute('aria-label', 'Language / Ngôn ngữ');
-    select.title = 'Language / Ngôn ngữ';
+    var trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'lang-trigger';
+    trigger.id = 'doc-lang-trigger';
+    trigger.setAttribute('role', 'combobox');
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-controls', LIST_ID);
+    trigger.setAttribute('aria-label', 'Language / Ngôn ngữ');
+    trigger.title = 'Language / Ngôn ngữ';
 
-    var options = [{ code: SOURCE_CODE, label: SOURCE_LABEL }].concat(packs);
-    for (var i = 0; i < options.length; i++) {
-      var option = document.createElement('option');
-      option.value = options[i].code;
-      option.textContent = options[i].label;
-      select.appendChild(option);
+    var ball = document.createElement('span');
+    ball.className = 'lang-ball';
+    ball.setAttribute('aria-hidden', 'true');
+
+    var label = document.createElement('span');
+    label.className = 'lang-current';
+
+    var caret = document.createElement('span');
+    caret.className = 'lang-caret';
+    caret.setAttribute('aria-hidden', 'true');
+
+    trigger.appendChild(ball);
+    trigger.appendChild(label);
+    trigger.appendChild(caret);
+
+    var list = document.createElement('ul');
+    list.className = 'lang-list';
+    list.id = LIST_ID;
+    list.setAttribute('role', 'listbox');
+    list.setAttribute('aria-label', 'Language / Ngôn ngữ');
+
+    var head = document.createElement('li');
+    head.className = 'lang-list-head';
+    head.setAttribute('role', 'presentation');
+    head.setAttribute('aria-hidden', 'true');
+    head.textContent = 'LANGUAGE';
+    list.appendChild(head);
+
+    var options = [];
+    for (var i = 0; i < entries.length; i++) {
+      options.push(buildOption(entries[i], list));
     }
 
-    select.addEventListener('change', function () {
-      setLanguage(select.value);
-    });
+    // Pressing anywhere inside the panel — an option, the caption, the padding
+    // — must not blur the trigger, or the list would close before the click
+    // that chose an option ever lands. A native select behaves the same way.
+    list.addEventListener('mousedown', function (event) { event.preventDefault(); });
 
-    picker.appendChild(select);
+    picker.appendChild(trigger);
+    picker.appendChild(list);
     document.body.appendChild(picker);
-    return select;
+
+    trigger.addEventListener('click', function () {
+      if (isOpen()) closeList(true);
+      else openList();
+    });
+    trigger.addEventListener('keydown', onTriggerKeydown);
+    trigger.addEventListener('blur', function () { closeList(false); });
+
+    return { picker: picker, trigger: trigger, label: label, options: options };
   }
 
-  var switcher = buildSwitcher();
+  ui = buildSwitcher();
   // A saved code whose pack is no longer shipped falls back to English.
   var saved = readSaved();
-  var initial = findPack(saved) ? saved : SOURCE_CODE;
-  switcher.value = initial;
-  setLanguage(initial, false);
+  setLanguage(findPack(saved) ? saved : SOURCE_CODE, false);
 })();

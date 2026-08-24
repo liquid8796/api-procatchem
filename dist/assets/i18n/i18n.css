@@ -1,0 +1,248 @@
+/* ============================================================================
+   Language picker for the API reference.
+
+   Native <option> elements cannot be styled, so the switcher renders an ARIA
+   listbox instead. The look extends the page's Pokédex system rather than
+   introducing a parallel one: the trigger is the same paper pill as .toplinks,
+   and the panel is the LCD screen used by `main pre` and the sidebar nav, down
+   to the scanline overlay.
+
+   Selection is expressed the way the game does it — an empty Poké Ball for a
+   language you have not chosen, a filled one for the language in use.
+   ========================================================================== */
+
+.lang-picker {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  z-index: 60;
+  font-family: var(--ff-body, system-ui, sans-serif);
+}
+
+/* ------------------------------------------------------------- the trigger */
+
+.lang-trigger {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 13px;
+  cursor: pointer;
+  background: #fff;
+  color: var(--shell-ink, #20242B);
+  border: 2px solid var(--shell-ink, #20242B);
+  border-radius: 999px;
+  box-shadow: 0 3px 0 var(--shell-ink, #20242B);
+  font: 800 12.5px/22px var(--ff-body, sans-serif);
+  transition: transform .14s ease, box-shadow .14s ease;
+}
+.lang-trigger:hover { transform: translateY(-1px); box-shadow: 0 4px 0 var(--shell-ink, #20242B); }
+.lang-trigger:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--shell-ink, #20242B); }
+.lang-picker.is-open .lang-trigger {
+  background: var(--gold, #F2C94C);
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--shell-ink, #20242B);
+}
+
+/* A real Poké Ball, same construction as the .pokeball emblem in the shell. */
+.lang-ball {
+  position: relative;
+  flex: none;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 2px solid var(--shell-ink, #20242B);
+  background: linear-gradient(180deg,
+    #FF5A44 0 42%, var(--shell-ink, #20242B) 42% 58%, #F6F6F6 58% 100%);
+}
+.lang-ball::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #F6F6F6;
+  border: 1.5px solid var(--shell-ink, #20242B);
+}
+.lang-picker.is-open .lang-ball { animation: langBallShake .5s ease; }
+@keyframes langBallShake {
+  25% { transform: rotate(-18deg); }
+  55% { transform: rotate(14deg); }
+  80% { transform: rotate(-7deg); }
+}
+
+.lang-caret {
+  flex: none;
+  width: 0;
+  height: 0;
+  margin-left: 1px;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  transition: transform .18s ease;
+}
+.lang-picker.is-open .lang-caret { transform: rotate(180deg); }
+
+/* -------------------------------------------------------------- the screen */
+
+.lang-list {
+  position: absolute;
+  top: calc(100% + 9px);
+  right: 0;
+  margin: 0;
+  padding: 7px;
+  min-width: 100%;
+  max-height: 60vh;
+  overflow: auto;
+  list-style: none;
+  background: linear-gradient(180deg, var(--lcd-hi, #0F241B), var(--lcd, #0B1E16));
+  border: 3px solid var(--shell-ink, #20242B);
+  border-radius: 13px;
+  box-shadow:
+    inset 0 0 0 2px var(--lcd-frame, #1E4A35),
+    inset 0 10px 26px rgba(0, 0, 0, .45),
+    0 8px 22px rgba(32, 36, 43, .3);
+  transform-origin: top right;
+  animation: langListIn .16s cubic-bezier(.22, .61, .36, 1);
+}
+.lang-picker:not(.is-open) .lang-list { display: none; }
+@keyframes langListIn {
+  from { opacity: 0; transform: translateY(-6px) scale(.96); }
+}
+.lang-list::-webkit-scrollbar { width: 8px; }
+.lang-list::-webkit-scrollbar-thumb { background: var(--lcd-frame, #1E4A35); border-radius: 8px; }
+
+/* Pokédex-style screen caption above the entries. */
+.lang-list-head {
+  padding: 3px 8px 7px;
+  font: 7px/1.6 var(--ff-pixel, monospace);
+  letter-spacing: .1em;
+  color: var(--lcd-dim, #6FA383);
+}
+
+/* ------------------------------------------------------------- the entries */
+
+.lang-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  cursor: pointer;
+  color: var(--lcd-dim, #6FA383);
+  font-size: 13.5px;
+  font-weight: 700;
+  transition: background .14s ease, color .14s ease, transform .14s ease;
+}
+.lang-option + .lang-option { margin-top: 3px; }
+
+/* An empty ball: this language is available but not in use. */
+.opt-ball {
+  position: relative;
+  flex: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: .55;
+  transition: opacity .14s ease, border-color .14s ease;
+}
+.opt-ball::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: currentColor;
+}
+.opt-ball::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background: var(--lcd, #0B1E16);
+}
+
+.opt-label { flex: 1 1 auto; white-space: nowrap; }
+
+.opt-code {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(120, 200, 80, .12);
+  border: 1px solid var(--lcd-frame, #1E4A35);
+  font: 700 10px var(--ff-mono, monospace);
+  letter-spacing: .06em;
+  color: var(--lcd-dim, #6FA383);
+}
+
+/* Keyboard cursor and hover share one treatment, so both read the same way. */
+.lang-option:hover,
+.lang-option.is-active {
+  background: rgba(120, 200, 80, .14);
+  color: var(--lcd-text, #D7F5DF);
+  transform: translateX(3px);
+}
+.lang-option.is-active { box-shadow: inset 3px 0 0 var(--gold, #F2C94C); }
+
+/* The language in use: a caught ball, and the gold the sidebar uses for
+   "you are here". */
+.lang-option.is-selected { color: var(--lcd-text, #D7F5DF); }
+.lang-option.is-selected .opt-ball {
+  opacity: 1;
+  border-color: var(--shell-ink, #20242B);
+  background: linear-gradient(180deg,
+    #FF5A44 0 42%, var(--shell-ink, #20242B) 42% 58%, #F6F6F6 58% 100%);
+  box-shadow: 0 0 8px rgba(255, 90, 68, .55);
+}
+.lang-option.is-selected .opt-ball::before { display: none; }
+.lang-option.is-selected .opt-ball::after {
+  background: #F6F6F6;
+  border-color: var(--shell-ink, #20242B);
+}
+.lang-option.is-selected .opt-code {
+  background: var(--gold, #F2C94C);
+  border-color: var(--gold, #F2C94C);
+  color: #5A3E00;
+}
+
+/* --------------------------------------------- translated-heading fallback */
+
+/* Press Start 2P ships no Vietnamese diacritics, and that holds for most
+   non-Latin packs too; fall back to the body face whenever a translation is
+   active so accents render instead of dropping out. */
+html:not([data-doc-lang="en"]) .tag-section h1 {
+  font-family: var(--ff-body);
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: .01em;
+}
+html:not([data-doc-lang="en"]) .hero-eyebrow {
+  font-family: var(--ff-body);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+/* ----------------------------------------------- responsive + motion prefs */
+
+@media (max-width: 980px) {
+  .lang-picker { top: 10px; right: 12px; }
+  .lang-trigger { padding: 9px 12px; font-size: 12px; }
+  .lang-list { max-height: 55vh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lang-list { animation: none; }
+  .lang-ball, .lang-caret, .lang-option, .lang-trigger { transition: none; animation: none; }
+  .lang-option:hover, .lang-option.is-active { transform: none; }
+}

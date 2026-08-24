@@ -103,17 +103,50 @@ test('index.html loads every pack before the switcher, as classic scripts', () =
   assert.ok(!/type="module"[^>]*assets\/i18n/.test(html), 'i18n must stay classic for file:// use');
 });
 
-test('the switcher renders a select, not a fixed set of buttons', () => {
-  assert.match(runtimeSource, /createElement\('select'\)/, 'expected a <select> control');
-  assert.match(runtimeSource, /id = 'doc-lang-select'/);
+test('the switcher renders a styleable listbox, not a native select', () => {
+  // Native <option> cannot be styled, which is the whole reason this is a
+  // hand-rolled listbox; a regression to <select> would silently lose the design.
+  assert.ok(!/createElement\('select'\)/.test(runtimeSource), 'must not fall back to a native select');
+  assert.match(runtimeSource, /setAttribute\('role', 'listbox'\)/);
+  assert.match(runtimeSource, /setAttribute\('role', 'option'\)/);
+  assert.match(runtimeSource, /setAttribute\('role', 'combobox'\)/);
   // Options come from the registry, so a new pack needs no edit here.
   assert.match(runtimeSource, /\[\{ code: SOURCE_CODE, label: SOURCE_LABEL \}\]\.concat\(packs\)/);
   assert.ok(!/data-lang="vi"/.test(runtimeSource), 'no language may be hardcoded in the switcher');
   assert.ok(!/PROCATCHEM_VI/.test(runtimeSource), 'switcher must read the registry, not one pack');
 });
 
-test('the switcher is positioned at the top right', () => {
-  assert.match(runtimeSource, /\.lang-picker\{position:fixed;top:16px;right:24px/);
+test('the listbox implements the full keyboard contract', () => {
+  // Replacing a native select means owning everything it gave us for free.
+  for (const key of ['ArrowDown', 'ArrowUp', 'Home', 'End', 'Enter', 'Escape', 'Tab']) {
+    assert.match(runtimeSource, new RegExp(`case '${key}'`), `no handler for ${key}`);
+  }
+  assert.match(runtimeSource, /aria-activedescendant/, 'cursor must be exposed to assistive tech');
+  assert.match(runtimeSource, /aria-expanded/, 'open state must be exposed');
+  assert.match(runtimeSource, /function typeahead/, 'expected type-to-jump like a native select');
+  assert.match(runtimeSource, /onDocumentPointerDown/, 'expected click-outside handling');
+});
+
+test('the outside-click listener is removed when the list closes', () => {
+  // A permanent document listener would keep firing for the life of the page.
+  assert.match(runtimeSource, /document\.addEventListener\('mousedown', onDocumentPointerDown\)/);
+  assert.match(runtimeSource, /document\.removeEventListener\('mousedown', onDocumentPointerDown\)/);
+});
+
+test('the picker is positioned at the top right and styled from the stylesheet', () => {
+  const css = readFileSync(`${PACK_DIR}/i18n.css`, 'utf8');
+  assert.match(css, /\.lang-picker\s*\{[^}]*position:\s*fixed/);
+  assert.match(css, /\.lang-picker\s*\{[^}]*top:\s*16px/);
+  assert.match(css, /\.lang-picker\s*\{[^}]*right:\s*24px/);
+  // The panel must use the page's LCD surface, not an invented palette.
+  assert.match(css, /--lcd-hi/);
+  assert.match(css, /--lcd-frame/);
+  assert.match(css, /prefers-reduced-motion/);
+  assert.ok(!/\.lang-select/.test(css), 'stale native-select styling left behind');
+});
+
+test('index.html links the stylesheet', () => {
+  assert.match(html, /<link href="assets\/i18n\/i18n\.css" rel="stylesheet"\/>/);
 });
 
 test('switching restores English before applying a pack', () => {
@@ -121,7 +154,7 @@ test('switching restores English before applying a pack', () => {
   // English original is put back first; the dictionary keys are English.
   const setLanguage = runtimeSource.slice(
     runtimeSource.indexOf('function setLanguage'),
-    runtimeSource.indexOf('function injectStyles'),
+    runtimeSource.indexOf('// -------------------------------------------------------------- the control'),
   );
   const restoreAt = setLanguage.indexOf('restoreSource()');
   const applyAt = setLanguage.indexOf('applyPack(pack)');
