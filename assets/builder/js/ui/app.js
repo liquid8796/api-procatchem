@@ -6,6 +6,7 @@
  * script logic lives in `generators/`, all validation in `lint/`.
  */
 
+import { t } from '../core/i18n.js';
 import { Store } from '../core/store.js';
 import { scanLuaCalls } from '../domain/api-call.js';
 import { createDefaultConfig, normaliseConfig } from '../domain/config.js';
@@ -64,6 +65,13 @@ export class BuilderApp {
     this._render();
   }
 
+  /** Redraw everything from current state — used after a language switch. */
+  refresh() {
+    // Re-applies the preview toggle, whose titles live outside the render pass.
+    this.togglePreview(document.body.classList.contains('preview-hidden'));
+    this._refresh();
+  }
+
   // ---------------------------------------------------------------- rendering
 
   _render() {
@@ -92,7 +100,7 @@ export class BuilderApp {
     replaceChildren(this._mounts.lint, [
       h('div.finding.finding-error', {}, [
         h('span.finding-icon', { text: '✕' }),
-        h('span.finding-text', { text: `Generation failed: ${error.message}` }),
+        h('span.finding-text', { text: t('Generation failed: {message}', { message: error.message }) }),
       ]),
     ]);
     // Surface the stack for a bug report rather than swallowing it.
@@ -117,8 +125,8 @@ export class BuilderApp {
         h('header.panel-head', {}, [
           h('span.panel-icon', { 'aria-hidden': 'true', text: panel.icon }),
           h('div.panel-titles', {}, [
-            h('h2.panel-title', { text: panel.title }),
-            h('p.panel-sub', { text: panel.subtitle }),
+            h('h2.panel-title', { text: t(panel.title) }),
+            h('p.panel-sub', { text: t(panel.subtitle) }),
           ]),
         ]),
         h('div.panel-body', {}, panel.build(this._store, mode)),
@@ -149,20 +157,22 @@ export class BuilderApp {
     replaceChildren(this._mounts.status, [
       h('span.stat-pill', {}, [
         h('b', { text: String(generation.hostCalls.length) }),
-        h('span', { text: 'API calls' }),
+        h('span', { text: t('API calls') }),
       ]),
       h('span.stat-pill', {}, [
         h('b', { text: String(lineCount) }),
-        h('span', { text: 'lines' }),
+        h('span', { text: t('lines') }),
       ]),
       h('span.stat-pill', {
         class: verified ? 'stat-ok' : 'stat-bad',
         title: verified
-          ? 'Every function this script calls exists in the Lua API.'
-          : `Unresolved: ${[...generation.unknownCalls, ...generation.retiredCalls].join(', ')}`,
+          ? t('Every function this script calls exists in the Lua API.')
+          : t('Unresolved: {names}', {
+            names: [...generation.unknownCalls, ...generation.retiredCalls].join(', '),
+          }),
       }, [
         h('b', { text: verified ? '✓' : '✕' }),
-        h('span', { text: verified ? 'API verified' : 'API mismatch' }),
+        h('span', { text: verified ? t('API verified') : t('API mismatch') }),
       ]),
     ]);
 
@@ -196,7 +206,7 @@ export class BuilderApp {
       replaceChildren(this._mounts.lint, [
         h('div.finding.finding-ok', {}, [
           h('span.finding-icon', { text: '✓' }),
-          h('span.finding-text', { text: 'No problems found — this script is ready to run.' }),
+          h('span.finding-text', { text: t('No problems found — this script is ready to run.') }),
         ]),
       ]);
       return;
@@ -207,7 +217,7 @@ export class BuilderApp {
       return h(jump ? 'button.finding' : 'div.finding', {
         class: `finding-${item.level}`,
         type: jump ? 'button' : undefined,
-        title: jump ? 'Jump to the setting' : undefined,
+        title: jump ? t('Jump to the setting') : undefined,
         onClick: jump
           ? () => {
             jump.scrollIntoView({ block: 'center', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
@@ -232,8 +242,8 @@ export class BuilderApp {
       h('span.graph-dot', { class: loaded ? 'is-on' : '', 'aria-hidden': 'true' }),
       h('span.graph-text', {
         text: loaded
-          ? `Link graph: ${stats.maps} maps, ${stats.cells} warp cells`
-          : 'No link graph loaded — Pokécenter routes are unavailable',
+          ? t('Link graph: {maps} maps, {cells} warp cells', { maps: stats.maps, cells: stats.cells })
+          : t('No link graph loaded — Pokécenter routes are unavailable'),
       }),
     ]);
   }
@@ -243,7 +253,7 @@ export class BuilderApp {
   /** Copy the generated script to the clipboard. */
   async copy() {
     if (!this._result) return;
-    await this.copyText(this._result.document, 'Script copied to the clipboard.');
+    await this.copyText(this._result.document, t('Script copied to the clipboard.'));
   }
 
   /**
@@ -262,7 +272,7 @@ export class BuilderApp {
       // Fall through to the legacy path rather than reporting failure yet.
     }
     if (legacyCopy(text)) this.toast(okMessage, 'ok');
-    else this.toast('Could not reach the clipboard — select the text and copy it manually.', 'error');
+    else this.toast(t('Could not reach the clipboard — select the text and copy it manually.'), 'error');
   }
 
   /** Download the generated script as a `.lua` file. */
@@ -270,14 +280,14 @@ export class BuilderApp {
     if (!this._result) return;
     const name = sanitiseFileName(this._store.state.meta.fileName, 'script', '.lua');
     downloadText(name, this._result.document);
-    this.toast(`Saved ${name}.`, 'ok');
+    this.toast(t('Saved {name}.', { name }), 'ok');
   }
 
   /** Download the configuration on its own, for sharing a preset. */
   exportConfig() {
     const name = sanitiseFileName(this._store.state.meta.fileName, 'script', '.json');
     downloadText(name, JSON.stringify(this._store.state, null, 2));
-    this.toast(`Saved ${name}.`, 'ok');
+    this.toast(t('Saved {name}.', { name }), 'ok');
   }
 
   /**
@@ -294,14 +304,14 @@ export class BuilderApp {
     if (parsed) {
       this._importFindings = [];
       this._store.replace(normaliseConfig(parsed));
-      this.toast('Configuration loaded.', 'ok');
+      this.toast(t('Configuration loaded.'), 'ok');
       return;
     }
     // No embedded configuration. A .lua the builder did not write is still
     // worth something: check every call in it against the API, which is the
     // error the host would otherwise only report when the script is run.
     if (!/\.lua$/i.test(file.name) && !LOOKS_LIKE_LUA.test(text)) {
-      this.toast('That file has no builder configuration in it.', 'error');
+      this.toast(t('That file has no builder configuration in it.'), 'error');
       return;
     }
     this._reportForeignScript(file.name, text);
@@ -320,12 +330,19 @@ export class BuilderApp {
         level: problem.level,
         message: `${fileName}: ${problem.message}`,
       }))
-      : [{ level: 'info', message: `${fileName}: every function it calls exists in the Lua API.` }];
+      : [{
+        level: 'info',
+        message: t('{file}: every function it calls exists in the Lua API.', { file: fileName }),
+      }];
 
     this._refresh();
-    this.toast(problems.length
-      ? `${fileName}: ${problems.length} unresolved call${problems.length === 1 ? '' : 's'} — see Diagnostics.`
-      : `${fileName}: no unresolved calls.`, problems.length ? 'error' : 'ok');
+    if (!problems.length) {
+      this.toast(t('{file}: no unresolved calls.', { file: fileName }), 'ok');
+      return;
+    }
+    this.toast(problems.length === 1
+      ? t('{file}: one unresolved call — see Diagnostics.', { file: fileName })
+      : t('{file}: {count} unresolved calls — see Diagnostics.', { file: fileName, count: problems.length }), 'error');
   }
 
   /**
@@ -346,15 +363,17 @@ export class BuilderApp {
   replaceLinkGraph(text) {
     const { graph, stats } = LinkGraph.parse(text);
     if (graph.isEmpty) {
-      this.toast('No usable links in that text — is it maps-cache/link_graph.txt?', 'error');
+      this.toast(t('No usable links in that text — is it maps-cache/link_graph.txt?'), 'error');
       return false;
     }
     this._linkGraph = graph;
     saveGraph(graph.toText());
     this._refresh();
 
-    const skipped = stats.skipped ? `, ${stats.skipped} lines skipped` : '';
-    this.toast(`Loaded ${stats.maps} maps and ${stats.cells} warp cells${skipped}.`, 'ok');
+    const skipped = stats.skipped ? t(', {count} lines skipped', { count: stats.skipped }) : '';
+    this.toast(t('Loaded {maps} maps and {cells} warp cells{skipped}.', {
+      maps: stats.maps, cells: stats.cells, skipped,
+    }), 'ok');
     return true;
   }
 
@@ -373,13 +392,15 @@ export class BuilderApp {
     const added = graph.cellCount - before;
 
     if (added <= 0) {
-      this.toast(added === 0 ? 'Nothing new in that text.' : 'No usable links in that text.', 'error');
+      this.toast(added === 0 ? t('Nothing new in that text.') : t('No usable links in that text.'), 'error');
       return false;
     }
     this._linkGraph = graph;
     saveGraph(graph.toText());
     this._refresh();
-    this.toast(`Added ${added} warp cell${added === 1 ? '' : 's'}.`, 'ok');
+    this.toast(added === 1
+      ? t('Added one warp cell.')
+      : t('Added {count} warp cells.', { count: added }), 'ok');
     return true;
   }
 
@@ -387,11 +408,11 @@ export class BuilderApp {
   exportLinkGraph() {
     const text = this._linkGraph.toText();
     if (!text) {
-      this.toast('Nothing to export — no link graph is loaded.', 'error');
+      this.toast(t('Nothing to export — no link graph is loaded.'), 'error');
       return;
     }
     downloadText('link_graph.txt', text);
-    this.toast('Saved link_graph.txt.', 'ok');
+    this.toast(t('Saved {name}.', { name: 'link_graph.txt' }), 'ok');
   }
 
   /** @returns {LinkGraph} the graph the preview is generated against */
@@ -417,7 +438,7 @@ export class BuilderApp {
     this._linkGraph = new LinkGraph();
     saveGraph('');
     this._refresh();
-    this.toast('Link graph cleared.', 'ok');
+    this.toast(t('Link graph cleared.'), 'ok');
   }
 
   /**
@@ -436,7 +457,7 @@ export class BuilderApp {
     for (const button of document.querySelectorAll('#btn-toggle-preview')) {
       // The button reports whether the script is shown, not whether it is hidden.
       button.setAttribute('aria-pressed', String(!next));
-      button.title = next ? 'Show the generated script' : 'Hide the generated script';
+      button.title = next ? t('Show the generated script') : t('Hide the generated script');
     }
     try {
       localStorage.setItem(PREVIEW_KEY, next ? '1' : '0');
@@ -454,7 +475,7 @@ export class BuilderApp {
   /** Reset every setting back to the defaults. */
   reset() {
     this._store.replace(createDefaultConfig());
-    this.toast('Reset to the default configuration.', 'ok');
+    this.toast(t('Reset to the default configuration.'), 'ok');
   }
 
   /**
@@ -465,11 +486,11 @@ export class BuilderApp {
   loadTemplate(id) {
     const template = findTemplate(id);
     if (!template) {
-      this.toast(`No template called "${id}".`, 'error');
+      this.toast(t('No template called "{id}".', { id }), 'error');
       return;
     }
     this._store.replace(normaliseConfig(template.build()));
-    this.toast(`Loaded the "${template.label}" template.`, 'ok');
+    this.toast(t('Loaded the "{name}" template.', { name: t(template.label) }), 'ok');
   }
 
   /**

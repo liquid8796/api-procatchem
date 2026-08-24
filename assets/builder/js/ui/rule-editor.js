@@ -6,6 +6,7 @@
  * rule readable.
  */
 
+import { t } from '../core/i18n.js';
 import { apiEntry } from '../domain/api-catalog.js';
 import {
   CHAIN_ACTIONS,
@@ -61,10 +62,10 @@ export function renderRuleList(rules, update) {
         onRemove: () => removeAt(index),
         onMove: (delta) => move(index, delta),
       }))
-      : [h('p.field-hint', { text: 'No rules yet — the script will not act on wild encounters.' })]),
+      : [h('p.field-hint', { text: t('No rules yet — the script will not act on wild encounters.') })]),
     h('button.btn.btn-ghost', {
       type: 'button',
-      text: '+ Add a rule',
+      text: t('+ Add a rule'),
       onClick: () => update((live) => [...live, createEmptyRule()]),
     }),
   ]);
@@ -86,47 +87,47 @@ function renderRule(rule, index, total, handlers) {
       h('input.input.rule-name', {
         type: 'text',
         value: rule.label ?? '',
-        placeholder: 'Rule name',
-        'aria-label': `Rule ${index + 1} name`,
+        placeholder: t('Rule name'),
+        'aria-label': t('Rule {n} name', { n: index + 1 }),
         onInput: (event) => update({ label: event.target.value }),
       }),
       h('div.ladder-tools', {}, [
         h('button.icon-btn', {
-          type: 'button', text: '▲', title: 'Move up',
-          'aria-label': `Move rule ${index + 1} up`,
+          type: 'button', text: '▲', title: t('Move up'),
+          'aria-label': t('Move rule {n} up', { n: index + 1 }),
           disabled: index === 0,
           onClick: () => handlers.onMove(-1),
         }),
         h('button.icon-btn', {
-          type: 'button', text: '▼', title: 'Move down',
-          'aria-label': `Move rule ${index + 1} down`,
+          type: 'button', text: '▼', title: t('Move down'),
+          'aria-label': t('Move rule {n} down', { n: index + 1 }),
           disabled: index === total - 1,
           onClick: () => handlers.onMove(1),
         }),
         h('button.icon-btn.icon-btn-danger', {
-          type: 'button', text: '×', title: 'Remove this rule',
-          'aria-label': `Remove rule ${index + 1}`,
+          type: 'button', text: '×', title: t('Remove this rule'),
+          'aria-label': t('Remove rule {n}', { n: index + 1 }),
           onClick: handlers.onRemove,
         }),
       ]),
     ]),
 
     h('div.rule-body', {}, [
-      renderConditionTree(rule.match, (next) => update({ match: next }), { label: 'Applies when' }),
+      renderConditionTree(rule.match, (next) => update({ match: next }), { label: t('Applies when') }),
 
       h('div.rule-steps', {}, [
-        h('p.field-label', { text: 'Steps, in order' }),
+        h('p.field-label', { text: t('Steps, in order') }),
         renderStepList(rule.steps, (next) => update({ steps: next }), 0),
       ]),
 
       h('div.field', {}, [
-        h('label.field-label', { text: 'When every step declines' }),
+        h('label.field-label', { text: t('When every step declines') }),
         h('select.input.select', {
           onChange: (event) => update({ fallback: event.target.value }),
         }, RULE_FALLBACKS.map((entry) => h('option', {
           value: entry.id,
           selected: entry.id === rule.fallback,
-          text: `${entry.label} — ${entry.hint}`,
+          text: `${t(entry.label)} — ${t(entry.hint)}`,
         }))),
       ]),
     ]),
@@ -164,7 +165,7 @@ function renderStepList(steps, onChange, depth) {
     })),
     h('button.btn.btn-ghost.cond-mini', {
       type: 'button',
-      text: '+ Add a step',
+      text: t('+ Add a step'),
       onClick: () => onChange([...list, createStep()]),
     }),
   ]);
@@ -187,7 +188,7 @@ function renderStep(step, index, total, depth, handlers) {
     h('div.step-head', {}, [
       h('span.step-rank', { text: `${index + 1}` }),
       h('select.input.select.step-action', {
-        'aria-label': `Step ${index + 1} action`,
+        'aria-label': t('Step {n} action', { n: index + 1 }),
         onChange: (event) => update({ action: event.target.value }),
       }, STEP_ACTIONS
         // Offering a group at the limit would produce one nothing can go into.
@@ -195,42 +196,42 @@ function renderStep(step, index, total, depth, handlers) {
         .map((entry) => h('option', {
           value: entry.id,
           selected: entry.id === step.action,
-          text: entry.label,
+          text: t(entry.label),
         }))),
       ...needs.map((need) => renderStepInput(need, step, update, index)),
       NO_ONCE_ACTIONS.has(step.action) ? null : h('label.step-once', {
-        title: 'Run this step at most once per battle',
+        title: t('Run this step at most once per battle'),
       }, [
         h('input', {
           type: 'checkbox',
           checked: Boolean(step.once),
-          'aria-label': `Step ${index + 1} runs once per battle`,
+          'aria-label': t('Step {n} runs once per battle', { n: index + 1 }),
           onChange: (event) => update({ once: event.target.checked }),
         }),
-        h('span', { text: 'once' }),
+        h('span', { text: t('once') }),
       ]),
       h('div.ladder-tools', {}, [
         h('button.icon-btn', {
-          type: 'button', text: '▲', title: 'Move up',
-          'aria-label': `Move step ${index + 1} up`,
+          type: 'button', text: '▲', title: t('Move up'),
+          'aria-label': t('Move step {n} up', { n: index + 1 }),
           disabled: index === 0,
           onClick: () => handlers.onMove(-1),
         }),
         h('button.icon-btn', {
-          type: 'button', text: '▼', title: 'Move down',
-          'aria-label': `Move step ${index + 1} down`,
+          type: 'button', text: '▼', title: t('Move down'),
+          'aria-label': t('Move step {n} down', { n: index + 1 }),
           disabled: index === total - 1,
           onClick: () => handlers.onMove(1),
         }),
         h('button.icon-btn.icon-btn-danger', {
-          type: 'button', text: '×', title: 'Remove',
-          'aria-label': `Remove step ${index + 1}`,
+          type: 'button', text: '×', title: t('Remove'),
+          'aria-label': t('Remove step {n}', { n: index + 1 }),
           onClick: handlers.onRemove,
         }),
       ]),
     ]),
     renderConditionTree(step.when, (next) => update({ when: next }), {
-      label: isGroup ? 'Enter the group when' : 'Only when',
+      label: isGroup ? t('Enter the group when') : t('Only when'),
       depth: 1,
     }),
     step.action === 'chain'
@@ -268,43 +269,43 @@ function renderChainEditor(chain, onChange, stepIndex) {
 
   return h('div.chain', {}, [
     h('p.field-hint', {
-      text: 'Tried left to right; the first one that manages to act ends the turn.',
+      text: t('Tried left to right; the first one that manages to act ends the turn.'),
     }),
     ...links.map((link, index) => {
       const spec = CHAIN_NEEDS.get(link.action);
       return h('div.chain-link', {}, [
         h('span.chain-rank', { text: `${index + 1}` }),
         h('select.input.select', {
-          'aria-label': `Step ${stepIndex + 1} chain link ${index + 1}`,
+          'aria-label': t('Step {step} chain link {n}', { step: stepIndex + 1, n: index + 1 }),
           onChange: (event) => replaceAt(index, { action: event.target.value }),
         }, CHAIN_ACTIONS.map((entry) => h('option', {
           value: entry.id,
           selected: entry.id === link.action,
-          text: entry.label,
+          text: t(entry.label),
         }))),
         spec && spec.needs !== 'none' ? h('input.input.chain-value', {
           type: spec.needs === 'number' ? 'number' : 'text',
           value: link.value ?? '',
           placeholder: spec.placeholder ?? '',
-          'aria-label': `${spec.label} value`,
+          'aria-label': t('{label} value', { label: t(spec.label) }),
           onInput: (event) => replaceAt(index, { value: event.target.value }),
         }) : null,
         h('div.ladder-tools', {}, [
           h('button.icon-btn', {
-            type: 'button', text: '◀', title: 'Move earlier',
-            'aria-label': `Move link ${index + 1} earlier`,
+            type: 'button', text: '◀', title: t('Move earlier'),
+            'aria-label': t('Move link {n} earlier', { n: index + 1 }),
             disabled: index === 0,
             onClick: () => move(index, -1),
           }),
           h('button.icon-btn', {
-            type: 'button', text: '▶', title: 'Move later',
-            'aria-label': `Move link ${index + 1} later`,
+            type: 'button', text: '▶', title: t('Move later'),
+            'aria-label': t('Move link {n} later', { n: index + 1 }),
             disabled: index === links.length - 1,
             onClick: () => move(index, 1),
           }),
           h('button.icon-btn.icon-btn-danger', {
-            type: 'button', text: '×', title: 'Remove',
-            'aria-label': `Remove link ${index + 1}`,
+            type: 'button', text: '×', title: t('Remove'),
+            'aria-label': t('Remove link {n}', { n: index + 1 }),
             onClick: () => removeAt(index),
           }),
         ]),
@@ -312,7 +313,7 @@ function renderChainEditor(chain, onChange, stepIndex) {
     }),
     h('button.btn.btn-ghost.cond-mini', {
       type: 'button',
-      text: '+ Add a fallback',
+      text: t('+ Add a fallback'),
       onClick: () => onChange([...links, createChainLink()]),
     }),
   ]);
@@ -333,44 +334,44 @@ function renderStepInput(need, step, update, index) {
       return h('input.input.step-input', {
         type: 'text',
         value: step.move ?? '',
-        placeholder: 'Move name',
-        'aria-label': `Step ${index + 1} move`,
+        placeholder: t('Move name'),
+        'aria-label': t('Step {n} move', { n: index + 1 }),
         onInput: (event) => update({ move: event.target.value }),
       });
 
     case 'slot':
       return h('select.input.select.step-slot', {
-        'aria-label': `Step ${index + 1} slot`,
-        title: 'Which team member uses the move',
+        'aria-label': t('Step {n} slot', { n: index + 1 }),
+        title: t('Which team member uses the move'),
         onChange: (event) => {
           const value = event.target.value;
           update({ slot: value === 'auto' ? 'auto' : Number.parseInt(value, 10) });
         },
       }, [
-        h('option', { value: 'auto', selected: step.slot === 'auto', text: 'any slot' }),
+        h('option', { value: 'auto', selected: step.slot === 'auto', text: t('any slot') }),
         ...[1, 2, 3, 4, 5, 6].map((slot) => h('option', {
           value: String(slot),
           selected: step.slot === slot,
-          text: `slot ${slot}`,
+          text: t('slot {n}', { n: slot }),
         })),
       ]);
 
     case 'slotNumber':
       return h('select.input.select.step-slot', {
-        'aria-label': `Step ${index + 1} slot`,
+        'aria-label': t('Step {n} slot', { n: index + 1 }),
         onChange: (event) => update({ slotNumber: Number.parseInt(event.target.value, 10) }),
       }, [1, 2, 3, 4, 5, 6].map((slot) => h('option', {
         value: String(slot),
         selected: step.slotNumber === slot,
-        text: `slot ${slot}`,
+        text: t('slot {n}', { n: slot }),
       })));
 
     case 'item':
       return h('input.input.step-input', {
         type: 'text',
         value: step.item ?? '',
-        placeholder: 'Item name',
-        'aria-label': `Step ${index + 1} item`,
+        placeholder: t('Item name'),
+        'aria-label': t('Step {n} item', { n: index + 1 }),
         onInput: (event) => update({ item: event.target.value }),
       });
 
@@ -379,8 +380,8 @@ function renderStepInput(need, step, update, index) {
         type: 'text',
         value: Array.isArray(step.balls) ? step.balls.join(', ') : '',
         placeholder: 'Ultra Ball, Great Ball, Pokeball',
-        'aria-label': `Step ${index + 1} balls`,
-        title: 'Thrown top to bottom until one is used',
+        'aria-label': t('Step {n} balls', { n: index + 1 }),
+        title: t('Thrown top to bottom until one is used'),
         onChange: (event) => update({ balls: splitList(event.target.value) }),
       });
 
@@ -389,8 +390,8 @@ function renderStepInput(need, step, update, index) {
         type: 'text',
         value: step.expr ?? '',
         placeholder: 'useItem("Repel")',
-        'aria-label': `Step ${index + 1} Lua`,
-        title: 'Emitted verbatim; anything it calls is checked against the API',
+        'aria-label': t('Step {n} Lua', { n: index + 1 }),
+        title: t('Emitted verbatim; anything it calls is checked against the API'),
         onInput: (event) => update({ expr: event.target.value }),
       });
 
@@ -401,8 +402,8 @@ function renderStepInput(need, step, update, index) {
         value: step.fn ?? '',
         list: apiDatalistId(),
         placeholder: 'useItem',
-        'aria-label': `Step ${index + 1} function`,
-        title: entry ? entry.signature : 'Any function from the API reference',
+        'aria-label': t('Step {n} function', { n: index + 1 }),
+        title: entry ? entry.signature : t('Any function from the API reference'),
         onChange: (event) => update({ fn: event.target.value.trim() }),
       });
     }
@@ -412,8 +413,8 @@ function renderStepInput(need, step, update, index) {
         type: 'text',
         value: step.args ?? '',
         placeholder: '"Repel"',
-        'aria-label': `Step ${index + 1} arguments`,
-        title: 'Lua syntax — quote every text value',
+        'aria-label': t('Step {n} arguments', { n: index + 1 }),
+        title: t('Lua syntax — quote every text value'),
         onInput: (event) => update({ args: event.target.value }),
       });
 
@@ -421,8 +422,8 @@ function renderStepInput(need, step, update, index) {
       return h('input.input.step-input.step-wide', {
         type: 'text',
         value: step.message ?? '',
-        placeholder: 'Why the script is stopping',
-        'aria-label': `Step ${index + 1} message`,
+        placeholder: t('Why the script is stopping'),
+        'aria-label': t('Step {n} message', { n: index + 1 }),
         onInput: (event) => update({ message: event.target.value }),
       });
 

@@ -1,5 +1,32 @@
 # Changelog
 
+## PROCatchem content — v1.0.115
+
+*August 24, 2026*
+
+**Added:**
+
+- **Vietnamese on the Script Builder.** The same EN/VI dropdown as the API reference page, top
+  right, and the same rule: anything untranslated simply stays English. The choice is stored under
+  the reference page's key, so picking a language on either page covers both.
+- Coverage is the whole surface — form panels, farm modes, the condition and rules editors,
+  diagnostics, the API browser, the structure view, the handbook, the link-graph workbench, toasts
+  and confirmations: 809 strings translated by hand. The generated Lua is deliberately untouched;
+  scripts read the same whatever the page language.
+- The builder rebuilds its UI from state on every change, so translation happens at render time:
+  strings pass through `t()` in `assets/builder/js/core/i18n.js` (with `{token}` placeholders
+  filled after lookup) and a language switch simply re-renders. Data modules stay English — the
+  source string doubles as the dictionary key, exactly like the reference page's packs.
+- The static markup of `builder.html` (sidebar, hero, preview bar, labelling attributes) is swapped
+  by `ui/static-text.js`, which stashes the English original in a data attribute so switching back
+  restores it byte for byte.
+- Pixel-font headings fall back to the body face while a translation is active, as on the reference
+  page — Press Start 2P has no Vietnamese diacritics. The two "Script Builder" titles keep the
+  pixel font: the name is never translated.
+- `tests/builder-i18n.test.mjs` guards the pack from the source: every string literal passed to
+  `t()`, every option list, condition kind, farm mode, template, and handbook section must have an
+  entry — a feature added without its translation fails in CI, not on the live page.
+
 ## PROCatchem content — v1.0.114
 
 *August 24, 2026*

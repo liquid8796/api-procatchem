@@ -2,12 +2,15 @@
  * Entry point: mount the builder and bind the toolbar.
  */
 
+import { onLanguageChange, t } from './core/i18n.js';
 import { TEMPLATES } from './domain/templates.js';
 import { ApiBrowser } from './ui/api-browser.js';
 import { BuilderApp } from './ui/app.js';
 import { h, must, prefersReducedMotion, replaceChildren } from './ui/dom.js';
+import { installLanguageSwitcher } from './ui/language.js';
 import { LinkGraphTools } from './ui/link-graph-tools.js';
 import { Handbook } from './ui/handbook.js';
+import { applyStaticText } from './ui/static-text.js';
 import { StructureDiagram } from './ui/structure-diagram.js';
 import { installThemeToggle } from './ui/theme.js';
 
@@ -22,6 +25,8 @@ const app = new BuilderApp({
 
 app.start();
 app.restorePreviewVisibility();
+applyStaticText();
+installLanguageSwitcher();
 
 /**
  * @param {string} selector
@@ -35,7 +40,7 @@ on('#btn-copy', () => app.copy());
 on('#btn-download', () => app.download());
 on('#btn-export', () => app.exportConfig());
 on('#btn-reset', () => {
-  if (confirm('Reset every setting back to the defaults?')) app.reset();
+  if (confirm(t('Reset every setting back to the defaults?'))) app.reset();
 });
 on('#btn-clear-graph', () => app.clearLinkGraph());
 
@@ -64,22 +69,36 @@ installThemeToggle(must('#btn-theme'));
 // made without loading each one to find out what it does.
 const templatePicker = /** @type {HTMLSelectElement} */ (must('#template-picker'));
 const templateAbout = must('#template-about');
-replaceChildren(templatePicker, TEMPLATES.map(
-  (template) => h('option', { value: template.id, text: template.label }),
-));
 const describeTemplate = () => {
   const chosen = TEMPLATES.find((template) => template.id === templatePicker.value);
-  templateAbout.textContent = chosen?.description ?? '';
+  templateAbout.textContent = chosen ? t(chosen.description) : '';
+};
+const renderTemplateOptions = () => {
+  const selected = templatePicker.value;
+  replaceChildren(templatePicker, TEMPLATES.map((template) => h('option', {
+    value: template.id,
+    selected: template.id === selected,
+    text: t(template.label),
+  })));
+  describeTemplate();
 };
 templatePicker.addEventListener('change', describeTemplate);
-describeTemplate();
+renderTemplateOptions();
 
 on('#btn-template', () => {
   const chosen = TEMPLATES.find((template) => template.id === templatePicker.value);
   if (!chosen) return;
-  if (confirm(`Replace everything with the "${chosen.label}" template?`)) {
+  if (confirm(t('Replace everything with the "{name}" template?', { name: t(chosen.label) }))) {
     app.loadTemplate(chosen.id);
   }
+});
+
+// A language switch re-renders everything: the static chrome here, the panels
+// and diagnostics through the app, and the template picker built above.
+onLanguageChange(() => {
+  applyStaticText();
+  renderTemplateOptions();
+  app.refresh();
 });
 on('#btn-toggle-preview', () => app.togglePreview());
 on('#btn-hide-preview', () => app.togglePreview(true));
@@ -109,7 +128,7 @@ function bindFilePicker(buttonSelector, inputSelector, handler) {
     try {
       await handler(file);
     } catch (error) {
-      app.toast(`Could not read that file: ${error.message}`, 'error');
+      app.toast(t('Could not read that file: {message}', { message: error.message }), 'error');
     }
   });
 }
@@ -147,7 +166,7 @@ dropZone.addEventListener('drop', async (event) => {
     if (/\.txt$/i.test(file.name)) await app.importLinkGraph(file);
     else await app.importConfig(file);
   } catch (error) {
-    app.toast(`Could not read that file: ${error.message}`, 'error');
+    app.toast(t('Could not read that file: {message}', { message: error.message }), 'error');
   }
 });
 

@@ -8,6 +8,7 @@
  * where to store it.
  */
 
+import { t } from '../core/i18n.js';
 import { apiEntry } from '../domain/api-catalog.js';
 import { COMPARATORS, CONDITION_KINDS, createLeaf, emptyGroup, isGroup } from '../domain/condition.js';
 import { EV_STATS, splitList } from '../domain/config.js';
@@ -59,19 +60,19 @@ function renderGroup(group, onChange, label, depth) {
       () => removeItem(index),
       depth + 1,
     ))
-    : [h('p.cond-empty', { text: 'No conditions — this always passes.' })]);
+    : [h('p.cond-empty', { text: t('No conditions — this always passes.') })]);
 
   return h('div.cond-group', { dataset: { depth: String(depth) } }, [
     h('div.cond-head', {}, [
       label ? h('span.cond-label', { text: label }) : null,
       renderOperatorToggle(group, update),
-      renderNegateToggle(group, update, 'Invert the whole group'),
+      renderNegateToggle(group, update, t('Invert the whole group')),
       h('span.cond-spacer'),
       renderAddMenu((kind) => update({ items: [...group.items, createLeaf(kind)] })),
       h('button.btn.btn-ghost.cond-mini', {
         type: 'button',
-        text: '+ group',
-        title: 'Add a nested group',
+        text: t('+ group'),
+        title: t('Add a nested group'),
         onClick: () => update({ items: [...group.items, emptyGroup(group.op === 'and' ? 'or' : 'and')] }),
       }),
     ]),
@@ -91,8 +92,8 @@ function renderNode(node, onChange, onRemove, depth) {
     return h('div.cond-nested', {}, [
       renderGroup(node, onChange, '', depth),
       h('button.icon-btn.icon-btn-danger.cond-remove', {
-        type: 'button', text: '×', title: 'Remove this group',
-        'aria-label': 'Remove this group',
+        type: 'button', text: '×', title: t('Remove this group'),
+        'aria-label': t('Remove this group'),
         onClick: onRemove,
       }),
     ]);
@@ -110,7 +111,7 @@ function renderLeaf(leaf, onChange, onRemove) {
   const spec = CONDITION_KINDS[leaf.kind];
   if (!spec) {
     return h('div.cond-leaf.cond-unknown', {}, [
-      h('span', { text: `Unknown condition "${leaf.kind}"` }),
+      h('span', { text: t('Unknown condition "{kind}"', { kind: leaf.kind }) }),
       h('button.icon-btn.icon-btn-danger', { type: 'button', text: '×', onClick: onRemove }),
     ]);
   }
@@ -121,13 +122,13 @@ function renderLeaf(leaf, onChange, onRemove) {
   });
 
   return h('div.cond-leaf', {}, [
-    renderNegateToggle(leaf, (patch) => onChange({ ...leaf, ...patch }), 'Invert this condition'),
-    h('span.cond-kind', { text: spec.label }),
+    renderNegateToggle(leaf, (patch) => onChange({ ...leaf, ...patch }), t('Invert this condition')),
+    h('span.cond-kind', { text: t(spec.label) }),
     ...spec.params.map((param) => renderParam(param, leaf.params?.[param.key], (value) => setParam(param.key, value))),
     h('span.cond-spacer'),
     h('button.icon-btn.icon-btn-danger', {
-      type: 'button', text: '×', title: 'Remove',
-      'aria-label': `Remove ${spec.label}`,
+      type: 'button', text: '×', title: t('Remove'),
+      'aria-label': t('Remove {name}', { name: t(spec.label) }),
       onClick: onRemove,
     }),
   ]);
@@ -139,12 +140,12 @@ function renderLeaf(leaf, onChange, onRemove) {
  * @returns {HTMLElement}
  */
 function renderOperatorToggle(group, update) {
-  return h('div.cond-op', { role: 'group', 'aria-label': 'Combine with' }, ['and', 'or'].map((op) => h('button.cond-op-btn', {
+  return h('div.cond-op', { role: 'group', 'aria-label': t('Combine with') }, ['and', 'or'].map((op) => h('button.cond-op-btn', {
     type: 'button',
     class: group.op === op ? 'is-active' : '',
     'aria-pressed': String(group.op === op),
     text: op.toUpperCase(),
-    title: op === 'and' ? 'Every child must pass' : 'Any child may pass',
+    title: op === 'and' ? t('Every child must pass') : t('Any child may pass'),
     onClick: () => update({ op }),
   })));
 }
@@ -175,16 +176,16 @@ function renderNegateToggle(node, update, title) {
  */
 function renderAddMenu(onPick) {
   const select = h('select.input.select.cond-add', {
-    'aria-label': 'Add a condition',
+    'aria-label': t('Add a condition'),
     onChange: (event) => {
       const kind = event.target.value;
       event.target.value = '';
       if (kind) onPick(kind);
     },
   }, [
-    h('option', { value: '', text: '+ condition' }),
-    ...[...groupedKinds()].map(([group, kinds]) => h('optgroup', { label: group },
-      kinds.map((kind) => h('option', { value: kind.id, text: kind.label })))),
+    h('option', { value: '', text: t('+ condition') }),
+    ...[...groupedKinds()].map(([group, kinds]) => h('optgroup', { label: t(group) },
+      kinds.map((kind) => h('option', { value: kind.id, text: t(kind.label) })))),
   ]);
   return select;
 }
@@ -201,7 +202,7 @@ function renderParam(param, value, onChange) {
   switch (param.type) {
     case 'comparator':
       return h('select.input.select.cond-param.cond-cmp', {
-        'aria-label': param.label,
+        'aria-label': t(param.label),
         onChange: (event) => onChange(event.target.value),
       }, COMPARATORS.map((entry) => h('option', {
         value: entry.id,
@@ -215,8 +216,8 @@ function renderParam(param, value, onChange) {
         value: value === null || value === undefined ? '' : String(value),
         min: param.min,
         max: param.max,
-        'aria-label': param.label,
-        title: param.label,
+        'aria-label': t(param.label),
+        title: t(param.label),
         onInput: (event) => {
           const parsed = Number.parseInt(event.target.value, 10);
           if (Number.isFinite(parsed)) onChange(parsed);
@@ -225,22 +226,22 @@ function renderParam(param, value, onChange) {
 
     case 'select':
       return h('select.input.select.cond-param', {
-        'aria-label': param.label,
+        'aria-label': t(param.label),
         onChange: (event) => onChange(event.target.value),
       }, param.options.map((option) => h('option', {
         value: option.id,
         selected: option.id === value,
-        text: option.label,
+        text: t(option.label),
       })));
 
     case 'evStat':
       return h('select.input.select.cond-param', {
-        'aria-label': param.label,
+        'aria-label': t(param.label),
         onChange: (event) => onChange(event.target.value),
       }, EV_STATS.map((stat) => h('option', {
         value: stat.id,
         selected: stat.id === value,
-        text: stat.label,
+        text: t(stat.label),
       })));
 
     case 'apiFunction': {
@@ -251,10 +252,10 @@ function renderParam(param, value, onChange) {
         value: name,
         list: apiDatalistId(),
         placeholder: param.placeholder ?? '',
-        'aria-label': param.label,
+        'aria-label': t(param.label),
         // Showing the signature on hover is what turns the datalist from a
         // guess into a reminder of what the function actually takes.
-        title: entry ? entry.signature : (param.hint ?? param.label),
+        title: entry ? entry.signature : t(param.hint ?? param.label),
         onChange: (event) => onChange(event.target.value.trim()),
       });
     }
@@ -266,8 +267,8 @@ function renderParam(param, value, onChange) {
         type: 'text',
         value: Array.isArray(value) ? value.join(', ') : String(value ?? ''),
         placeholder: param.placeholder ?? '',
-        'aria-label': param.label,
-        title: param.hint ?? param.label,
+        'aria-label': t(param.label),
+        title: t(param.hint ?? param.label),
         onChange: (event) => onChange(splitList(event.target.value)),
       });
 
@@ -277,8 +278,8 @@ function renderParam(param, value, onChange) {
         type: 'text',
         value: String(value ?? ''),
         placeholder: param.placeholder ?? '',
-        'aria-label': param.label,
-        title: param.hint ?? param.label,
+        'aria-label': t(param.label),
+        title: t(param.hint ?? param.label),
         onChange: (event) => onChange(event.target.value),
       });
   }

@@ -7,6 +7,7 @@
  * reasons, and typing the trigger out every time is friction for no benefit.
  */
 
+import { t } from '../core/i18n.js';
 import {
   HELPER_PRESETS,
   HELPER_TRIGGERS,
@@ -44,21 +45,21 @@ export function renderHelperMoves(helpers, update, idPrefix) {
         type: 'text',
         value: helper.move,
         placeholder: 'Soak',
-        'aria-label': `Preparation move ${index + 1}`,
+        'aria-label': t('Preparation move {n}', { n: index + 1 }),
         onInput: (event) => patchAt(index, { move: event.target.value }),
       }),
       h('select.input.select.helper-when', {
-        'aria-label': `Move ${index + 1} trigger`,
+        'aria-label': t('Move {n} trigger', { n: index + 1 }),
         onChange: (event) => patchAt(index, { trigger: event.target.value }),
       }, HELPER_TRIGGERS.map((entry) => h('option', {
         value: entry.id,
         selected: entry.id === helper.trigger,
-        text: entry.label,
+        text: t(entry.label),
       }))),
       ...needs.map((need) => renderTriggerInput(need, helper, index, patchAt, rowId)),
       h('button.icon-btn.icon-btn-danger', {
-        type: 'button', text: '×', title: 'Remove',
-        'aria-label': `Remove preparation move ${index + 1}`,
+        type: 'button', text: '×', title: t('Remove'),
+        'aria-label': t('Remove preparation move {n}', { n: index + 1 }),
         onClick: () => removeAt(index),
       }),
     ]);
@@ -69,13 +70,13 @@ export function renderHelperMoves(helpers, update, idPrefix) {
     h('div.helper-add', {}, [
       h('button.btn.btn-ghost.cond-mini', {
         type: 'button',
-        text: '+ Add a move',
+        text: t('+ Add a move'),
         onClick: () => add({}),
       }),
       ...HELPER_PRESETS.map((preset) => h('button.btn.btn-ghost.cond-mini.helper-preset', {
         type: 'button',
         text: preset.move,
-        title: preset.hint,
+        title: t(preset.hint),
         onClick: () => add({
           move: preset.move,
           trigger: preset.trigger,
@@ -102,7 +103,7 @@ function renderTriggerInput(need, helper, index, patchAt, rowId) {
         type: 'text',
         value: helper.type,
         placeholder: 'Ghost',
-        'aria-label': `Move ${index + 1} opponent type`,
+        'aria-label': t('Move {n} opponent type', { n: index + 1 }),
         onInput: (event) => patchAt(index, { type: event.target.value }),
       });
 
@@ -112,18 +113,18 @@ function renderTriggerInput(need, helper, index, patchAt, rowId) {
         type: 'text',
         value: helper.names.join(', '),
         placeholder: 'Gastly, Haunter',
-        'aria-label': `Move ${index + 1} opponent names`,
+        'aria-label': t('Move {n} opponent names', { n: index + 1 }),
         onChange: (event) => patchAt(index, { names: splitList(event.target.value) }),
       });
 
     case 'slot':
       return h('select.input.select.helper-slot', {
-        'aria-label': `Move ${index + 1} slot`,
+        'aria-label': t('Move {n} slot', { n: index + 1 }),
         onChange: (event) => patchAt(index, { slot: Number.parseInt(event.target.value, 10) }),
       }, [1, 2, 3, 4, 5, 6].map((slot) => h('option', {
         value: String(slot),
         selected: helper.slot === slot,
-        text: `slot ${slot}`,
+        text: t('slot {n}', { n: slot }),
       })));
 
     case 'ability':
@@ -132,7 +133,7 @@ function renderTriggerInput(need, helper, index, patchAt, rowId) {
         type: 'text',
         value: helper.ability,
         placeholder: 'Trace',
-        'aria-label': `Move ${index + 1} ability`,
+        'aria-label': t('Move {n} ability', { n: index + 1 }),
         onInput: (event) => patchAt(index, { ability: event.target.value }),
       });
 

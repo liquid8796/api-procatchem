@@ -10,6 +10,7 @@
  * open it, fix the map data, and go back to the form.
  */
 
+import { t } from '../core/i18n.js';
 import { convertMoveToMap } from '../domain/lua-rewrite.js';
 import { h, must, replaceChildren } from './dom.js';
 
@@ -46,80 +47,82 @@ export class LinkGraphTools {
       rows: 5,
       spellcheck: 'false',
       placeholder: 'Viridian City\t12\t3\tViridian Forest',
-      'aria-label': 'Link graph rows',
+      'aria-label': t('Link graph rows'),
     }));
     this._scriptBox = /** @type {HTMLTextAreaElement} */ (h('textarea.input.tool-textarea', {
       rows: 6,
       spellcheck: 'false',
-      placeholder: 'Paste a .lua script that still calls moveToMap()',
-      'aria-label': 'Script to convert',
+      placeholder: t('Paste a .lua script that still calls moveToMap()'),
+      'aria-label': t('Script to convert'),
     }));
 
     replaceChildren(this._dialog, [
       h('header.tool-head', {}, [
-        h('h2.tool-title', { text: 'Link graph' }),
+        h('h2.tool-title', { text: t('Link graph') }),
         h('button.icon-btn', {
-          type: 'button', text: '×', title: 'Close', 'aria-label': 'Close',
+          type: 'button', text: '×', title: t('Close'), 'aria-label': t('Close'),
           onClick: () => this._dialog.close(),
         }),
       ]),
 
       h('p.tool-lead', {
         text: this._app.linkGraph.isEmpty
-          ? 'Nothing loaded. The bot writes maps-cache/link_graph.txt as it walks between maps.'
-          : `${stats.maps} maps, ${stats.edges} connections, ${stats.cells} warp cells.`,
+          ? t('Nothing loaded. The bot writes maps-cache/link_graph.txt as it walks between maps.')
+          : t('{maps} maps, {edges} connections, {cells} warp cells.', {
+            maps: stats.maps, edges: stats.edges, cells: stats.cells,
+          }),
       }),
 
-      this._renderSection('Edit by hand', [
+      this._renderSection(t('Edit by hand'), [
         h('p.tool-hint', {
-          text: 'One connection per line: from map, x, y, to map — separated by tabs.',
+          text: t('One connection per line: from map, x, y, to map — separated by tabs.'),
         }),
         this._pasteBox,
         h('div.tool-actions', {}, [
           h('button.btn.btn-lcd', {
-            type: 'button', text: 'Add these rows',
+            type: 'button', text: t('Add these rows'),
             onClick: () => this._applyPaste((text) => this._app.mergeLinkGraph(text)),
           }),
           h('button.btn.btn-lcd.btn-quiet', {
-            type: 'button', text: 'Replace everything',
+            type: 'button', text: t('Replace everything'),
             onClick: () => this._applyPaste((text) => this._app.replaceLinkGraph(text)),
           }),
           h('button.btn.btn-lcd.btn-quiet', {
-            type: 'button', text: 'Export link_graph.txt',
+            type: 'button', text: t('Export link_graph.txt'),
             onClick: () => this._app.exportLinkGraph(),
           }),
         ]),
       ]),
 
-      this._renderSection('Check a route', [
-        h('p.tool-hint', { text: 'The same search the builder runs when it plans a Pokécenter loop.' }),
+      this._renderSection(t('Check a route'), [
+        h('p.tool-hint', { text: t('The same search the builder runs when it plans a Pokécenter loop.') }),
         h('div.tool-row', {}, [
           h('input.input', {
             id: 'route-from', type: 'text', list: MAP_LIST_ID,
-            placeholder: 'From', 'aria-label': 'Route start',
+            placeholder: t('From'), 'aria-label': t('Route start'),
           }),
           h('input.input', {
             id: 'route-to', type: 'text', list: MAP_LIST_ID,
-            placeholder: 'To', 'aria-label': 'Route end',
+            placeholder: t('To'), 'aria-label': t('Route end'),
           }),
           h('button.btn.btn-lcd', {
-            type: 'button', text: 'Find', onClick: () => this._findRoute(),
+            type: 'button', text: t('Find'), onClick: () => this._findRoute(),
           }),
         ]),
         this._mapDatalist(),
         this._routeResult,
       ]),
 
-      this._renderSection('Repair an older script', [
+      this._renderSection(t('Repair an older script'), [
         h('p.tool-hint', {
-          text: 'moveToMap() is retired: the host aborts any script that calls it. '
+          text: t('moveToMap() is retired: the host aborts any script that calls it. '
             + 'Each call is replaced with the warp cell that leads there, wherever the '
-            + 'script says which map it is standing on.',
+            + 'script says which map it is standing on.'),
         }),
         this._scriptBox,
         h('div.tool-actions', {}, [
           h('button.btn.btn-lcd', {
-            type: 'button', text: 'Convert', onClick: () => this._convert(),
+            type: 'button', text: t('Convert'), onClick: () => this._convert(),
           }),
         ]),
         this._convertResult,
@@ -152,7 +155,7 @@ export class LinkGraphTools {
   _applyPaste(apply) {
     const text = this._pasteBox?.value ?? '';
     if (!text.trim()) {
-      this._app.toast('Nothing pasted yet.', 'error');
+      this._app.toast(t('Nothing pasted yet.'), 'error');
       return;
     }
     if (apply(text)) this._render();
@@ -164,32 +167,36 @@ export class LinkGraphTools {
     const graph = this._app.linkGraph;
 
     if (!from || !to) {
-      this._showResult(this._routeResult, 'error', 'Name both ends of the route.');
+      this._showResult(this._routeResult, 'error', t('Name both ends of the route.'));
       return;
     }
     for (const [label, name] of [['Start', from], ['Destination', to]]) {
       if (!graph.hasMap(name)) {
-        this._showResult(this._routeResult, 'error', `${label} "${name}" is not in the link graph.`);
+        this._showResult(this._routeResult, 'error', t('{end} "{name}" is not in the link graph.', {
+          end: t(label), name,
+        }));
         return;
       }
     }
 
     const path = graph.findRoute(from, to);
     if (!path) {
-      this._showResult(this._routeResult, 'error', `No path from "${from}" to "${to}".`);
+      this._showResult(this._routeResult, 'error', t('No path from "{from}" to "{to}".', { from, to }));
       return;
     }
     if (path.length === 1) {
-      this._showResult(this._routeResult, 'ok', 'Both ends are the same map — no travel needed.');
+      this._showResult(this._routeResult, 'ok', t('Both ends are the same map — no travel needed.'));
       return;
     }
 
     const hops = graph.hopsFor(path);
     replaceChildren(this._routeResult, [
-      h('p.tool-ok', { text: `${hops.length} hop${hops.length === 1 ? '' : 's'}:` }),
+      h('p.tool-ok', {
+        text: hops.length === 1 ? t('one hop:') : t('{count} hops:', { count: hops.length }),
+      }),
       h('ol.tool-hops', {}, hops.map((hop) => h('li', {}, [
         h('code', { text: `moveToCell(${hop.x}, ${hop.y})` }),
-        h('span', { text: ` on ${hop.from} → ${hop.to}` }),
+        h('span', { text: ` ${t('on {from} → {to}', { from: hop.from, to: hop.to })}` }),
       ]))),
     ]);
   }
@@ -197,41 +204,44 @@ export class LinkGraphTools {
   _convert() {
     const source = this._scriptBox?.value ?? '';
     if (!source.trim()) {
-      this._showResult(this._convertResult, 'error', 'Paste a script first.');
+      this._showResult(this._convertResult, 'error', t('Paste a script first.'));
       return;
     }
     if (this._app.linkGraph.isEmpty) {
-      this._showResult(this._convertResult, 'error', 'Load a link graph before converting.');
+      this._showResult(this._convertResult, 'error', t('Load a link graph before converting.'));
       return;
     }
 
     const result = convertMoveToMap(source, this._app.linkGraph);
     if (!result.converted && !result.skipped.length) {
-      this._showResult(this._convertResult, 'ok', 'No moveToMap() calls in that script — nothing to do.');
+      this._showResult(this._convertResult, 'ok', t('No moveToMap() calls in that script — nothing to do.'));
       return;
     }
 
     const output = /** @type {HTMLTextAreaElement} */ (h('textarea.input.tool-textarea', {
-      rows: 8, spellcheck: 'false', readonly: true, 'aria-label': 'Converted script',
+      rows: 8, spellcheck: 'false', readonly: true, 'aria-label': t('Converted script'),
     }));
     output.value = result.lua;
 
+    const replaced = result.converted === 1
+      ? t('Replaced one call.')
+      : t('Replaced {count} calls.', { count: result.converted });
     replaceChildren(this._convertResult, [
       h('p.tool-ok', {
-        text: `Replaced ${result.converted} call${result.converted === 1 ? '' : 's'}.`
-          + (result.skipped.length ? ` ${result.skipped.length} left alone:` : ''),
+        text: replaced
+          + (result.skipped.length ? ` ${t('{count} left alone:', { count: result.skipped.length })}` : ''),
       }),
       result.skipped.length
         ? h('ul.tool-notes', {}, result.skipped.map((note) => h('li', {
-          text: `Line ${note.line}, moveToMap("${note.target}"): ${note.reason}.`,
+          text: `${t('Line {line}, moveToMap("{target}"):', { line: note.line, target: note.target })} ${note.reason}.`,
         })))
         : null,
       output,
       h('div.tool-actions', {}, [
         h('button.btn.btn-lcd', {
           type: 'button',
-          text: 'Copy',
-          onClick: () => this._app.copyText(result.lua, 'Converted script copied.'),
+          text: t('Copy'),
+          onClick: () => this._app.copyText(result.lua, t('Converted script copied.')),
         }),
       ]),
     ]);

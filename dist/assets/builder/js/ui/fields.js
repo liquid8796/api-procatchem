@@ -11,6 +11,7 @@
  * `conditionTree`, and `ruleList`.
  */
 
+import { t } from '../core/i18n.js';
 import {
   EV_STATS,
   STOP_MOUNT_MODES,
@@ -93,9 +94,9 @@ export function renderFields(fields, store) {
  */
 function wrap(field, control) {
   return h('div.field', {}, [
-    field.label ? h('label.field-label', { for: control.id || undefined, text: field.label }) : null,
+    field.label ? h('label.field-label', { for: control.id || undefined, text: t(field.label) }) : null,
     control,
-    field.hint ? h('p.field-hint', { text: field.hint }) : null,
+    field.hint ? h('p.field-hint', { text: t(field.hint) }) : null,
   ]);
 }
 
@@ -114,7 +115,7 @@ function renderText(field, store) {
     id: idFor(field.path),
     type: 'text',
     value: String(store.getIn(field.path) ?? ''),
-    placeholder: field.placeholder ?? '',
+    placeholder: field.placeholder ? t(field.placeholder) : '',
     onInput: (event) => store.setIn(field.path, event.target.value),
   });
   return wrap(field, input);
@@ -134,7 +135,7 @@ function renderNumber(field, store) {
     id: idFor(field.path),
     type: 'number',
     value: current === null || current === undefined ? '' : String(current),
-    placeholder: field.placeholder ?? '',
+    placeholder: field.placeholder ? t(field.placeholder) : '',
     min: field.min,
     max: field.max,
     onInput: (event) => {
@@ -185,7 +186,7 @@ function renderSelect(field, store) {
     onChange: (event) => store.setIn(field.path, event.target.value),
   }, field.options.map((option) => {
     const value = option.value ?? option.id ?? '';
-    return h('option', { value, selected: value === current, text: option.label });
+    return h('option', { value, selected: value === current, text: t(option.label) });
   }));
   return wrap(field, select);
 }
@@ -207,7 +208,7 @@ function renderSegmented(field, store) {
     store.setIn(field.path, option.value ?? option.id ?? '');
   };
 
-  const group = h('div.segmented', { role: 'radiogroup', 'aria-label': field.label ?? '' },
+  const group = h('div.segmented', { role: 'radiogroup', 'aria-label': field.label ? t(field.label) : '' },
     field.options.map((option, index) => {
       const value = option.value ?? option.id ?? '';
       const active = String(value) === current;
@@ -218,11 +219,11 @@ function renderSegmented(field, store) {
         role: 'radio',
         'aria-checked': String(active),
         class: active ? 'is-active' : '',
-        title: option.hint ?? '',
+        title: option.hint ? t(option.hint) : '',
         onClick: () => select(index),
       }, [
-        h('span.seg-label', { text: option.label }),
-        option.hint ? h('span.seg-hint', { text: option.hint }) : null,
+        h('span.seg-label', { text: t(option.label) }),
+        option.hint ? h('span.seg-hint', { text: t(option.hint) }) : null,
       ]);
     }));
   wireRadioGroup(group, select);
@@ -247,8 +248,8 @@ function renderToggle(field, store) {
       input,
       h('span.toggle-track', { 'aria-hidden': 'true' }, [h('span.toggle-thumb')]),
       h('span.toggle-text', {}, [
-        h('span.toggle-label', { text: field.label ?? '' }),
-        field.hint ? h('span.toggle-hint', { text: field.hint }) : null,
+        h('span.toggle-label', { text: field.label ? t(field.label) : '' }),
+        field.hint ? h('span.toggle-hint', { text: t(field.hint) }) : null,
       ]),
     ]),
   ]);
@@ -285,7 +286,7 @@ function renderChips(field, store) {
     // Stable id: adding a chip re-renders the panel, and focus is restored by id.
     id: inputId,
     type: 'text',
-    placeholder: values.length ? '' : (field.placeholder ?? 'Type and press Enter'),
+    placeholder: values.length ? '' : t(field.placeholder ?? 'Type and press Enter'),
     onKeydown: (event) => {
       if (event.key === 'Enter' || event.key === ',') {
         event.preventDefault();
@@ -316,7 +317,7 @@ function renderChips(field, store) {
       h('span.chip-text', { text: value }),
       h('button.chip-x', {
         type: 'button',
-        'aria-label': `Remove ${value}`,
+        'aria-label': t('Remove {name}', { name: value }),
         text: '×',
         onClick: () => commit(values.filter((_, i) => i !== index)),
       }),
@@ -349,13 +350,13 @@ function renderTextList(field, store) {
       id: rowId(index),
       type: 'text',
       value,
-      placeholder: field.placeholder ?? '',
-      'aria-label': `${field.label ?? 'Entry'} ${index + 1}`,
+      placeholder: field.placeholder ? t(field.placeholder) : '',
+      'aria-label': `${t(field.label ?? 'Entry')} ${index + 1}`,
       onInput: (event) => update((live) => live.map((entry, i) => (i === index ? event.target.value : entry))),
     }),
     h('button.icon-btn.icon-btn-danger', {
-      type: 'button', text: '×', title: 'Remove',
-      'aria-label': `Remove entry ${index + 1}`,
+      type: 'button', text: '×', title: t('Remove'),
+      'aria-label': t('Remove entry {n}', { n: index + 1 }),
       onClick: () => update((live) => {
         const next = live.filter((_, i) => i !== index);
         if (next.length) requestFocus(rowId(Math.min(index, next.length - 1)));
@@ -368,7 +369,7 @@ function renderTextList(field, store) {
     ...rows,
     h('button.btn.btn-ghost.cond-mini', {
       type: 'button',
-      text: field.addLabel ?? '+ Add',
+      text: t(field.addLabel ?? '+ Add'),
       onClick: () => update((live) => {
         requestFocus(rowId(live.length));
         return [...live, ''];
@@ -399,24 +400,24 @@ function renderStopList(field, store) {
       type: 'text',
       value: stop.map,
       placeholder: 'Viridian City',
-      'aria-label': `Stop ${index + 1} map`,
+      'aria-label': t('Stop {n} map', { n: index + 1 }),
       onInput: (event) => patchAt(index, { map: event.target.value }),
     }),
     h('select.input.select', {
-      'aria-label': `Stop ${index + 1} mount`,
+      'aria-label': t('Stop {n} mount', { n: index + 1 }),
       onChange: (event) => patchAt(index, { mount: event.target.value }),
     }, STOP_MOUNT_MODES.map((mode) => h('option', {
-      value: mode.id, selected: mode.id === stop.mount, text: mode.label,
+      value: mode.id, selected: mode.id === stop.mount, text: t(mode.label),
     }))),
     h('select.input.select', {
-      'aria-label': `Stop ${index + 1} terrain`,
+      'aria-label': t('Stop {n} terrain', { n: index + 1 }),
       onChange: (event) => patchAt(index, { terrain: event.target.value }),
     }, STOP_TERRAINS.map((mode) => h('option', {
-      value: mode.id, selected: mode.id === stop.terrain, text: mode.label,
+      value: mode.id, selected: mode.id === stop.terrain, text: t(mode.label),
     }))),
     h('button.icon-btn.icon-btn-danger', {
-      type: 'button', text: '×', title: 'Remove',
-      'aria-label': `Remove stop ${index + 1}`,
+      type: 'button', text: '×', title: t('Remove'),
+      'aria-label': t('Remove stop {n}', { n: index + 1 }),
       onClick: () => update((live) => live.filter((_, i) => i !== index)),
     }),
   ]));
@@ -425,7 +426,7 @@ function renderStopList(field, store) {
     ...rows,
     h('button.btn.btn-ghost.cond-mini', {
       type: 'button',
-      text: '+ Add a stop',
+      text: t('+ Add a stop'),
       onClick: () => update((live) => {
         requestFocus(rowId(live.length));
         return [...live, { map: '', mount: 'auto', terrain: 'any' }];
@@ -456,31 +457,31 @@ function renderEvGoals(field, store) {
       id: rowId(index),
       type: 'text',
       value: goal.id ?? '',
-      placeholder: 'unique id',
+      placeholder: t('unique id'),
       inputmode: 'numeric',
-      'aria-label': `Row ${index + 1} unique id`,
+      'aria-label': t('Row {n} unique id', { n: index + 1 }),
       onInput: (event) => patchAt(index, { id: event.target.value }),
     }),
     h('select.input.select', {
-      'aria-label': `Row ${index + 1} stat`,
+      'aria-label': t('Row {n} stat', { n: index + 1 }),
       onChange: (event) => patchAt(index, { stat: event.target.value }),
     }, EV_STATS.map((stat) => h('option', {
-      value: stat.id, selected: stat.id === goal.stat, text: stat.label,
+      value: stat.id, selected: stat.id === goal.stat, text: t(stat.label),
     }))),
     h('input.input', {
       type: 'number',
       value: String(goal.target ?? 252),
       min: 1,
       max: 252,
-      'aria-label': `Row ${index + 1} target`,
+      'aria-label': t('Row {n} target', { n: index + 1 }),
       onInput: (event) => {
         const parsed = Number.parseInt(event.target.value, 10);
         if (Number.isFinite(parsed)) patchAt(index, { target: parsed });
       },
     }),
     h('button.icon-btn.icon-btn-danger', {
-      type: 'button', text: '×', title: 'Remove',
-      'aria-label': `Remove row ${index + 1}`,
+      type: 'button', text: '×', title: t('Remove'),
+      'aria-label': t('Remove row {n}', { n: index + 1 }),
       onClick: () => update((live) => live.filter((_, i) => i !== index)),
     }),
   ]));
@@ -489,7 +490,7 @@ function renderEvGoals(field, store) {
     ...rows,
     h('button.btn.btn-ghost.cond-mini', {
       type: 'button',
-      text: '+ Add a Pokémon',
+      text: t('+ Add a Pokémon'),
       onClick: () => update((live) => {
         requestFocus(rowId(live.length));
         return [...live, createEvGoal()];
@@ -577,7 +578,7 @@ function renderBallLadder(field, store) {
   }, [
     h('span.ladder-rank', {
       dataset: { dragHandle: 'true' },
-      title: 'Drag to reorder',
+      title: t('Drag to reorder'),
       text: String(index + 1),
     }),
     h('input.input.ladder-item', {
@@ -585,37 +586,37 @@ function renderBallLadder(field, store) {
       type: 'text',
       value: ball.item,
       placeholder: 'Ultra Ball',
-      'aria-label': `Ball ${index + 1} name`,
+      'aria-label': t('Ball {n} name', { n: index + 1 }),
       onInput: (event) => replaceAt(index, { item: event.target.value }),
     }),
     h('select.input.select.ladder-when', {
       id: rowId(index, 'when'),
-      'aria-label': `Ball ${index + 1} condition`,
+      'aria-label': t('Ball {n} condition', { n: index + 1 }),
       onChange: (event) => replaceAt(index, { condition: event.target.value }),
     }, field.options.map((option) => h('option', {
       value: option.id,
       selected: option.id === ball.condition,
-      text: option.label,
+      text: t(option.label),
     }))),
     h('div.ladder-tools', {}, [
       h('button.icon-btn', {
         id: rowId(index, 'up'),
-        type: 'button', text: '▲', title: 'Move up',
-        'aria-label': `Move ball ${index + 1} up`,
+        type: 'button', text: '▲', title: t('Move up'),
+        'aria-label': t('Move ball {n} up', { n: index + 1 }),
         disabled: index === 0,
         onClick: () => move(index, -1),
       }),
       h('button.icon-btn', {
         id: rowId(index, 'down'),
-        type: 'button', text: '▼', title: 'Move down',
-        'aria-label': `Move ball ${index + 1} down`,
+        type: 'button', text: '▼', title: t('Move down'),
+        'aria-label': t('Move ball {n} down', { n: index + 1 }),
         disabled: index === balls.length - 1,
         onClick: () => move(index, 1),
       }),
       h('button.icon-btn.icon-btn-danger', {
         id: rowId(index, 'remove'),
-        type: 'button', text: '×', title: 'Remove',
-        'aria-label': `Remove ball ${index + 1}`,
+        type: 'button', text: '×', title: t('Remove'),
+        'aria-label': t('Remove ball {n}', { n: index + 1 }),
         onClick: () => removeAt(index),
       }),
     ]),
@@ -623,11 +624,11 @@ function renderBallLadder(field, store) {
 
   const ladder = h('div.ladder', {}, [
     ...(rows.length ? rows : [h('p.field-hint.ladder-empty', {
-      text: 'No balls yet — the script will have nothing to throw.',
+      text: t('No balls yet — the script will have nothing to throw.'),
     })]),
     h('button.btn.btn-ghost.ladder-add', {
       type: 'button',
-      text: '+ Add a ball',
+      text: t('+ Add a ball'),
       onClick: () => update((live) => [...live, { item: '', condition: 'always' }]),
     }),
   ]);

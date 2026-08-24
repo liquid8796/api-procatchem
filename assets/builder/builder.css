@@ -1196,3 +1196,19 @@ body.preview-hidden .preview-toggle span[aria-hidden] { color: #0A1811; }
   font: 400 12.5px/1.65 var(--ff-mono); color: var(--lcd-text);
   white-space: pre;
 }
+
+/* ================================================ translated-heading fallback
+   Press Start 2P ships no Vietnamese diacritics. Whenever a translation is
+   active (the language switcher stamps data-doc-lang on <html>), every
+   pixel-font element that carries translated text falls back to the body face
+   at an equivalent visual size. The two "Script Builder" titles keep the pixel
+   font: the name is never translated. */
+html:not([data-doc-lang="en"]) .side-h { font-family: var(--ff-body); font-weight: 800; font-size: 12.5px; }
+html:not([data-doc-lang="en"]) .panel-title { font-family: var(--ff-body); font-weight: 800; font-size: 17px; }
+html:not([data-doc-lang="en"]) .mode-name { font-family: var(--ff-body); font-weight: 800; font-size: 15px; }
+html:not([data-doc-lang="en"]) .screen-name { font-family: var(--ff-body); font-weight: 800; font-size: 11px; letter-spacing: .02em; }
+html:not([data-doc-lang="en"]) .diag-h { font-family: var(--ff-body); font-weight: 800; font-size: 14px; }
+html:not([data-doc-lang="en"]) .tool-title { font-family: var(--ff-body); font-weight: 800; font-size: 15px; }
+html:not([data-doc-lang="en"]) .tool-subtitle { font-family: var(--ff-body); font-weight: 800; font-size: 13px; }
+html:not([data-doc-lang="en"]) .api-subhead { font-family: var(--ff-body); font-weight: 800; font-size: 12.5px; }
+html:not([data-doc-lang="en"]) .drop-veil span { font-family: var(--ff-body); font-weight: 800; font-size: 17px; }

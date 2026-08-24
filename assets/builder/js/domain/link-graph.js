@@ -12,6 +12,8 @@
  * `moveToCell(x, y)`, one hop per map, until `getMapName()` reports the goal.
  */
 
+import { t } from '../core/i18n.js';
+
 export const LINK_GRAPH_HEADER = 'PROCATCHEM-LINKGRAPH';
 const FIELDS_PER_RECORD = 4;
 /** Fallback for files whose tabs were flattened to runs of spaces by an editor. */
@@ -227,7 +229,7 @@ export class LinkGraph {
       const from = path[i];
       const to = path[i + 1];
       const cell = this.hopCell(from, to);
-      if (!cell) throw new Error(`No warp cell recorded for "${from}" -> "${to}"`);
+      if (!cell) throw new Error(t('No warp cell recorded for "{from}" -> "{to}"', { from, to }));
       hops.push({ from, to, x: cell.x, y: cell.y });
     }
     return hops;

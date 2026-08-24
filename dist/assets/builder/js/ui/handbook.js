@@ -10,6 +10,7 @@
  * can drift out of order.
  */
 
+import { currentLanguage, t } from '../core/i18n.js';
 import { h, replaceChildren } from './dom.js';
 
 /**
@@ -170,30 +171,31 @@ export class Handbook {
   /** @param {HTMLDialogElement} dialog */
   constructor(dialog) {
     this._dialog = dialog;
-    this._rendered = false;
+    /** @type {string | null} the language the cached render was drawn in */
+    this._renderedFor = null;
   }
 
-  /** Draw the handbook once, then show it. */
+  /** Draw the handbook once per language, then show it. */
   open() {
-    if (!this._rendered) {
+    if (this._renderedFor !== currentLanguage()) {
       replaceChildren(this._dialog, [
         h('header.tool-head', {}, [
-          h('h2.tool-title', { text: 'How the generated script works' }),
+          h('h2.tool-title', { text: t('How the generated script works') }),
           h('button.icon-btn', {
-            type: 'button', text: '×', title: 'Close', 'aria-label': 'Close',
+            type: 'button', text: '×', title: t('Close'), 'aria-label': t('Close'),
             onClick: () => this._dialog.close(),
           }),
         ]),
-        h('nav.handbook-toc', { 'aria-label': 'Contents' }, HANDBOOK_SECTIONS.map(
-          (section) => h('a', { href: `#handbook-${section.id}`, text: section.title }),
+        h('nav.handbook-toc', { 'aria-label': t('Contents') }, HANDBOOK_SECTIONS.map(
+          (section) => h('a', { href: `#handbook-${section.id}`, text: t(section.title) }),
         )),
         ...HANDBOOK_SECTIONS.map((section) => h('section.tool-section', { id: `handbook-${section.id}` }, [
-          h('h3.tool-subtitle', { text: section.title }),
-          ...section.paragraphs.map((text) => h('p.handbook-text', { text })),
+          h('h3.tool-subtitle', { text: t(section.title) }),
+          ...section.paragraphs.map((text) => h('p.handbook-text', { text: t(text) })),
           section.lua ? h('pre.handbook-lua', {}, [h('code', { text: section.lua })]) : null,
         ])),
       ]);
-      this._rendered = true;
+      this._renderedFor = currentLanguage();
     }
     this._dialog.showModal();
   }

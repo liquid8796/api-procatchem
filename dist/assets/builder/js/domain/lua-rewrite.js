@@ -18,6 +18,8 @@
  * entirely — worse than the error it replaced.
  */
 
+import { t } from '../core/i18n.js';
+
 /** The call being replaced, and what replaces it. */
 const RETIRED_CALL = /\bmoveToMap\s*\(\s*(["'])((?:\\.|(?!\1).)*)\1\s*\)/g;
 /** `getMapName() == "X"`, in either order, with `==` or `~=`. */
@@ -125,7 +127,7 @@ function replaceCalls(line, mapAt, graph, lineNumber, skipped, onConverted) {
       skipped.push({
         line: lineNumber,
         target,
-        reason: 'the script does not say which map it is on here',
+        reason: t('the script does not say which map it is on here'),
       });
       return match;
     }
@@ -134,7 +136,9 @@ function replaceCalls(line, mapAt, graph, lineNumber, skipped, onConverted) {
       skipped.push({
         line: lineNumber,
         target,
-        reason: `the link graph has no warp cell from "${currentMap}" to "${target}"`,
+        reason: t('the link graph has no warp cell from "{from}" to "{to}"', {
+          from: currentMap, to: target,
+        }),
       });
       return match;
     }

@@ -7,6 +7,7 @@
  * button that copies the name into the clipboard.
  */
 
+import { t } from '../core/i18n.js';
 import { API_ENTRIES, API_GROUPS, API_VERSION } from '../domain/api-catalog.js';
 import { h, must, replaceChildren } from './dom.js';
 
@@ -42,9 +43,9 @@ export class ApiBrowser {
   _render() {
     replaceChildren(this._dialog, [
       h('header.tool-head', {}, [
-        h('h2.tool-title', { text: `Lua API · ${API_ENTRIES.length} functions` }),
+        h('h2.tool-title', { text: t('Lua API · {count} functions', { count: API_ENTRIES.length }) }),
         h('button.icon-btn', {
-          type: 'button', text: '×', title: 'Close', 'aria-label': 'Close',
+          type: 'button', text: '×', title: t('Close'), 'aria-label': t('Close'),
           onClick: () => this._dialog.close(),
         }),
       ]),
@@ -54,29 +55,29 @@ export class ApiBrowser {
           id: 'api-search',
           type: 'search',
           value: this._query,
-          placeholder: 'Search by name or description…',
-          'aria-label': 'Search the API',
+          placeholder: t('Search by name or description…'),
+          'aria-label': t('Search the API'),
           onInput: (event) => {
             this._query = event.target.value;
             this._renderResults();
           },
         }),
         h('select.input.select', {
-          'aria-label': 'Filter by group',
+          'aria-label': t('Filter by group'),
           onChange: (event) => {
             this._group = event.target.value;
             this._renderResults();
           },
         }, [
-          h('option', { value: '', text: 'Every group' }),
+          h('option', { value: '', text: t('Every group') }),
           ...API_GROUPS.map((group) => h('option', {
-            value: group, selected: group === this._group, text: group,
+            value: group, selected: group === this._group, text: t(group),
           })),
         ]),
       ]),
 
       h('div.api-body', {}, [this._list, this._detail]),
-      h('p.tool-hint', { text: `Generated from openapi.yaml, API ${API_VERSION}.` }),
+      h('p.tool-hint', { text: t('Generated from openapi.yaml, API {version}.', { version: API_VERSION }) }),
     ]);
 
     this._renderResults();
@@ -86,7 +87,7 @@ export class ApiBrowser {
     const matches = search(this._query, this._group);
 
     if (!matches.length) {
-      replaceChildren(this._list, [h('p.tool-hint', { text: 'Nothing matches that.' })]);
+      replaceChildren(this._list, [h('p.tool-hint', { text: t('Nothing matches that.') })]);
       replaceChildren(this._detail, []);
       return;
     }
@@ -107,10 +108,12 @@ export class ApiBrowser {
         },
       }, [
         h('span.api-item-name', { text: entry.name }),
-        h('span.api-item-group', { text: entry.group }),
+        h('span.api-item-group', { text: t(entry.group) }),
       ])),
       matches.length > MAX_RESULTS
-        ? h('p.tool-hint', { text: `…and ${matches.length - MAX_RESULTS} more. Narrow the search.` })
+        ? h('p.tool-hint', {
+          text: t('…and {count} more. Narrow the search.', { count: matches.length - MAX_RESULTS }),
+        })
         : null,
     ]);
 
@@ -126,37 +129,37 @@ export class ApiBrowser {
 
     replaceChildren(this._detail, [
       h('h3.api-name', { text: entry.name }),
-      h('p.api-kind', { text: `${describeKind(entry.kind)} · ${entry.group}` }),
+      h('p.api-kind', { text: `${t(describeKind(entry.kind))} · ${t(entry.group)}` }),
       h('pre.api-signature', {}, [h('code', { text: entry.signature })]),
       h('p.api-summary', { text: entry.summary }),
 
       entry.params.length
         ? h('div.api-params', {}, [
-          h('h4.api-subhead', { text: 'Arguments' }),
+          h('h4.api-subhead', { text: t('Arguments') }),
           h('ul', {}, entry.params.map((param) => h('li', {}, [
             h('code', { text: param.name }),
             h('span.api-type', { text: param.type }),
-            param.required ? null : h('span.api-optional', { text: 'optional' }),
+            param.required ? null : h('span.api-optional', { text: t('optional') }),
             param.description ? h('span', { text: ` — ${param.description}` }) : null,
           ]))),
         ])
-        : h('p.api-summary', { text: 'Takes no arguments.' }),
+        : h('p.api-summary', { text: t('Takes no arguments.') }),
 
       h('p.api-returns', {
-        text: entry.returns === 'void' ? 'Returns nothing.' : `Returns ${entry.returns}.`,
+        text: entry.returns === 'void' ? t('Returns nothing.') : t('Returns {type}.', { type: entry.returns }),
       }),
 
       h('div.tool-actions', {}, [
         h('button.btn.btn-lcd', {
           type: 'button',
-          text: 'Copy the name',
-          onClick: () => this._app.copyText(entry.name, `Copied ${entry.name}.`),
+          text: t('Copy the name'),
+          onClick: () => this._app.copyText(entry.name, t('Copied {name}.', { name: entry.name })),
         }),
         h('a.btn.btn-lcd.btn-quiet', {
           href: `${REFERENCE_URL}#${entry.name.toLowerCase()}`,
           target: '_blank',
           rel: 'noopener',
-          text: 'Open the full reference',
+          text: t('Open the full reference'),
         }),
       ]),
     ]);

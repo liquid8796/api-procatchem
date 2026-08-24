@@ -12,6 +12,7 @@
  * alone, because its type is not knowable without running the script.
  */
 
+import { t } from '../core/i18n.js';
 import { API_ENTRIES, apiEntry } from './api-catalog.js';
 import { HOST_FUNCTIONS, isHostFunction, RETIRED_FUNCTIONS } from './host-api.js';
 
@@ -164,13 +165,14 @@ export function validateCall(name, argsText, options = {}) {
  * @returns {CallProblem | null} null when the name is fine
  */
 export function resolveName(identifier, localFunctions) {
-  if (!identifier) return { level: 'error', message: 'No function name given.' };
+  if (!identifier) return { level: 'error', message: t('No function name given.') };
 
   if (Object.hasOwn(RETIRED_FUNCTIONS, identifier)) {
     return {
       level: 'error',
-      message: `${identifier}() is retired — the host aborts any script that calls it. `
-        + `Use ${RETIRED_FUNCTIONS[identifier]}() instead.`,
+      message: t('{name}() is retired — the host aborts any script that calls it. Use {replacement}() instead.', {
+        name: identifier, replacement: RETIRED_FUNCTIONS[identifier],
+      }),
     };
   }
   if (localFunctions?.has(identifier)) return null;
@@ -178,15 +180,20 @@ export function resolveName(identifier, localFunctions) {
   if (isHostFunction(identifier)) {
     return {
       level: 'warning',
-      message: `${identifier}() exists but is not documented, so its arguments cannot be checked.`,
+      message: t('{name}() exists but is not documented, so its arguments cannot be checked.', {
+        name: identifier,
+      }),
     };
   }
 
   const suggestion = suggestName(identifier);
   return {
     level: 'error',
-    message: `There is no API function called ${identifier}()`
-      + (suggestion ? ` — did you mean ${suggestion}()?` : '.'),
+    message: suggestion
+      ? t('There is no API function called {name}() — did you mean {suggestion}()?', {
+        name: identifier, suggestion,
+      })
+      : t('There is no API function called {name}().', { name: identifier }),
   };
 }
 
@@ -206,14 +213,23 @@ function checkArguments(entry, args) {
   if (args.length < required) {
     problems.push({
       level: 'error',
-      message: `${entry.name}() needs ${describeArity(required, entry.params.length)}, but ${args.length} `
-        + `${args.length === 1 ? 'was' : 'were'} given. Signature: ${entry.signature}`,
+      message: t('{name}() needs {arity}, but {count} {were} given. Signature: {signature}', {
+        name: entry.name,
+        arity: describeArity(required, entry.params.length),
+        count: args.length,
+        were: args.length === 1 ? t('was') : t('were'),
+        signature: entry.signature,
+      }),
     });
   } else if (args.length > entry.params.length && !variadic) {
     problems.push({
       level: 'error',
-      message: `${entry.name}() takes ${describeArity(required, entry.params.length)}, but ${args.length} `
-        + `were given. Signature: ${entry.signature}`,
+      message: t('{name}() takes {arity}, but {count} were given. Signature: {signature}', {
+        name: entry.name,
+        arity: describeArity(required, entry.params.length),
+        count: args.length,
+        signature: entry.signature,
+      }),
     });
   }
 
@@ -223,8 +239,9 @@ function checkArguments(entry, args) {
     if (looksLikeUnquotedText(arg)) {
       problems.push({
         level: 'error',
-        message: `${entry.name}(): argument ${index + 1} (${param.name}) is not valid Lua. `
-          + `Text has to be quoted: "${arg}".`,
+        message: t('{name}(): argument {n} ({param}) is not valid Lua. Text has to be quoted: "{value}".', {
+          name: entry.name, n: index + 1, param: param.name, value: arg,
+        }),
       });
       return;
     }
@@ -233,8 +250,9 @@ function checkArguments(entry, args) {
     if (!accepted || accepted.has(param.type)) return;
     problems.push({
       level: 'error',
-      message: `${entry.name}(): argument ${index + 1} (${param.name}) should be a ${param.type}, `
-        + `but ${arg} is a ${kind}.`,
+      message: t('{name}(): argument {n} ({param}) should be a {expected}, but {value} is a {actual}.', {
+        name: entry.name, n: index + 1, param: param.name, expected: param.type, value: arg, actual: kind,
+      }),
     });
   });
 
@@ -247,8 +265,10 @@ function checkArguments(entry, args) {
  * @returns {string}
  */
 function describeArity(required, total) {
-  if (required === total) return `${total} argument${total === 1 ? '' : 's'}`;
-  return `${required}–${total} arguments`;
+  if (required === total) {
+    return total === 1 ? t('1 argument') : t('{count} arguments', { count: total });
+  }
+  return t('{min}–{max} arguments', { min: required, max: total });
 }
 
 /**

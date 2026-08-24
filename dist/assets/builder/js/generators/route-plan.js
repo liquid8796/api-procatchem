@@ -12,6 +12,8 @@
  * outbound and return hops.
  */
 
+import { t } from '../core/i18n.js';
+
 /**
  * @typedef {import('../domain/link-graph.js').LinkGraph} LinkGraph
  * @typedef {import('../domain/link-graph.js').Hop} Hop
@@ -78,21 +80,21 @@ export function planRoute(config, linkGraph) {
     return plan;
   }
 
-  if (!farmMap) plan.problems.push('Route mode needs a hunting map.');
-  if (!pokecenterMap) plan.problems.push('Route mode needs a Pokécenter map.');
+  if (!farmMap) plan.problems.push(t('Route mode needs a hunting map.'));
+  if (!pokecenterMap) plan.problems.push(t('Route mode needs a Pokécenter map.'));
   if (plan.problems.length) return plan;
 
   if (linkGraph.isEmpty) {
     plan.problems.push(
-      'Load a link_graph.txt before using route mode — without it the builder cannot know '
-      + 'which cell warps between maps.',
+      t('Load a link_graph.txt before using route mode — without it the builder cannot know '
+        + 'which cell warps between maps.'),
     );
     return plan;
   }
 
   const pokecenter = linkGraph.resolveName(pokecenterMap);
   if (!pokecenter) {
-    plan.problems.push(`"${pokecenterMap}" is not in the loaded link graph.`);
+    plan.problems.push(t('"{map}" is not in the loaded link graph.', { map: pokecenterMap }));
     return plan;
   }
   plan.pokecenterMap = pokecenter;
@@ -103,7 +105,7 @@ export function planRoute(config, linkGraph) {
   for (const destination of destinations) {
     const resolved = linkGraph.resolveName(destination.map);
     if (!resolved) {
-      plan.problems.push(`"${destination.map}" is not in the loaded link graph.`);
+      plan.problems.push(t('"{map}" is not in the loaded link graph.', { map: destination.map }));
       continue;
     }
     plan.legs.push({
@@ -178,13 +180,15 @@ function normaliseStops(stops) {
 function resolveLeg(linkGraph, from, to, problems) {
   const path = linkGraph.findRoute(from, to);
   if (!path) {
-    problems.push(`No path from "${from}" to "${to}" in the link graph — walk it once so the bot learns it.`);
+    problems.push(t('No path from "{from}" to "{to}" in the link graph — walk it once so the bot learns it.', {
+      from, to,
+    }));
     return [];
   }
   try {
     return linkGraph.hopsFor(path);
   } catch (error) {
-    problems.push(`${error.message}. Walk that transition once to record it.`);
+    problems.push(t('{message}. Walk that transition once to record it.', { message: error.message }));
     return [];
   }
 }

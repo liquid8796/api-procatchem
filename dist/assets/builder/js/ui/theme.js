@@ -7,6 +7,8 @@
  * the rest by redefining its colour tokens.
  */
 
+import { onLanguageChange, t } from '../core/i18n.js';
+
 const STORAGE_KEY = 'procatchem-script-builder-theme-v1';
 
 /** In cycle order, so pressing the button walks around the ring. */
@@ -36,9 +38,9 @@ export function installThemeToggle(button) {
         ariaHidden: 'true',
         className: 'theme-icon',
       }),
-      document.createTextNode(theme.label),
+      document.createTextNode(t(theme.label)),
     );
-    button.title = 'Switch between the system theme, light, and dark';
+    button.title = t('Switch between the system theme, light, and dark');
     store(theme.id);
   };
 
@@ -46,6 +48,7 @@ export function installThemeToggle(button) {
     index = (index + 1) % THEMES.length;
     apply();
   });
+  onLanguageChange(apply);
   apply();
 }
 

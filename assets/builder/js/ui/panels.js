@@ -24,6 +24,7 @@ import {
   periodFields,
   toStringList,
 } from '../domain/config.js';
+import { t } from '../core/i18n.js';
 import { modeRegistry } from '../generators/mode-registry.js';
 import { h } from './dom.js';
 import { renderFields } from './fields.js';
@@ -66,24 +67,24 @@ function periodFieldSet(period) {
     {
       type: 'text',
       path: `route.timeOfDay.${fields.map}`,
-      label: `${period.label} map`,
+      label: t('{period} map', { period: t(period.label) }),
       placeholder: 'leave blank to use the main map',
       visibleWhen: shown,
     },
     {
       type: 'select',
       path: base,
-      label: `${period.label} — how to find encounters`,
+      label: t('{period} — how to find encounters', { period: t(period.label) }),
       options: [
         { value: '', label: 'Same as the main setting' },
-        ...FARM_ACTIONS.map((entry) => ({ value: entry.id, label: `${entry.label} — ${entry.hint}` })),
+        ...FARM_ACTIONS.map((entry) => ({ value: entry.id, label: `${t(entry.label)} — ${t(entry.hint)}` })),
       ],
       visibleWhen: shown,
     },
     {
       type: 'text',
       path: `route.timeOfDay.${fields.args}`,
-      label: `${period.label} — cell to stand on`,
+      label: t('{period} — cell to stand on', { period: t(period.label) }),
       placeholder: '12, 30',
       visibleWhen: (config) => shown(config)
         && ['moveToCell', FISHING_ACTION].includes(action(config)),
@@ -91,14 +92,14 @@ function periodFieldSet(period) {
     {
       type: 'text',
       path: `route.timeOfDay.${fields.rod}`,
-      label: `${period.label} — rod to cast`,
+      label: t('{period} — rod to cast', { period: t(period.label) }),
       placeholder: 'Super Rod',
       visibleWhen: (config) => shown(config) && action(config) === FISHING_ACTION,
     },
     {
       type: 'text',
       path: `route.timeOfDay.${fields.args}`,
-      label: `${period.label} — item to use`,
+      label: t('{period} — item to use', { period: t(period.label) }),
       placeholder: 'Repel',
       visibleWhen: (config) => shown(config) && action(config) === 'useItem',
     },
@@ -146,7 +147,7 @@ export const PANELS = [
     subtitle: 'What the script is trying to achieve',
     build: (store, mode) => {
       const entries = modeRegistry.all();
-      const cards = h('div.mode-grid', { role: 'radiogroup', 'aria-label': 'Farm mode' },
+      const cards = h('div.mode-grid', { role: 'radiogroup', 'aria-label': t('Farm mode') },
         entries.map((entry) => {
           const active = entry.id === mode.id;
           return h('button.mode-card', {
@@ -161,9 +162,9 @@ export const PANELS = [
             onClick: () => store.setIn('mode', entry.id),
           }, [
             h('span.mode-icon', { 'aria-hidden': 'true', text: entry.icon }),
-            h('span.mode-name', { text: entry.label }),
-            h('span.mode-tagline', { text: entry.tagline }),
-            h('span.mode-desc', { text: entry.description }),
+            h('span.mode-name', { text: t(entry.label) }),
+            h('span.mode-tagline', { text: t(entry.tagline) }),
+            h('span.mode-desc', { text: t(entry.description) }),
           ]);
         }));
       wireRadioGroup(cards, (index) => store.setIn('mode', entries[index].id));
@@ -218,7 +219,7 @@ export const PANELS = [
         label: 'How to find encounters',
         options: FARM_ACTIONS.map((action) => ({
           value: action.id,
-          label: `${action.label} — ${action.hint}`,
+          label: `${t(action.label)} — ${t(action.hint)}`,
         })),
       },
       {
@@ -317,7 +318,7 @@ export const PANELS = [
         label: 'Move to another zone',
         options: ZONE_ROTATION_MODES.map((entry) => ({
           value: entry.id,
-          label: `${entry.label} — ${entry.hint}`,
+          label: `${t(entry.label)} — ${t(entry.hint)}`,
         })),
         visibleWhen: (config) => toStringList(config.route.zones).length > 1,
       },
@@ -542,7 +543,7 @@ export const PANELS = [
         label: 'When that condition fails',
         options: END_BEHAVIOURS.map((entry) => ({
           value: entry.id,
-          label: `${entry.label} — ${entry.hint}`,
+          label: `${t(entry.label)} — ${t(entry.hint)}`,
         })),
       },
       {
@@ -574,7 +575,7 @@ export const PANELS = [
         label: 'Rotate the team',
         options: ROTATION_MODES.map((entry) => ({
           value: entry.id,
-          label: `${entry.label} — ${entry.hint}`,
+          label: `${t(entry.label)} — ${t(entry.hint)}`,
         })),
       },
       {
