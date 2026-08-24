@@ -7,12 +7,20 @@
  * not a new block of DOM code.
  *
  * Supported `type` values: `text`, `number`, `select`, `segmented`, `toggle`,
- * `chips`, `ballLadder`, `textList`, `stopList`, `helperMoves`, `conditionTree`,
- * and `ruleList`.
+ * `chips`, `ballLadder`, `textList`, `stopList`, `evGoals`, `helperMoves`,
+ * `conditionTree`, and `ruleList`.
  */
 
-import { STOP_MOUNT_MODES, STOP_TERRAINS, splitList, toNullableInt } from '../domain/config.js';
+import {
+  EV_STATS,
+  STOP_MOUNT_MODES,
+  STOP_TERRAINS,
+  createEvGoal,
+  splitList,
+  toNullableInt,
+} from '../domain/config.js';
 import { renderConditionTree } from './condition-editor.js';
+import { makeReorderable, moveEntry } from './drag-reorder.js';
 import { renderHelperMoves } from './helper-moves.js';
 import { renderRuleList } from './rule-editor.js';
 import { h, requestFocus } from './dom.js';
@@ -52,6 +60,7 @@ export function renderField(field, store) {
     case 'ballLadder': return renderBallLadder(field, store);
     case 'textList': return renderTextList(field, store);
     case 'stopList': return renderStopList(field, store);
+    case 'evGoals': return renderEvGoals(field, store);
     case 'conditionTree': return renderConditionField(field, store);
     case 'helperMoves': return renderHelperField(field, store);
     case 'ruleList': return renderRuleField(field, store);
@@ -426,6 +435,70 @@ function renderStopList(field, store) {
 }
 
 /**
+ * The EV table: one row per Pokémon, each with its own stat and target.
+ *
+ * @param {Field} field
+ * @param {import('../core/store.js').Store} store
+ * @returns {HTMLElement}
+ */
+function renderEvGoals(field, store) {
+  /** @type {Array<{ id: string, stat: string, target: number }>} */
+  const goals = store.getIn(field.path) ?? [];
+  const update = (fn) => store.update(field.path, fn, []);
+  const patchAt = (index, patch) => update(
+    (live) => live.map((goal, i) => (i === index ? { ...goal, ...patch } : goal)),
+  );
+  const rowId = (index) => `${idFor(field.path)}-uid-${index}`;
+
+  const rows = goals.map((goal, index) => h('div.stop-row', {}, [
+    h('span.ladder-rank', { text: String(index + 1) }),
+    h('input.input', {
+      id: rowId(index),
+      type: 'text',
+      value: goal.id ?? '',
+      placeholder: 'unique id',
+      inputmode: 'numeric',
+      'aria-label': `Row ${index + 1} unique id`,
+      onInput: (event) => patchAt(index, { id: event.target.value }),
+    }),
+    h('select.input.select', {
+      'aria-label': `Row ${index + 1} stat`,
+      onChange: (event) => patchAt(index, { stat: event.target.value }),
+    }, EV_STATS.map((stat) => h('option', {
+      value: stat.id, selected: stat.id === goal.stat, text: stat.label,
+    }))),
+    h('input.input', {
+      type: 'number',
+      value: String(goal.target ?? 252),
+      min: 1,
+      max: 252,
+      'aria-label': `Row ${index + 1} target`,
+      onInput: (event) => {
+        const parsed = Number.parseInt(event.target.value, 10);
+        if (Number.isFinite(parsed)) patchAt(index, { target: parsed });
+      },
+    }),
+    h('button.icon-btn.icon-btn-danger', {
+      type: 'button', text: '×', title: 'Remove',
+      'aria-label': `Remove row ${index + 1}`,
+      onClick: () => update((live) => live.filter((_, i) => i !== index)),
+    }),
+  ]));
+
+  return wrap(field, h('div.list-rows', {}, [
+    ...rows,
+    h('button.btn.btn-ghost.cond-mini', {
+      type: 'button',
+      text: '+ Add a Pokémon',
+      onClick: () => update((live) => {
+        requestFocus(rowId(live.length));
+        return [...live, createEvGoal()];
+      }),
+    }),
+  ]));
+}
+
+/**
  * @param {Field} field
  * @param {import('../core/store.js').Store} store
  * @returns {HTMLElement}
@@ -498,8 +571,15 @@ function renderBallLadder(field, store) {
     return next;
   });
 
-  const rows = balls.map((ball, index) => h('div.ladder-row', {}, [
-    h('span.ladder-rank', { text: String(index + 1) }),
+  const rows = balls.map((ball, index) => h('div.ladder-row', {
+    draggable: 'true',
+    dataset: { row: String(index) },
+  }, [
+    h('span.ladder-rank', {
+      dataset: { dragHandle: 'true' },
+      title: 'Drag to reorder',
+      text: String(index + 1),
+    }),
     h('input.input.ladder-item', {
       id: rowId(index, 'item'),
       type: 'text',
@@ -551,6 +631,10 @@ function renderBallLadder(field, store) {
       onClick: () => update((live) => [...live, { item: '', condition: 'always' }]),
     }),
   ]);
+
+  // Dragging complements the arrow buttons rather than replacing them: those
+  // are how the ladder is reordered from the keyboard.
+  makeReorderable(ladder, (from, to) => update((live) => moveEntry(live, from, to)));
 
   return wrap(field, ladder);
 }

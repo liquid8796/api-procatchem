@@ -2,8 +2,14 @@
  * Entry point: mount the builder and bind the toolbar.
  */
 
+import { TEMPLATES } from './domain/templates.js';
+import { ApiBrowser } from './ui/api-browser.js';
 import { BuilderApp } from './ui/app.js';
-import { must, prefersReducedMotion } from './ui/dom.js';
+import { h, must, prefersReducedMotion, replaceChildren } from './ui/dom.js';
+import { LinkGraphTools } from './ui/link-graph-tools.js';
+import { Handbook } from './ui/handbook.js';
+import { StructureDiagram } from './ui/structure-diagram.js';
+import { installThemeToggle } from './ui/theme.js';
 
 const app = new BuilderApp({
   panels: must('#panels'),
@@ -32,6 +38,49 @@ on('#btn-reset', () => {
   if (confirm('Reset every setting back to the defaults?')) app.reset();
 });
 on('#btn-clear-graph', () => app.clearLinkGraph());
+
+const graphTools = new LinkGraphTools(
+  /** @type {HTMLDialogElement} */ (must('#graph-dialog')),
+  app,
+);
+on('#btn-graph-tools', () => graphTools.open());
+
+const apiBrowser = new ApiBrowser(/** @type {HTMLDialogElement} */ (must('#api-dialog')), app);
+on('#btn-api-browser', () => apiBrowser.open());
+
+const structure = new StructureDiagram(
+  /** @type {HTMLDialogElement} */ (must('#structure-dialog')),
+  () => app.result,
+  () => app.config,
+);
+on('#btn-structure', () => structure.open());
+
+const handbook = new Handbook(/** @type {HTMLDialogElement} */ (must('#handbook-dialog')));
+on('#btn-handbook', () => handbook.open());
+
+installThemeToggle(must('#btn-theme'));
+
+// The template picker describes the highlighted entry, so the choice can be
+// made without loading each one to find out what it does.
+const templatePicker = /** @type {HTMLSelectElement} */ (must('#template-picker'));
+const templateAbout = must('#template-about');
+replaceChildren(templatePicker, TEMPLATES.map(
+  (template) => h('option', { value: template.id, text: template.label }),
+));
+const describeTemplate = () => {
+  const chosen = TEMPLATES.find((template) => template.id === templatePicker.value);
+  templateAbout.textContent = chosen?.description ?? '';
+};
+templatePicker.addEventListener('change', describeTemplate);
+describeTemplate();
+
+on('#btn-template', () => {
+  const chosen = TEMPLATES.find((template) => template.id === templatePicker.value);
+  if (!chosen) return;
+  if (confirm(`Replace everything with the "${chosen.label}" template?`)) {
+    app.loadTemplate(chosen.id);
+  }
+});
 on('#btn-toggle-preview', () => app.togglePreview());
 on('#btn-hide-preview', () => app.togglePreview(true));
 

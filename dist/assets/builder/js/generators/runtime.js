@@ -9,9 +9,16 @@
  */
 
 import { luaKey, luaNumber, luaString, section } from '../core/lua-writer.js';
-import { splitList, toStringList } from '../domain/config.js';
+import {
+  FISHING_ACTION,
+  TIME_PERIODS,
+  periodFields,
+  splitList,
+  toStringList,
+} from '../domain/config.js';
 import {
   CONDITION_HELPERS,
+  collectConditionFlags,
   collectConditionHelpers,
   emitCondition,
   isEmptyCondition,
@@ -40,6 +47,8 @@ const NO_STATUS_LITERAL = '""';
  * @property {boolean} zoneReroll     a zone rotation is triggered by an event
  * @property {boolean} stopUpkeep     at least one stop emits a branch
  * @property {Set<string>} conditionHelpers helper ids the condition trees need
+ * @property {Map<string, import('../domain/condition.js').ConditionFlag>} conditionFlags
+ *           battle-log flags the condition trees latch
  *
  * @typedef {object} EmitContext
  * @property {object} config
@@ -98,6 +107,7 @@ export function analyseNeeds(config, plan, modeTraits) {
       ...collectConditionHelpers(config.team.customGuard),
       ...helperConditionHelpers,
     ]),
+    conditionFlags: collectConditionFlags(config.team.customGuard),
     // Preparation moves go through `useOnce`, which needs both the slot helpers
     // and the once-per-battle table.
     slotHelpers: moves.length > 0 || helpers.length > 0,
@@ -159,7 +169,44 @@ export function emitState(writer, { needs }) {
   if (needs.onceFlags) {
     writer.line('local F           = {} -- once-per-battle step flags, cleared between battles');
   }
+  emitFlagState(writer, needs);
   writer.blank();
+}
+
+/**
+ * Declare the battle-log flags the conditions latch.
+ *
+ * A latching flag is a boolean; a timed one holds the turn it was heard on, so
+ * `0` doubles as "not heard" and the expiry check is a plain comparison.
+ *
+ * @param {LuaWriter} writer
+ * @param {Needs} needs
+ */
+function emitFlagState(writer, needs) {
+  const flags = sortedFlags(needs);
+  if (!flags.length) return;
+  writer.comment('Set by onBattleMessage; the game only ever says these out loud.');
+  for (const flag of flags) {
+    const heard = flag.on.map((phrase) => `"${phrase}"`).join(', ');
+    writer.line(`local ${flag.name} = ${flagResetValue(flag)} -- ${heard}`);
+  }
+}
+
+/**
+ * @param {Needs} needs
+ * @returns {import('../domain/condition.js').ConditionFlag[]} in a stable order
+ */
+function sortedFlags(needs) {
+  return [...(needs.conditionFlags ?? new Map()).values()]
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * @param {import('../domain/condition.js').ConditionFlag} flag
+ * @returns {string}
+ */
+function flagResetValue(flag) {
+  return flag.turns ? '0' : 'false';
 }
 
 /**
@@ -549,6 +596,11 @@ export function emitOnPathAction(writer, context) {
       w.comment('This callback only runs between battles, so it is where once-per-battle resets.');
       w.line('F = {}');
     }
+    const flags = sortedFlags(needs);
+    if (flags.length) {
+      w.comment('Battle-log flags describe the battle that just ended.');
+      for (const flag of flags) w.line(`${flag.name} = ${flagResetValue(flag)}`);
+    }
     // `map` is only read when the script has to tell maps apart. Hunting in
     // place with no Pokécenter never does, so declaring it there would leave an
     // unused local in the output.
@@ -587,10 +639,73 @@ export function emitOnPathAction(writer, context) {
       emitFarmTick(inner, context);
     });
     w.blank();
-    w.comment('Team is spent — head back and heal.');
-    emitHealTick(w, context);
+    emitEndOfFarm(w, context);
   });
   writer.blank();
+}
+
+/**
+ * What happens once the keep-farming condition stops holding.
+ *
+ * @param {LuaWriter} writer
+ * @param {EmitContext} context
+ */
+function emitEndOfFarm(writer, context) {
+  const { config } = context;
+  switch (config.route.endBehaviour) {
+    case 'healNpc':
+      emitHealHere(writer, config);
+      return;
+    case 'stop':
+      writer.useHost('fatal');
+      writer.comment('Configured to stop rather than resume once farming is done.');
+      writer.line(`fatal(${luaString(config.route.endMessage || 'Farming condition no longer holds.')})`);
+      writer.line('return true');
+      return;
+    case 'logout':
+      writer.useHost('logout');
+      writer.line(`logout(${luaString(config.route.endMessage || 'Farming condition no longer holds.')})`);
+      writer.line('return true');
+      return;
+    case 'idle':
+      writer.comment('Configured to stand still: stay logged in and take no action.');
+      writer.line('return false');
+      return;
+    case 'pcLoop':
+    default:
+      writer.comment('Team is spent — head back and heal.');
+      emitHealTick(writer, context);
+  }
+}
+
+/**
+ * Heal at a nurse on the map the bot is already standing on.
+ *
+ * The money gate exists because these healers charge; failing it means the run
+ * genuinely cannot continue, so it stops rather than looping on a cell it can
+ * do nothing with.
+ *
+ * @param {LuaWriter} writer
+ * @param {object} config
+ */
+function emitHealHere(writer, config) {
+  const [x, y] = splitList(config.route.endHealCell);
+  const money = config.route.endHealMoney;
+
+  writer.comment('Team is spent — heal here rather than walking to a Pokécenter.');
+  writer.useHosts(['isSurfing', 'moveToNormalGround', 'talkToNpcOnCell']);
+  writer.line('if isSurfing() then return moveToNormalGround() end');
+
+  const heal = `return talkToNpcOnCell(${luaNumber(x, 0)}, ${luaNumber(y, 0)})`;
+  if (money === null || money <= 0) {
+    writer.line(heal);
+    return;
+  }
+  writer.useHosts(['getMoney', 'fatal']);
+  writer.block(`if getMoney() >= ${luaNumber(money, 0)} then`, (inner) => inner.line(heal));
+  writer.comment('Below the threshold there is no way to heal, so do not spin on it.');
+  writer.line(`fatal(${luaString(`Not enough money to heal — needs ${luaNumber(money, 0)}.`)})`);
+  writer.line('return true');
 }
 
 /**
@@ -649,26 +764,75 @@ function emitFarmTick(writer, context) {
  * @param {EmitContext} context
  */
 function emitFarmAction(writer, { config, zones }) {
-  const { farmAction, surfFix } = config.route;
-  // Fishing gets its encounters from the rod, not the terrain, and the cell may
-  // well be on water — stepping ashore first would fight the walk to it forever.
-  const terrainIsChosen = farmAction === 'moveToWater' || farmAction === 'fish';
-
-  if (surfFix && !terrainIsChosen && !zones.active) {
-    writer.useHosts(['isSurfing', 'moveToNormalGround']);
-    writer.comment('Surfing when we want land encounters: step back onto dry ground first.');
-    writer.line('if isSurfing() then return moveToNormalGround() end');
-  }
   if (config.mounts.dismountOnFarm) {
     writer.useHosts(['isMounted', 'disMount']);
     writer.line('if isMounted() then return disMount() end');
   }
   if (zones.active) {
+    // The surf guard belongs to a plain hunting action; a zone walks to
+    // coordinates and decides its own terrain.
     writer.comment('Zones replace the plain hunting action.');
     writer.line('return farmZone()');
     return;
   }
-  emitFarmCall(writer, farmAction, config.route);
+
+  // A period that hunts a different way gets its own branch, with its own surf
+  // guard — hunting grass at noon still wants to leave the water even if the
+  // morning is spent surfing. The main action is the fallback for every period
+  // that did not ask for one.
+  for (const override of periodOverrides(config)) {
+    writer.useHost(override.host);
+    writer.block(`if ${override.host}() then`, (inner) => {
+      emitSurfGuard(inner, override.farmAction, config.route.surfFix);
+      emitFarmCall(inner, override.farmAction, override);
+    });
+  }
+  emitSurfGuard(writer, config.route.farmAction, config.route.surfFix);
+  emitFarmCall(writer, config.route.farmAction, config.route);
+}
+
+/**
+ * Step ashore before hunting on land.
+ *
+ * Skipped for the two actions that choose their own terrain: surfing obviously,
+ * and fishing — its cell may well be on water, so stepping ashore would fight
+ * the walk to it forever.
+ *
+ * @param {LuaWriter} writer
+ * @param {string} action
+ * @param {boolean} surfFix
+ */
+function emitSurfGuard(writer, action, surfFix) {
+  if (!surfFix || action === 'moveToWater' || action === FISHING_ACTION) return;
+  writer.useHosts(['isSurfing', 'moveToNormalGround']);
+  writer.comment('Surfing when we want land encounters: step back onto dry ground first.');
+  writer.line('if isSurfing() then return moveToNormalGround() end');
+}
+
+/**
+ * Periods that hunt differently from the main setting.
+ *
+ * @param {object} config
+ * @returns {Array<{ id: string, host: string, farmAction: string, farmArgs: string, farmRod: string }>}
+ */
+function periodOverrides(config) {
+  const timeOfDay = config.route.timeOfDay ?? {};
+  if (!timeOfDay.enabled) return [];
+
+  const overrides = [];
+  for (const period of TIME_PERIODS) {
+    const fields = periodFields(period.id);
+    const action = String(timeOfDay[fields.action] ?? '').trim();
+    if (!action || action === config.route.farmAction) continue;
+    overrides.push({
+      id: period.id,
+      host: period.host,
+      farmAction: action,
+      farmArgs: String(timeOfDay[fields.args] ?? '').trim(),
+      farmRod: String(timeOfDay[fields.rod] ?? '').trim(),
+    });
+  }
+  return overrides;
 }
 
 /**
@@ -776,7 +940,8 @@ function emitHealAction(writer, { config, zones }) {
  */
 export function emitOnBattleMessage(writer, { config, needs, zones }) {
   const armsZoneReroll = zones.eventDriven && zones.mode === 'onWin';
-  if (!needs.trapFlag && !needs.counters && !armsZoneReroll) return;
+  const flags = sortedFlags(needs);
+  if (!needs.trapFlag && !needs.counters && !armsZoneReroll && !flags.length) return;
 
   const trapPhrases = [
     'wrapped',
@@ -801,6 +966,7 @@ export function emitOnBattleMessage(writer, { config, needs, zones }) {
       w.comment('Winning a battle is the trigger for picking a different zone.');
       w.line('if stringContains(message, "You have won") then zoneReroll = true end');
     }
+    emitFlagUpdates(w, flags);
     if (needs.counters) {
       w.line('if stringContains(message, "A Wild SHINY ") then shinySeen = shinySeen + 1 end');
       w.line('if stringContains(message, "A Wild ") then wildSeen = wildSeen + 1 end');
@@ -814,6 +980,34 @@ export function emitOnBattleMessage(writer, { config, needs, zones }) {
     }
   });
   writer.blank();
+}
+
+/**
+ * Raise and clear the battle-log flags.
+ *
+ * The clearing clause is emitted after the raising one so a message that both
+ * ends an effect and mentions it — "the taunt wore off" — leaves the flag down.
+ *
+ * @param {LuaWriter} writer
+ * @param {import('../domain/condition.js').ConditionFlag[]} flags
+ */
+function emitFlagUpdates(writer, flags) {
+  for (const flag of flags) {
+    const raised = flag.turns ? `${writer.useHost('getBattleTurn')}()` : 'true';
+    writer.line(`if ${anyPhrase(flag.on)} then ${flag.name} = ${raised} end`);
+    if (!flag.off.length) continue;
+    writer.line(`if ${anyPhrase(flag.off)} then ${flag.name} = ${flagResetValue(flag)} end`);
+  }
+}
+
+/**
+ * @param {string[]} phrases
+ * @returns {string} a Lua boolean expression over `message`
+ */
+function anyPhrase(phrases) {
+  return phrases
+    .map((phrase) => `stringContains(message, ${luaString(phrase)})`)
+    .join(' or ');
 }
 
 /**

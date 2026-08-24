@@ -1,5 +1,74 @@
 # Changelog
 
+## PROCatchem content — v1.0.114
+
+*August 24, 2026*
+
+Closing the gap between the Script Builder and the V5 standalone tool, and fixing three things
+that comparison turned up.
+
+**Fixed:**
+
+- **The gender filter could never match.** Both the target filter and the opponent-gender
+  condition compared against `"Male"` / `"Female"`, but the host normalises to `"M"` / `"F"`.
+  Saved drafts are migrated on load.
+- **Eight EV/IV/stat functions documented stat names the host rejects.** The spec said `SPA` and
+  `SPE`; the host accepts `SPATK`, `SPDEF` and `SPD` (speed), and stops the script on anything
+  else. Corrected in `openapi.yaml` and on the reference page.
+- The surf guard was one decision for the whole script, so a single surfing period disabled it
+  everywhere. It now belongs to the branch it guards.
+
+**Added — conditions:**
+
+- **Heard in the battle log.** Some state has no getter: nothing asks whether your move was
+  taunted. The game says it out loud, so a flag latches in `onBattleMessage()` and clears on a
+  second phrase or after N turns. **Opponent ability was announced** is the same mechanism over
+  ability names, since the host offers no `getOpponentAbility`.
+- **Call an API function** — any documented function, with arguments and an optional comparison.
+  Arity and literal argument types are checked before anything is emitted.
+- Alternate form, money on hand, slot effort value, slot gender, which slot is in battle, and
+  whether the Pokémon in battle can still fight.
+
+**Added — battle rules:**
+
+- `group` nests steps under one shared condition; `chain` emits `a() or b() or c()`, skipping a
+  switch while trapped; plus `sendStrongest`, `stopBot` and `logout`.
+
+**Added — the run itself:**
+
+- **What happens when farming ends** is now a choice: the Pokécenter loop, healing at a nurse on
+  the current map (with an optional money floor, since those charge), stopping with a logged
+  message, logging out, or standing still.
+- **Each time of day can hunt its own way**, not only on its own map — fishing at night and
+  walking grass by day is one script now.
+- Team rotation gains *highest level first*, and an **EV table** where each Pokémon trains its own
+  stat to its own target; in EV farm mode the encounter filter follows the table.
+- The relog delay after a trapped battle is configurable instead of pinned at 30 seconds.
+
+**Added — tools:**
+
+- **Link-graph workbench**: edit the graph by hand, export it, check that a route exists, and
+  rewrite an older script that still calls the retired `moveToMap()`. A call is only rewritten
+  where the script says which map it is standing on; everything else is reported untouched.
+- **API browser**: all 242 documented functions, searchable, with signatures and argument types.
+- **Script structure**: the generated script drawn as a tree of decisions, derived from the same
+  plan the generator emitted from.
+- **How this works**: eight sections on the patterns the builder emits, four of them quoting the
+  generator verbatim — a test keeps those quotes honest.
+- **Six starter templates**, each a complete run rather than a fragment.
+- Opening a `.lua` with no embedded configuration now checks every call in it against the API and
+  reports the results in Diagnostics.
+- **A dark theme**, following the system by default with an explicit light/dark override. Fixing
+  the palette also lifted two light-theme colours over the 4.5:1 contrast line.
+- The ball ladder can be reordered by dragging; the arrow buttons stay for the keyboard.
+
+**Internal:**
+
+- The API catalog is now **generated from `openapi.yaml`** rather than hand-maintained, and a test
+  fails when the checked-in copy drifts. Cross-checking it against the host's own registration
+  list also pinned the thirteen `set*Timeout` globals the spec does not document.
+
+
 ## PROCatchem content — v1.0.113
 
 *August 23, 2026*

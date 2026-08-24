@@ -57,6 +57,9 @@ const NOT_CALLS = new Set([
  * @property {import('./mode-registry.js').FarmMode} mode
  * @property {import('./zones.js').ZonePlan} zones
  * @property {import('./team.js').TeamPlan} team
+ * @property {import('./runtime.js').Needs} needs which helpers the script uses,
+ *           which is what lets the UI describe the script's shape without
+ *           re-deriving it from the source
  */
 
 /**
@@ -100,7 +103,7 @@ export function generateScript(config, linkGraph) {
   const document = `${renderConfigHeader(config)}${lua}`;
   const verification = verify(lua, writer.hostCalls(), writer.localFunctions());
 
-  return { lua, document, plan, mode, zones, team, ...verification };
+  return { lua, document, plan, mode, zones, team, needs, ...verification };
 }
 
 /**
@@ -122,11 +125,18 @@ function mergeNeeds(base, mode, config, zones, team, plan) {
     ...(extra.conditionHelpers ?? []),
   ]);
   if (base.ppHelper) conditionHelpers.add('teamPpLeft');
+  // Keyed by variable name, so two trees listening for the same phrases end up
+  // sharing one declaration and one onBattleMessage clause.
+  const conditionFlags = new Map([
+    ...(base.conditionFlags ?? new Map()),
+    ...(extra.conditionFlags ?? new Map()),
+  ]);
 
   return {
     ...base,
     ...extra,
     conditionHelpers,
+    conditionFlags,
     // Booleans are OR-ed: a helper is needed if anything needs it.
     slotHelpers: base.slotHelpers || Boolean(extra.slotHelpers),
     statusHelper: base.statusHelper || Boolean(extra.statusHelper),

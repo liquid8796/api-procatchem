@@ -9,16 +9,19 @@
 
 import {
   BALL_CONDITIONS,
+  END_BEHAVIOURS,
   EV_STATS,
   FARM_ACTIONS,
   FISHING_ACTION,
   HEAL_ACTIONS,
   OTHER_POLICIES,
   ROTATION_MODES,
+  TIME_PERIODS,
   TRAINER_POLICIES,
   TRAPPED_POLICIES,
   WEAKEN_MODES,
   ZONE_ROTATION_MODES,
+  periodFields,
   toStringList,
 } from '../domain/config.js';
 import { modeRegistry } from '../generators/mode-registry.js';
@@ -43,6 +46,64 @@ const asOptions = (entries) => entries.map((entry) => ({
   label: entry.label,
   hint: entry.hint,
 }));
+
+/**
+ * The four fields one time-of-day period offers: where to hunt, how, and the
+ * arguments that "how" needs. Every one is optional — anything left blank
+ * falls back to the main setting, so a period that only changes the map still
+ * costs one field.
+ *
+ * @param {{ id: string, label: string }} period
+ * @returns {import('./fields.js').Field[]}
+ */
+function periodFieldSet(period) {
+  const fields = periodFields(period.id);
+  const base = `route.timeOfDay.${fields.action}`;
+  const shown = (config) => config.route.timeOfDay.enabled;
+  const action = (config) => config.route.timeOfDay[fields.action];
+
+  return [
+    {
+      type: 'text',
+      path: `route.timeOfDay.${fields.map}`,
+      label: `${period.label} map`,
+      placeholder: 'leave blank to use the main map',
+      visibleWhen: shown,
+    },
+    {
+      type: 'select',
+      path: base,
+      label: `${period.label} — how to find encounters`,
+      options: [
+        { value: '', label: 'Same as the main setting' },
+        ...FARM_ACTIONS.map((entry) => ({ value: entry.id, label: `${entry.label} — ${entry.hint}` })),
+      ],
+      visibleWhen: shown,
+    },
+    {
+      type: 'text',
+      path: `route.timeOfDay.${fields.args}`,
+      label: `${period.label} — cell to stand on`,
+      placeholder: '12, 30',
+      visibleWhen: (config) => shown(config)
+        && ['moveToCell', FISHING_ACTION].includes(action(config)),
+    },
+    {
+      type: 'text',
+      path: `route.timeOfDay.${fields.rod}`,
+      label: `${period.label} — rod to cast`,
+      placeholder: 'Super Rod',
+      visibleWhen: (config) => shown(config) && action(config) === FISHING_ACTION,
+    },
+    {
+      type: 'text',
+      path: `route.timeOfDay.${fields.args}`,
+      label: `${period.label} — item to use`,
+      placeholder: 'Repel',
+      visibleWhen: (config) => shown(config) && action(config) === 'useItem',
+    },
+  ];
+}
 
 /** True when the current farm action needs a cell coordinate. */
 const needsCell = (config) => config.route.farmAction === 'moveToCell'
@@ -295,30 +356,11 @@ export const PANELS = [
       {
         type: 'toggle',
         path: 'route.timeOfDay.enabled',
-        label: 'Hunt a different map depending on the time',
-        hint: 'Each period gets its own outbound and return route.',
+        label: 'Hunt differently depending on the time',
+        hint: 'Each period can take its own map — with its own outbound and return '
+          + 'route — its own way of finding encounters, or both.',
       },
-      {
-        type: 'text',
-        path: 'route.timeOfDay.morningMap',
-        label: 'Morning map',
-        placeholder: 'leave blank to use the main map',
-        visibleWhen: (config) => config.route.timeOfDay.enabled,
-      },
-      {
-        type: 'text',
-        path: 'route.timeOfDay.noonMap',
-        label: 'Noon map',
-        placeholder: 'leave blank to use the main map',
-        visibleWhen: (config) => config.route.timeOfDay.enabled,
-      },
-      {
-        type: 'text',
-        path: 'route.timeOfDay.nightMap',
-        label: 'Night map',
-        placeholder: 'leave blank to use the main map',
-        visibleWhen: (config) => config.route.timeOfDay.enabled,
-      },
+      ...TIME_PERIODS.flatMap(periodFieldSet),
     ], store)],
   },
 
@@ -358,10 +400,12 @@ export const PANELS = [
         type: 'select',
         path: 'target.gender',
         label: 'Gender',
+        // The host reports "M" / "F"; the old "Male" / "Female" values here
+        // produced a comparison that could never be true.
         options: [
           { value: '', label: 'Any gender' },
-          { value: 'Male', label: 'Male only' },
-          { value: 'Female', label: 'Female only' },
+          { value: 'M', label: 'Male only' },
+          { value: 'F', label: 'Female only' },
         ],
       },
     ], store)],
@@ -494,6 +538,38 @@ export const PANELS = [
       },
       {
         type: 'select',
+        path: 'route.endBehaviour',
+        label: 'When that condition fails',
+        options: END_BEHAVIOURS.map((entry) => ({
+          value: entry.id,
+          label: `${entry.label} — ${entry.hint}`,
+        })),
+      },
+      {
+        type: 'text',
+        path: 'route.endHealCell',
+        label: 'Nurse cell on this map',
+        placeholder: '59, 13',
+        visibleWhen: (config) => config.route.endBehaviour === 'healNpc',
+      },
+      {
+        type: 'number',
+        path: 'route.endHealMoney',
+        label: 'Only heal with at least',
+        placeholder: 'any amount',
+        min: 1, nullable: true,
+        hint: 'These healers charge; below this the script stops rather than looping.',
+        visibleWhen: (config) => config.route.endBehaviour === 'healNpc',
+      },
+      {
+        type: 'text',
+        path: 'route.endMessage',
+        label: 'Message to log',
+        placeholder: 'Farming condition no longer holds.',
+        visibleWhen: (config) => ['stop', 'logout'].includes(config.route.endBehaviour),
+      },
+      {
+        type: 'select',
         path: 'team.rotation.mode',
         label: 'Rotate the team',
         options: ROTATION_MODES.map((entry) => ({
@@ -523,6 +599,14 @@ export const PANELS = [
         addLabel: '+ Add an id',
         hint: 'The first one that can still fight takes the lead.',
         visibleWhen: (config) => config.team.rotation.mode === 'uid',
+      },
+      {
+        type: 'evGoals',
+        path: 'team.rotation.goals',
+        label: 'EV table',
+        hint: 'Worked top to bottom: the first Pokémon still short of its target leads. '
+          + 'In EV farm mode the encounter filter follows whichever stat that is.',
+        visibleWhen: (config) => config.team.rotation.mode === 'uidEv',
       },
       {
         type: 'text',
@@ -602,6 +686,14 @@ export const PANELS = [
         hint: 'Applied to encounters this mode does not want — a target is never abandoned.',
         options: asOptions(TRAPPED_POLICIES),
         visibleWhen: () => !mode.traits.engagesEveryEncounter,
+      },
+      {
+        type: 'number',
+        path: 'safety.relogDelay',
+        label: 'Seconds to stay out before reconnecting',
+        min: 1, max: 3600,
+        visibleWhen: (config) => !mode.traits.engagesEveryEncounter
+          && config.safety.onTrapped === 'relog',
       },
       {
         type: 'toggle',

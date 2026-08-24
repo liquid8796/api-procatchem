@@ -12,6 +12,7 @@
 
 import { luaNumber, luaString, section } from '../core/lua-writer.js';
 import { toStringList } from '../domain/config.js';
+import { planRules } from './rules.js';
 
 /**
  * @typedef {import('../core/lua-writer.js').LuaWriter} LuaWriter
@@ -22,10 +23,12 @@ import { toStringList } from '../domain/config.js';
  * @property {string} secondAbility   '' when slot 2 is not pinned
  * @property {number} pinnedSlots     how many leading slots are reserved
  * @property {number} rotationSlot    the slot rotation swaps into
- * @property {string} rotationMode    'off' | 'weakest' | 'ev' | 'uid'
+ * @property {string} rotationMode    'off' | 'weakest' | 'highest' | 'ev' | 'uid' | 'uidEv'
  * @property {string} evStat
  * @property {number} evTarget
  * @property {number[]} uids
+ * @property {Array<{ id: number, stat: string, target: number }>} evGoals
+ *           one EV goal per Pokémon, for the `uidEv` rotation
  * @property {string} leadItem        '' when no item is kept on the lead
  * @property {string[]} keepMoves
  * @property {boolean} useStrongest   emit `strongestSlot()` for battle steps
@@ -50,9 +53,28 @@ export function planTeam(config) {
     .map((entry) => Number.parseInt(entry, 10))
     .filter(Number.isInteger);
 
-  const rotationMode = rotation.mode === 'uid' && !uids.length ? 'off' : (rotation.mode ?? 'off');
+  const evGoals = (Array.isArray(rotation.goals) ? rotation.goals : [])
+    .map((goal) => ({
+      id: Number.parseInt(String(goal?.id ?? ''), 10),
+      stat: String(goal?.stat ?? 'ATK').toUpperCase(),
+      target: Number.parseInt(String(goal?.target ?? 252), 10) || 252,
+    }))
+    .filter((goal) => Number.isInteger(goal.id));
+
+  // A list rotation with an empty list would emit a loop over nothing, which
+  // silently never rotates; treating it as "off" says so in the lint instead.
+  const requested = rotation.mode ?? 'off';
+  const rotationMode = (requested === 'uid' && !uids.length) || (requested === 'uidEv' && !evGoals.length)
+    ? 'off'
+    : requested;
   const leadItem = String(team.leadItem ?? '').trim();
   const keepMoves = toStringList(team.keepMoves);
+
+  // A "send the strongest Pokémon" step calls `strongestSlot()`, so the helper
+  // has to exist whether or not the team panel's toggle is on. Asking the rules
+  // plan is cheaper than making the user find the toggle to fix a broken script.
+  const useStrongest = Boolean(team.useStrongest)
+    || (config.mode === 'rules' && planRules(config).usesStrongest);
 
   return {
     leadAbility,
@@ -63,12 +85,16 @@ export function planTeam(config) {
     evStat: String(rotation.stat ?? 'ATK').toUpperCase(),
     evTarget: Math.max(1, Number.parseInt(String(rotation.target ?? 252), 10) || 252),
     uids,
+    evGoals,
+    // The EV encounter filter is the only caller of the goal-stat helper, and
+    // it only exists in EV mode; emitting it elsewhere would leave dead code.
+    exposeEvGoalStat: config.mode === 'ev' && rotationMode === 'uidEv',
     leadItem,
     keepMoves,
-    useStrongest: Boolean(team.useStrongest),
+    useStrongest,
     needsAbilityLookup: Boolean(leadAbility || secondAbility),
     active: Boolean(
-      leadAbility || secondAbility || leadItem || rotationMode !== 'off' || team.useStrongest,
+      leadAbility || secondAbility || leadItem || rotationMode !== 'off' || useStrongest,
     ),
   };
 }
@@ -158,19 +184,8 @@ function emitRotation(writer, plan) {
 
   switch (plan.rotationMode) {
     case 'weakest':
-      writer.comment(`Bring the lowest-level usable Pokémon into slot ${target} so it earns the experience.`);
-      writer.fn('rotateTeam()', (w) => {
-        w.useHosts(['getTeamSize', 'isPokemonUsable', 'getPokemonLevel', 'swapPokemon']);
-        w.line('local pick, lowest = nil, nil');
-        w.block(`for slot = ${target}, getTeamSize() do`, (loop) => {
-          loop.block('if isPokemonUsable(slot) then', (inner) => {
-            inner.line('local level = getPokemonLevel(slot)');
-            inner.line('if lowest == nil or level < lowest then pick, lowest = slot, level end');
-          });
-        });
-        w.line(`if pick and pick ~= ${target} then return swapPokemon(${target}, pick) end`);
-        w.line('return false');
-      }, { local: true });
+    case 'highest':
+      emitLevelRotation(writer, plan, target);
       break;
 
     case 'ev':
@@ -188,6 +203,10 @@ function emitRotation(writer, plan) {
         });
         w.line('return false');
       }, { local: true });
+      break;
+
+    case 'uidEv':
+      emitEvGoalRotation(writer, plan, target);
       break;
 
     case 'uid':
@@ -208,6 +227,84 @@ function emitRotation(writer, plan) {
       }, { local: true });
   }
   writer.blank();
+}
+
+/**
+ * Rotate by level, in whichever direction the mode asks for.
+ *
+ * @param {LuaWriter} writer
+ * @param {TeamPlan} plan
+ * @param {number} target
+ */
+function emitLevelRotation(writer, plan, target) {
+  const wantsLowest = plan.rotationMode === 'weakest';
+  const comparison = wantsLowest ? '<' : '>';
+
+  writer.comment(wantsLowest
+    ? `Bring the lowest-level usable Pokémon into slot ${target} so it earns the experience.`
+    : `Bring the highest-level usable Pokémon into slot ${target} so battles end quickly.`);
+  writer.fn('rotateTeam()', (w) => {
+    w.useHosts(['getTeamSize', 'isPokemonUsable', 'getPokemonLevel', 'swapPokemon']);
+    w.line('local pick, best = nil, nil');
+    w.block(`for slot = ${target}, getTeamSize() do`, (loop) => {
+      loop.block('if isPokemonUsable(slot) then', (inner) => {
+        inner.line('local level = getPokemonLevel(slot)');
+        inner.line(`if best == nil or level ${comparison} best then pick, best = slot, level end`);
+      });
+    });
+    w.line(`if pick and pick ~= ${target} then return swapPokemon(${target}, pick) end`);
+    w.line('return false');
+  }, { local: true });
+}
+
+/**
+ * Rotate through a list where each Pokémon trains its own stat to its own
+ * target — the "EV table" of a multi-spread session.
+ *
+ * The leader is the first listed Pokémon that is still short of its goal, so
+ * the run works down the table and stops rotating when the table is complete.
+ *
+ * @param {LuaWriter} writer
+ * @param {TeamPlan} plan
+ * @param {number} target
+ */
+function emitEvGoalRotation(writer, plan, target) {
+  writer.comment('Each row is { unique id, stat, EV target }.');
+  writer.block('local EV_GOALS = {', (w) => {
+    for (const goal of plan.evGoals) {
+      w.line(`{ ${goal.id}, ${luaString(goal.stat)}, ${luaNumber(goal.target, 252)} },`);
+    }
+  }, '}');
+  writer.blank();
+
+  if (plan.exposeEvGoalStat) {
+    writer.comment('The stat the current leader is being trained for, for the EV encounter filter.');
+    writer.fn('currentEvGoalStat()', (w) => {
+      w.useHost('getPokemonUniqueId');
+      w.line(`local uid = getPokemonUniqueId(${target})`);
+      w.block('for _, goal in ipairs(EV_GOALS) do', (loop) => {
+        loop.line('if goal[1] == uid then return goal[2] end');
+      });
+      w.line('return nil');
+    }, { local: true });
+    writer.blank();
+  }
+
+  writer.comment('Lead with the first listed Pokémon that is still short of its target.');
+  writer.fn('rotateTeam()', (w) => {
+    w.useHosts(['getTeamSize', 'getPokemonUniqueId', 'isPokemonUsable', 'getPokemonEffortValue', 'swapPokemon']);
+    const matches = 'getPokemonUniqueId(slot) == goal[1] and isPokemonUsable(slot)'
+      + ' and getPokemonEffortValue(slot, goal[2]) < goal[3]';
+    w.block('for _, goal in ipairs(EV_GOALS) do', (loop) => {
+      loop.block('for slot = 1, getTeamSize() do', (inner) => {
+        inner.block(`if ${matches} then`, (hit) => {
+          hit.line(`if slot ~= ${target} then return swapPokemon(${target}, slot) end`);
+          hit.line('return false');
+        });
+      });
+    });
+    w.line('return false');
+  }, { local: true });
 }
 
 /**

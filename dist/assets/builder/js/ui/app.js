@@ -7,8 +7,10 @@
  */
 
 import { Store } from '../core/store.js';
+import { scanLuaCalls } from '../domain/api-call.js';
 import { createDefaultConfig, normaliseConfig } from '../domain/config.js';
 import { LinkGraph } from '../domain/link-graph.js';
+import { findTemplate } from '../domain/templates.js';
 import { generateScript, parseConfigHeader } from '../generators/index.js';
 import { runLint } from '../lint/rules.js';
 import {
@@ -27,6 +29,8 @@ const GRAPH_KEY = 'procatchem-script-builder-linkgraph-v1';
 const PREVIEW_KEY = 'procatchem-script-builder-preview-hidden-v1';
 const TOAST_MS = 2600;
 const SEVERITY_ICON = { error: '✕', warning: '!', info: 'i' };
+/** Enough of a Lua script to be worth scanning even without a .lua extension. */
+const LOOKS_LIKE_LUA = /\bfunction\s+on(?:Start|PathAction|BattleAction)\s*\(/;
 
 export class BuilderApp {
   /**
@@ -39,12 +43,21 @@ export class BuilderApp {
     this._linkGraph = loadGraph();
     /** @type {import('../generators/index.js').GenerationResult | null} */
     this._result = null;
+    /**
+     * Findings from a script the builder did not write. They belong to a file,
+     * not to the configuration, so they are cleared the moment a setting
+     * changes and the diagnostics go back to describing the current script.
+     *
+     * @type {Array<{ level: string, message: string }>}
+     */
+    this._importFindings = [];
     this._refresh = rafThrottle(() => this._render());
   }
 
   /** Render once and start listening for changes. */
   start() {
     this._store.subscribe(() => {
+      this._importFindings = [];
       saveDraft(this._store.state);
       this._refresh();
     });
@@ -166,15 +179,18 @@ export class BuilderApp {
 
   /** @param {import('../generators/index.js').GenerationResult} generation */
   _renderLint(generation) {
-    const findings = runLint({
-      config: this._store.state,
-      plan: generation.plan,
-      mode: generation.mode,
-      zones: generation.zones,
-      team: generation.team,
-      unknownCalls: generation.unknownCalls,
-      retiredCalls: generation.retiredCalls,
-    });
+    const findings = [
+      ...this._importFindings,
+      ...runLint({
+        config: this._store.state,
+        plan: generation.plan,
+        mode: generation.mode,
+        zones: generation.zones,
+        team: generation.team,
+        unknownCalls: generation.unknownCalls,
+        retiredCalls: generation.retiredCalls,
+      }),
+    ];
 
     if (!findings.length) {
       replaceChildren(this._mounts.lint, [
@@ -227,17 +243,26 @@ export class BuilderApp {
   /** Copy the generated script to the clipboard. */
   async copy() {
     if (!this._result) return;
-    const text = this._result.document;
+    await this.copyText(this._result.document, 'Script copied to the clipboard.');
+  }
+
+  /**
+   * Copy arbitrary text, falling back to the old selection trick where the
+   * async clipboard is unavailable (an insecure origin, or a file:// page).
+   *
+   * @param {string} text
+   * @param {string} okMessage
+   */
+  async copyText(text, okMessage) {
     try {
       await navigator.clipboard.writeText(text);
-      this.toast('Script copied to the clipboard.', 'ok');
+      this.toast(okMessage, 'ok');
+      return;
     } catch {
-      if (legacyCopy(text)) {
-        this.toast('Script copied to the clipboard.', 'ok');
-      } else {
-        this.toast('Could not reach the clipboard — select the code and copy it manually.', 'error');
-      }
+      // Fall through to the legacy path rather than reporting failure yet.
     }
+    if (legacyCopy(text)) this.toast(okMessage, 'ok');
+    else this.toast('Could not reach the clipboard — select the text and copy it manually.', 'error');
   }
 
   /** Download the generated script as a `.lua` file. */
@@ -266,12 +291,41 @@ export class BuilderApp {
       ? safeJsonParse(text)
       : parseConfigHeader(text);
 
-    if (!parsed) {
+    if (parsed) {
+      this._importFindings = [];
+      this._store.replace(normaliseConfig(parsed));
+      this.toast('Configuration loaded.', 'ok');
+      return;
+    }
+    // No embedded configuration. A .lua the builder did not write is still
+    // worth something: check every call in it against the API, which is the
+    // error the host would otherwise only report when the script is run.
+    if (!/\.lua$/i.test(file.name) && !LOOKS_LIKE_LUA.test(text)) {
       this.toast('That file has no builder configuration in it.', 'error');
       return;
     }
-    this._store.replace(normaliseConfig(parsed));
-    this.toast('Configuration loaded.', 'ok');
+    this._reportForeignScript(file.name, text);
+  }
+
+  /**
+   * Report what a scan of somebody else's script found.
+   *
+   * @param {string} fileName
+   * @param {string} source
+   */
+  _reportForeignScript(fileName, source) {
+    const problems = scanLuaCalls(source);
+    this._importFindings = problems.length
+      ? problems.map((problem) => ({
+        level: problem.level,
+        message: `${fileName}: ${problem.message}`,
+      }))
+      : [{ level: 'info', message: `${fileName}: every function it calls exists in the Lua API.` }];
+
+    this._refresh();
+    this.toast(problems.length
+      ? `${fileName}: ${problems.length} unresolved call${problems.length === 1 ? '' : 's'} — see Diagnostics.`
+      : `${fileName}: no unresolved calls.`, problems.length ? 'error' : 'ok');
   }
 
   /**
@@ -280,19 +334,82 @@ export class BuilderApp {
    * @param {File} file
    */
   async importLinkGraph(file) {
-    const text = await file.text();
-    const { graph, stats } = LinkGraph.parse(text);
+    this.replaceLinkGraph(await file.text());
+  }
 
+  /**
+   * Replace the graph with what `text` describes.
+   *
+   * @param {string} text
+   * @returns {boolean} whether anything usable was found
+   */
+  replaceLinkGraph(text) {
+    const { graph, stats } = LinkGraph.parse(text);
     if (graph.isEmpty) {
-      this.toast('No usable links in that file — is it maps-cache/link_graph.txt?', 'error');
-      return;
+      this.toast('No usable links in that text — is it maps-cache/link_graph.txt?', 'error');
+      return false;
     }
     this._linkGraph = graph;
-    saveGraph(text);
+    saveGraph(graph.toText());
     this._refresh();
 
     const skipped = stats.skipped ? `, ${stats.skipped} lines skipped` : '';
     this.toast(`Loaded ${stats.maps} maps and ${stats.cells} warp cells${skipped}.`, 'ok');
+    return true;
+  }
+
+  /**
+   * Add links to what is already loaded.
+   *
+   * Merging goes through the serialised form so the existing graph's own
+   * de-duplication decides what is genuinely new.
+   *
+   * @param {string} text
+   * @returns {boolean} whether anything was added
+   */
+  mergeLinkGraph(text) {
+    const before = this._linkGraph.cellCount;
+    const { graph } = LinkGraph.parse(`${this._linkGraph.toText()}\n${text}`);
+    const added = graph.cellCount - before;
+
+    if (added <= 0) {
+      this.toast(added === 0 ? 'Nothing new in that text.' : 'No usable links in that text.', 'error');
+      return false;
+    }
+    this._linkGraph = graph;
+    saveGraph(graph.toText());
+    this._refresh();
+    this.toast(`Added ${added} warp cell${added === 1 ? '' : 's'}.`, 'ok');
+    return true;
+  }
+
+  /** Save the loaded graph back out as a `link_graph.txt`. */
+  exportLinkGraph() {
+    const text = this._linkGraph.toText();
+    if (!text) {
+      this.toast('Nothing to export — no link graph is loaded.', 'error');
+      return;
+    }
+    downloadText('link_graph.txt', text);
+    this.toast('Saved link_graph.txt.', 'ok');
+  }
+
+  /** @returns {LinkGraph} the graph the preview is generated against */
+  get linkGraph() {
+    return this._linkGraph;
+  }
+
+  /** @returns {object} the configuration currently on screen (read-only) */
+  get config() {
+    return this._store.state;
+  }
+
+  /**
+   * @returns {import('../generators/index.js').GenerationResult | null}
+   *   the last successful generation, or null after a generator failure
+   */
+  get result() {
+    return this._result;
   }
 
   /** Forget the loaded link graph. */
@@ -338,6 +455,21 @@ export class BuilderApp {
   reset() {
     this._store.replace(createDefaultConfig());
     this.toast('Reset to the default configuration.', 'ok');
+  }
+
+  /**
+   * Replace the configuration with a starter template.
+   *
+   * @param {string} id
+   */
+  loadTemplate(id) {
+    const template = findTemplate(id);
+    if (!template) {
+      this.toast(`No template called "${id}".`, 'error');
+      return;
+    }
+    this._store.replace(normaliseConfig(template.build()));
+    this.toast(`Loaded the "${template.label}" template.`, 'ok');
   }
 
   /**

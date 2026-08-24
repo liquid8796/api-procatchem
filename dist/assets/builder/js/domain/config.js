@@ -6,7 +6,7 @@
  * adding a field here plus the generator code that consumes it.
  */
 
-import { emptyGroup, normaliseCondition } from './condition.js';
+import { emptyGroup, normaliseCondition, normaliseGender } from './condition.js';
 
 /** Farm actions that need no arguments. */
 export const FARM_ACTIONS = Object.freeze([
@@ -21,10 +21,52 @@ export const FARM_ACTIONS = Object.freeze([
 /** Farm actions that need a rod as well as a cell. */
 export const FISHING_ACTION = 'fish';
 
+/**
+ * Time-of-day periods, with the host predicate that selects each.
+ *
+ * `night` is tested before `noon` because the generated selector returns on the
+ * first match, and the two are the ones players most often set together.
+ */
+export const TIME_PERIODS = Object.freeze([
+  { id: 'morning', label: 'Morning', host: 'isMorning' },
+  { id: 'night', label: 'Night', host: 'isNight' },
+  { id: 'noon', label: 'Noon', host: 'isNoon' },
+]);
+
+/**
+ * The field names one period uses inside `route.timeOfDay`.
+ *
+ * @param {string} period
+ * @returns {{ map: string, action: string, args: string, rod: string }}
+ */
+export function periodFields(period) {
+  return {
+    map: `${period}Map`,
+    action: `${period}Action`,
+    args: `${period}Args`,
+    rod: `${period}Rod`,
+  };
+}
+
 /** How the script gets healed once the team runs dry. */
 export const HEAL_ACTIONS = Object.freeze([
   { id: 'usePokecenter', label: 'Use the Pokécenter', args: 'none' },
   { id: 'talkToNpcOnCell', label: 'Talk to a nurse on a cell', args: 'cell' },
+]);
+
+/**
+ * What happens when the keep-farming condition stops holding.
+ *
+ * The Pokécenter loop is the usual answer, but a run that cannot be resumed
+ * unattended — an EV session with a fixed target, a rented account — is better
+ * off stopping cleanly than walking in circles.
+ */
+export const END_BEHAVIOURS = Object.freeze([
+  { id: 'pcLoop', label: 'Walk back and heal', hint: 'The Pokécenter trip, then carry on' },
+  { id: 'healNpc', label: 'Heal here, at an NPC', hint: 'No travel — a nurse on this map' },
+  { id: 'stop', label: 'Stop the bot', hint: 'Logs a message and halts' },
+  { id: 'logout', label: 'Log out', hint: 'Leaves the game running no longer' },
+  { id: 'idle', label: 'Stand still', hint: 'Stays logged in and does nothing' },
 ]);
 
 /** Stat keys accepted by the host's effort-value functions. */
@@ -100,8 +142,10 @@ export const STOP_TERRAINS = Object.freeze([
 export const ROTATION_MODES = Object.freeze([
   { id: 'off', label: 'No rotation', hint: 'Keep the team as it is' },
   { id: 'weakest', label: 'Lowest level first', hint: 'Levels the whole team evenly' },
+  { id: 'highest', label: 'Highest level first', hint: 'Fastest knock-outs, for money runs' },
   { id: 'ev', label: 'Until an EV target', hint: 'Rotates a slot out once its EV is capped' },
   { id: 'uid', label: 'Through a unique-id list', hint: 'Exactly the Pokémon you name' },
+  { id: 'uidEv', label: 'A list, each with its own EV goal', hint: 'Trains several spreads in one run' },
 ]);
 
 /** What a battle step does when its guard passes. */
@@ -110,12 +154,42 @@ export const STEP_ACTIONS = Object.freeze([
   { id: 'useItem', label: 'Use an item', needs: ['item'] },
   { id: 'throwBalls', label: 'Throw balls in order', needs: ['balls'] },
   { id: 'sendPokemon', label: 'Switch to a slot', needs: ['slotNumber'] },
+  { id: 'sendStrongest', label: 'Send the strongest Pokémon', needs: [] },
   { id: 'attack', label: 'Attack', needs: [] },
   { id: 'weakAttack', label: 'Weak attack', needs: [] },
   { id: 'run', label: 'Run away', needs: [] },
   { id: 'sendUsablePokemon', label: 'Send a usable Pokémon', needs: [] },
   { id: 'sendAnyPokemon', label: 'Send any Pokémon', needs: [] },
+  { id: 'chain', label: 'Try each of these in turn', needs: ['chain'] },
+  { id: 'group', label: 'Group of steps under one condition', needs: [] },
+  { id: 'apiCall', label: 'Call an API function', needs: ['fn', 'args'] },
+  { id: 'stopBot', label: 'Stop the bot', needs: ['message'] },
+  { id: 'logout', label: 'Log out of the game', needs: ['message'] },
   { id: 'rawLua', label: 'Raw Lua statement', needs: ['expr'] },
+]);
+
+/** Step actions that hold other steps rather than acting themselves. */
+export const GROUP_ACTION = 'group';
+
+/**
+ * Links available inside a "try each of these in turn" chain.
+ *
+ * Every one returns a boolean, because the chain is emitted as
+ * `a() or b() or c()` — a void call such as `logout()` would evaluate to nil,
+ * silently fall through, and make the rest of the chain run as well. Those get
+ * their own step actions instead.
+ */
+export const CHAIN_ACTIONS = Object.freeze([
+  { id: 'attack', label: 'attack()', needs: 'none' },
+  { id: 'weakAttack', label: 'weakAttack()', needs: 'none' },
+  { id: 'run', label: 'run()', needs: 'none' },
+  { id: 'useAnyMove', label: 'useAnyMove()', needs: 'none' },
+  { id: 'sendUsablePokemon', label: 'sendUsablePokemon()', needs: 'none' },
+  { id: 'sendAnyPokemon', label: 'sendAnyPokemon()', needs: 'none' },
+  { id: 'useMove', label: 'useMove(move)', needs: 'text', placeholder: 'Spore' },
+  { id: 'useItem', label: 'useItem(item)', needs: 'text', placeholder: 'Ultra Ball' },
+  { id: 'sendPokemon', label: 'sendPokemon(slot)', needs: 'number', placeholder: '5' },
+  { id: 'rawLua', label: 'a Lua expression', needs: 'text', placeholder: 'myHelper()' },
 ]);
 
 /** What a rule does when every one of its steps declined to act. */
@@ -189,8 +263,25 @@ export function createStep(overrides = {}) {
     item: '',
     balls: [],
     expr: '',
+    // Only the matching action reads these, but keeping them present means
+    // switching action back and forth never loses what was typed.
+    chain: [],
+    steps: [],
+    fn: '',
+    args: '',
+    message: '',
     ...overrides,
   };
+}
+
+/**
+ * A blank link for a "try each of these in turn" chain.
+ *
+ * @param {Partial<object>} [overrides]
+ * @returns {{ action: string, value: string }}
+ */
+export function createChainLink(overrides = {}) {
+  return { action: 'attack', value: '', ...overrides };
 }
 
 /**
@@ -274,6 +365,11 @@ export function createDefaultConfig() {
       pokecenterMap: '',
       healAction: 'usePokecenter',
       healArgs: '',
+      // What happens when teamIsReady() stops holding.
+      endBehaviour: 'pcLoop',
+      endHealCell: '',
+      endHealMoney: null,
+      endMessage: '',
       surfFix: true,
       // Group 1 — several rectangles to work, and when to move between them.
       zones: [],
@@ -281,7 +377,15 @@ export function createDefaultConfig() {
       // Group 4 — extra legs between the Pokécenter and the hunting map, and a
       // different hunting map per time of day.
       stops: [],
-      timeOfDay: { enabled: false, morningMap: '', noonMap: '', nightMap: '' },
+      // A period may change the hunting map, the way encounters are found, or
+      // both. A blank action means "whatever the main setting says", so the
+      // common case — one spot, one style — stays a single field.
+      timeOfDay: {
+        enabled: false,
+        morningMap: '', morningAction: '', morningArgs: '', morningRod: '',
+        noonMap: '', noonAction: '', noonArgs: '', noonRod: '',
+        nightMap: '', nightAction: '', nightArgs: '', nightRod: '',
+      },
     },
     mounts: {
       land: [],
@@ -314,7 +418,7 @@ export function createDefaultConfig() {
       // A non-empty tree replaces the two simple conditions above.
       customGuard: emptyGroup('and'),
       // Group 2 — rotation and lead management.
-      rotation: { mode: 'off', stat: 'ATK', target: 252, slots: 2, ids: [] },
+      rotation: { mode: 'off', stat: 'ATK', target: 252, ids: [], goals: [] },
       leadAbility: '',
       secondAbility: '',
       useStrongest: false,
@@ -330,6 +434,7 @@ export function createDefaultConfig() {
       breaks: { enabled: false, everyMin: 10, everyMax: 30, lengthMin: 30, lengthMax: 180 },
       afkTimeout: null,
       onTrapped: 'run',
+      relogDelay: 30,
     },
     logging: {
       counters: true,
@@ -362,13 +467,21 @@ export function normaliseConfig(loaded) {
 
   merged.route.zones = toStringList(merged.route.zones);
   merged.route.stops = toStopList(merged.route.stops);
+  merged.route.endBehaviour = END_BEHAVIOURS.some((entry) => entry.id === merged.route.endBehaviour)
+    ? merged.route.endBehaviour
+    : 'pcLoop';
+  merged.route.endHealMoney = toNullableInt(merged.route.endHealMoney);
   merged.team.rotation.ids = toStringList(merged.team.rotation.ids);
+  merged.team.rotation.goals = toEvGoalList(merged.team.rotation.goals);
   merged.team.keepMoves = toStringList(merged.team.keepMoves);
   merged.team.customGuard = normaliseCondition(merged.team.customGuard) ?? emptyGroup('and');
   merged.rules = toRuleList(merged.rules, base.rules);
 
   merged.target.levelMin = toNullableInt(merged.target.levelMin);
   merged.target.levelMax = toNullableInt(merged.target.levelMax);
+  // Drafts saved before the "M" / "F" fix still hold "Male" / "Female", which
+  // the host never returns; migrate rather than silently filtering nothing.
+  merged.target.gender = normaliseGender(merged.target.gender);
   merged.team.healBelowUsable = toNullableInt(merged.team.healBelowUsable);
   merged.safety.afkTimeout = toNullableInt(merged.safety.afkTimeout);
 
@@ -489,26 +602,103 @@ function toRuleList(value, fallback) {
     }));
 }
 
+/** Guards against a hand-edited config nesting groups deeply enough to matter. */
+const MAX_STEP_DEPTH = 6;
+
 /**
  * @param {unknown} value
+ * @param {number} [depth]
  * @returns {object[]}
  */
-function toStepList(value) {
+function toStepList(value, depth = 0) {
   if (!Array.isArray(value)) return [];
   const actions = new Set(STEP_ACTIONS.map((entry) => entry.id));
   return value
     .filter(isPlainObject)
-    .map((step) => ({
-      id: typeof step.id === 'string' && step.id ? step.id : newEntityId('step'),
-      when: normaliseCondition(step.when) ?? emptyGroup('and'),
-      once: Boolean(step.once),
-      action: actions.has(step.action) ? step.action : 'attack',
-      move: String(step.move ?? '').trim(),
-      slot: step.slot === 'auto' ? 'auto' : (toNullableInt(step.slot) ?? 'auto'),
-      slotNumber: toNullableInt(step.slotNumber) ?? 1,
-      item: String(step.item ?? '').trim(),
-      balls: toStringList(step.balls),
-      expr: String(step.expr ?? '').trim(),
+    .map((step) => {
+      const action = actions.has(step.action) ? step.action : 'attack';
+      // A group at the depth limit has nowhere to put its children, so it is
+      // flattened to a plain action rather than silently dropping them.
+      const nested = action === GROUP_ACTION && depth < MAX_STEP_DEPTH
+        ? toStepList(step.steps, depth + 1)
+        : [];
+      return {
+        id: typeof step.id === 'string' && step.id ? step.id : newEntityId('step'),
+        when: normaliseCondition(step.when) ?? emptyGroup('and'),
+        once: Boolean(step.once),
+        action: action === GROUP_ACTION && !nested.length && depth >= MAX_STEP_DEPTH ? 'attack' : action,
+        move: String(step.move ?? '').trim(),
+        slot: step.slot === 'auto' ? 'auto' : (toNullableInt(step.slot) ?? 'auto'),
+        slotNumber: toNullableInt(step.slotNumber) ?? 1,
+        item: String(step.item ?? '').trim(),
+        balls: toStringList(step.balls),
+        expr: String(step.expr ?? '').trim(),
+        chain: toChainList(step.chain),
+        steps: nested,
+        fn: String(step.fn ?? '').trim(),
+        args: String(step.args ?? '').trim(),
+        message: String(step.message ?? '').trim(),
+      };
+    });
+}
+
+/** The default EV target when a goal row does not name one. */
+const FULL_EV = 252;
+
+/**
+ * @param {unknown} value
+ * @returns {Array<{ id: string, stat: string, target: number }>}
+ */
+function toEvGoalList(value) {
+  if (!Array.isArray(value)) return [];
+  const stats = new Set(EV_STATS.map((entry) => entry.id));
+  // A row whose id has not been filled in yet is kept, not dropped: it is the
+  // shape of the table the player is still working on. The generator ignores
+  // it and the lint asks for the missing id.
+  return value
+    .filter(isPlainObject)
+    .map((goal) => {
+      const stat = String(goal.stat ?? '').toUpperCase();
+      return {
+        id: String(goal.id ?? '').trim(),
+        stat: stats.has(stat) ? stat : 'ATK',
+        target: clampEv(goal.target),
+      };
+    });
+}
+
+/**
+ * @param {unknown} value
+ * @returns {number} a target between 1 and a maxed-out stat
+ */
+function clampEv(value) {
+  const parsed = toNullableInt(value);
+  if (parsed === null) return FULL_EV;
+  return Math.min(FULL_EV, Math.max(1, parsed));
+}
+
+/**
+ * A blank per-Pokémon EV goal for the "add" button.
+ *
+ * @param {Partial<object>} [overrides]
+ * @returns {{ id: string, stat: string, target: number }}
+ */
+export function createEvGoal(overrides = {}) {
+  return { id: '', stat: 'ATK', target: FULL_EV, ...overrides };
+}
+
+/**
+ * @param {unknown} value
+ * @returns {Array<{ action: string, value: string }>}
+ */
+function toChainList(value) {
+  if (!Array.isArray(value)) return [];
+  const actions = new Set(CHAIN_ACTIONS.map((entry) => entry.id));
+  return value
+    .filter(isPlainObject)
+    .map((link) => ({
+      action: actions.has(link.action) ? link.action : 'attack',
+      value: String(link.value ?? '').trim(),
     }));
 }
 

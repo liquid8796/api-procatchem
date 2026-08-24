@@ -24,10 +24,19 @@ export const evMode = {
   },
 
   emitHelpers(writer, context) {
-    const stat = String(context.config.ev.stat || 'SPD').trim().toUpperCase();
     writer.useHost('isOpponentEffortValue');
     writer.comment('True only when the opponent yields this stat and nothing else.');
     writer.fn('yieldsWantedEv()', (w) => {
+      // With a per-Pokémon EV table the wanted stat is whatever the current
+      // leader is training, so a single fixed stat would fight the rotation.
+      if (context.team.rotationMode === 'uidEv') {
+        w.comment('Follows the EV table: the leader decides which yield is wanted.');
+        w.line('local stat = currentEvGoalStat()');
+        w.line('if not stat then return false end');
+        w.line('return isOpponentEffortValue(stat)');
+        return;
+      }
+      const stat = String(context.config.ev.stat || 'SPD').trim().toUpperCase();
       w.line(`return isOpponentEffortValue(${luaString(stat)})`);
     }, { local: true });
     writer.blank();
