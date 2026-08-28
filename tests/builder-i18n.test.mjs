@@ -13,7 +13,9 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { t, setLanguage, languages } from '../assets/builder/js/core/i18n.js';
+import { ja } from '../assets/builder/js/i18n/ja.js';
 import { vi } from '../assets/builder/js/i18n/vi.js';
+import { zh } from '../assets/builder/js/i18n/zh.js';
 import {
   BALL_CONDITIONS, CHAIN_ACTIONS, END_BEHAVIOURS, EV_STATS, FARM_ACTIONS,
   HEAL_ACTIONS, HELPER_PRESETS, HELPER_TRIGGERS, OTHER_POLICIES, ROTATION_MODES,
@@ -26,7 +28,7 @@ import { modeRegistry } from '../assets/builder/js/generators/mode-registry.js';
 import { HANDBOOK_SECTIONS } from '../assets/builder/js/ui/handbook.js';
 
 const JS_ROOT = 'assets/builder/js';
-const PACKS = [vi];
+const PACKS = [ja, vi, zh];
 
 /** Every builder source file except the packs themselves. */
 function sourceFiles(dir = JS_ROOT) {

@@ -48,10 +48,18 @@ The API reference page has a language dropdown in the top-right corner. Each tra
 lives in `assets/i18n/<code>.js` and registers itself into `window.PROCATCHEM_I18N`; the switcher
 in `assets/i18n/doc-i18n.js` enumerates the registry and builds its options from it.
 
-**To add a language**: copy `vi.js`, set `code` and `label`, translate the `dict`/`cats`/`meta`
-entries, and add one `<script src="assets/i18n/<code>.js">` tag to `index.html` *before* the
-switcher. Nothing else changes — `tests/i18n.test.mjs` picks the new file up automatically and
-holds it to the same coverage rules.
+English, Tiếng Việt, 日本語 and 简体中文 ship today.
+
+**To add a language to the reference page**: copy `vi.js`, set `code` and `label`, translate the
+`dict`/`cats`/`meta` entries, and add one `<script src="assets/i18n/<code>.js">` tag to
+`index.html` *before* the switcher. Nothing else changes — `tests/i18n.test.mjs` picks the new
+file up automatically and holds it to the same coverage rules.
+
+**The Script Builder keeps its own packs**, because it translates at render time rather than by
+swapping markup: copy `assets/builder/js/i18n/vi.js`, translate the `dict`, and add the export to
+`PACKS` in `assets/builder/js/core/i18n.js`. Keys there are the English source strings with their
+`{token}` placeholders intact. Both pages share one stored choice, so a language is only finished
+once it exists on both sides.
 
 A pack maps the *normalized English innerHTML* of each translatable element to its translation.
 Applying one stashes the English original, so switching back restores the page byte-for-byte, and

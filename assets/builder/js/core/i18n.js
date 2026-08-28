@@ -19,13 +19,15 @@
  * (see vi.js for the shape) and add it to {@link PACKS}. Nothing else changes.
  */
 
+import { ja } from '../i18n/ja.js';
 import { vi } from '../i18n/vi.js';
+import { zh } from '../i18n/zh.js';
 
 /** English is the source text, not a pack. */
 const SOURCE = Object.freeze({ code: 'en', label: 'English' });
 
 /** Registered packs, in label order so the switcher reads predictably. */
-const PACKS = Object.freeze([vi].sort((a, b) => a.label.localeCompare(b.label)));
+const PACKS = Object.freeze([ja, vi, zh].sort((a, b) => a.label.localeCompare(b.label)));
 
 /** Same key as the API reference page, so one choice covers both pages. */
 const STORE_KEY = 'procatchem-doc-lang';

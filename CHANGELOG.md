@@ -27,6 +27,24 @@
   `t()`, every option list, condition kind, farm mode, template, and handbook section must have an
   entry — a feature added without its translation fails in CI, not on the live page.
 
+**Added — Japanese and Simplified Chinese:**
+
+- **Both pages now ship in four languages.** 日本語 and 简体中文 join English and Tiếng Việt on the
+  API reference *and* the Script Builder, from the same top-right dropdown. The choice is still
+  stored under one key, so picking a language on either page carries to the other.
+- 2,456 strings translated by hand: 419 per language on the reference page and 809 on the builder.
+  Nothing is machine-filled — the wording follows what players in each language actually say
+  (手持ち / ボックス / 色違い / 努力値 and 队伍 / 盒子 / 闪光 / 努力值), while move, item, map and
+  function names stay in English because that is what the game and the fields expect.
+- The generated Lua is untouched in every language, as are the handbook's worked examples: a
+  script written in Japanese reads identically to one written in English.
+- Adding these needed no runtime change. The reference page discovers packs from the registry, so
+  it took one `<script>` tag each; the builder takes one line in `PACKS`. The pixel-font fallback
+  already keys off "not English", so Japanese and Chinese headings picked it up for free — Press
+  Start 2P has no CJK either.
+- `tests/builder-i18n.test.mjs` previously checked only the Vietnamese pack; it now runs its
+  source-driven coverage over every registered pack, so none of the three can drift.
+
 **Fixed:**
 
 - **Vietnamese headings lost their diacritics** where the pixel font was still in play — "Giới
