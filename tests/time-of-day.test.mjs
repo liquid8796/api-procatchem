@@ -82,7 +82,10 @@ test('a period may change only the map, keeping the hunting style', () => {
 
   assert.equal(result.plan.timeOfDay, true);
   assert.match(result.lua, /local TO_FARM_MORNING = \{/);
-  assert.match(result.lua, /if isMorning\(\) then return "Route 21", TO_FARM_MORNING, TO_HEAL_MORNING end/);
+  assert.match(
+    result.lua,
+    /if isMorning\(\) then return "Route 21", "Pokecenter Viridian", TO_FARM_MORNING, TO_HEAL end/,
+  );
   assert.deepEqual(result.unknownCalls, []);
 });
 

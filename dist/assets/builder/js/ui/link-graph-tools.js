@@ -30,6 +30,7 @@ export class LinkGraphTools {
     /** @type {HTMLTextAreaElement | null} */
     this._scriptBox = null;
     this._routeResult = h('div.tool-result', {});
+    this._planResult = h('div.tool-result', {});
     this._convertResult = h('div.tool-result', {});
   }
 
@@ -111,6 +112,14 @@ export class LinkGraphTools {
         ]),
         this._mapDatalist(),
         this._routeResult,
+        h('div.tool-actions', {}, [
+          h('button.btn.btn-lcd.btn-quiet', {
+            type: 'button',
+            text: t('Check the route I have configured'),
+            onClick: () => this._checkConfiguredRoute(),
+          }),
+        ]),
+        this._planResult,
       ]),
 
       this._renderSection(t('Repair an older script'), [
@@ -130,6 +139,7 @@ export class LinkGraphTools {
     ]);
 
     replaceChildren(this._routeResult, []);
+    replaceChildren(this._planResult, []);
     replaceChildren(this._convertResult, []);
   }
 
@@ -159,6 +169,64 @@ export class LinkGraphTools {
       return;
     }
     if (apply(text)) this._render();
+  }
+
+  /**
+   * Walk every leg the current configuration plans, and cross-check them.
+   *
+   * The clock can move a run onto another period from wherever it happens to be
+   * standing, so it is not enough for each leg to work on its own: every spot
+   * has to be able to reach every Pokécenter. That is the failure that only
+   * shows up hours later, when the bot stops moving at dusk.
+   */
+  _checkConfiguredRoute() {
+    const plan = this._app.result?.plan;
+    if (!plan || plan.kind !== 'route') {
+      this._showResult(this._planResult, 'error', t('Switch the route style to "Pokécenter loop" first.'));
+      return;
+    }
+    if (plan.problems.length) {
+      replaceChildren(this._planResult, plan.problems.map(
+        (problem) => h('p.tool-error', { text: problem }),
+      ));
+      return;
+    }
+
+    const graph = this._app.linkGraph;
+    /** @type {Node[]} */
+    const rows = [];
+    for (const leg of plan.legs) {
+      const label = leg.guard
+        ? t('{when}: {farm} ← {centre}', {
+          when: leg.guard.replace('()', ''), farm: leg.farmMap, centre: leg.pokecenterMap,
+        })
+        : t('All day: {farm} ← {centre}', { farm: leg.farmMap, centre: leg.pokecenterMap });
+      rows.push(h('p.tool-ok', {
+        text: leg.toFarm.length
+          ? t('{label} — {count} hops out', { label, count: leg.toFarm.length })
+          : t('{label} — same map, no walking', { label }),
+      }));
+    }
+
+    for (const from of plan.legs) {
+      for (const to of plan.legs) {
+        if (from.pokecenterMap === to.pokecenterMap) continue;
+        // What settles it is the table the script will read, not what the graph
+        // could work out given a search the script has no way to run.
+        if (to.toHeal.some((hop) => hop.from === from.farmMap)) continue;
+        rows.push(h('p.tool-error', {
+          text: t('No way from "{from}" to "{to}" — the run is stuck when the clock switches.', {
+            from: from.farmMap, to: to.pokecenterMap,
+          }),
+        }));
+      }
+    }
+
+    // Only worth saying when there was actually something to cross-check.
+    if (plan.legs.length > 1 && rows.length === plan.legs.length) {
+      rows.push(h('p.tool-ok', { text: t('Every spot can reach every Pokécenter.') }));
+    }
+    replaceChildren(this._planResult, rows);
   }
 
   _findRoute() {

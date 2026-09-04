@@ -3,12 +3,14 @@
  */
 
 import { onLanguageChange, t } from './core/i18n.js';
+import { onCatalogChange } from './domain/api-registry.js';
 import { TEMPLATES } from './domain/templates.js';
 import { ApiBrowser } from './ui/api-browser.js';
 import { BuilderApp } from './ui/app.js';
 import { h, must, prefersReducedMotion, replaceChildren } from './ui/dom.js';
 import { installLanguageSwitcher } from './ui/language.js';
 import { LinkGraphTools } from './ui/link-graph-tools.js';
+import { QuickBuild } from './ui/quick-build.js';
 import { Handbook } from './ui/handbook.js';
 import { applyStaticText } from './ui/static-text.js';
 import { StructureDiagram } from './ui/structure-diagram.js';
@@ -44,6 +46,9 @@ on('#btn-reset', () => {
 });
 on('#btn-clear-graph', () => app.clearLinkGraph());
 
+const quickBuild = new QuickBuild(/** @type {HTMLDialogElement} */ (must('#quick-dialog')), app);
+on('#btn-quick', () => quickBuild.open());
+
 const graphTools = new LinkGraphTools(
   /** @type {HTMLDialogElement} */ (must('#graph-dialog')),
   app,
@@ -52,6 +57,13 @@ on('#btn-graph-tools', () => graphTools.open());
 
 const apiBrowser = new ApiBrowser(/** @type {HTMLDialogElement} */ (must('#api-dialog')), app);
 on('#btn-api-browser', () => apiBrowser.open());
+
+// Swapping the API in force changes what verifies and what the completion lists
+// offer, so everything that reads it is redrawn.
+onCatalogChange(() => {
+  apiBrowser.redraw();
+  app.refresh();
+});
 
 const structure = new StructureDiagram(
   /** @type {HTMLDialogElement} */ (must('#structure-dialog')),

@@ -1,6 +1,6 @@
 /**
  * Canonical list of globals the PROCatchem Lua host registers.
- * Generated from Bot/Scripting/LuaScript.cs — keep in sync with openapi.yaml.
+ * Generated from Bot/Scripting/LuaScript.cs ï¿½ keep in sync with openapi.yaml.
  * Used to verify that every identifier the generator emits actually exists.
  */
 
@@ -61,7 +61,28 @@ export const RETIRED_FUNCTIONS = Object.freeze({ moveToMap: 'moveToCell' });
 
 const HOST_SET = new Set([...HOST_FUNCTIONS, ...HOST_CALLBACKS]);
 
+/**
+ * Names a spec loaded at runtime documents that this list does not know about.
+ *
+ * The checked-in list mirrors a build of the host, so it goes stale the moment
+ * the host gains a function. Loading a newer `openapi.yaml` widens the list for
+ * the session rather than reporting every new function as a typo.
+ *
+ * @type {Set<string>}
+ */
+const EXTRA_HOST_FUNCTIONS = new Set();
+
+/**
+ * @param {readonly string[]} names
+ */
+export function registerExtraHostFunctions(names) {
+  EXTRA_HOST_FUNCTIONS.clear();
+  for (const name of names ?? []) {
+    if (typeof name === 'string' && name && !HOST_SET.has(name)) EXTRA_HOST_FUNCTIONS.add(name);
+  }
+}
+
 /** @param {string} identifier @returns {boolean} */
 export function isHostFunction(identifier) {
-  return HOST_SET.has(identifier);
+  return HOST_SET.has(identifier) || EXTRA_HOST_FUNCTIONS.has(identifier);
 }

@@ -180,3 +180,39 @@ test('a period that repeats the main action adds no branch', () => {
   })).join('\n');
   assert.doesNotMatch(text, /Night\?/);
 });
+
+test('the diagram shows the walk home from anywhere when recovery is on', () => {
+  const found = labels(describe((config) => {
+    config.route.kind = 'route';
+    config.route.farmMap = 'Viridian Forest';
+    config.route.pokecenterMap = 'Pokecenter Viridian';
+  }));
+
+  assert.ok(
+    found.some((label) => label.startsWith('Off the route entirely?')),
+    `expected the recovery step, got:\n${found.join('\n')}`,
+  );
+  assert.ok(
+    found.some((label) => /know the way home/.test(label)),
+    'the return step should count maps that know the way, not hops on one path',
+  );
+});
+
+test('the diagram drops the map check when the run hunts anywhere', () => {
+  const found = labels(describe((config) => {
+    config.route.kind = 'route';
+    config.route.farmMap = 'Viridian Forest';
+    config.route.pokecenterMap = 'Pokecenter Viridian';
+    config.route.huntAnywhere = true;
+  }));
+
+  assert.ok(found.some((label) => label.startsWith('Hunt wherever the bot is standing')));
+  assert.ok(
+    !found.some((label) => label.startsWith('On "Viridian Forest"?')),
+    'the map check is exactly what hunting anywhere removes',
+  );
+  assert.ok(
+    found.some((label) => label.startsWith('Walk back to the Pokécenter')),
+    'the walk back to heal is untouched',
+  );
+});

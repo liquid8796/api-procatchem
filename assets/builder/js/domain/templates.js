@@ -137,6 +137,169 @@ export const TEMPLATES = Object.freeze([
   },
 
   {
+    id: 'ghostSoak',
+    label: 'Ghost hunt, Soak first',
+    description: 'Soak turns the Ghost into a Water type so False Swipe stops missing, then the usual ladder.',
+    build: () => from({
+      meta: {
+        name: 'Ghost Hunt',
+        description: 'Soaks Ghosts so False Swipe connects.',
+        fileName: 'ghost_hunt.lua',
+      },
+      mode: 'hunt',
+      route: { kind: 'here', farmAction: 'moveToNormalGround' },
+      target: { shiny: true, notCaught: true, requireAll: false },
+      battle: {
+        // Normal moves do nothing to a Ghost, so the type has to go first.
+        helperMoves: [{ move: 'Soak', trigger: 'oppType', type: 'Ghost', names: [], slot: 1, ability: '' }],
+        weaken: { mode: 'falseSwipe', move: 'False Swipe', percent: 30 },
+        status: { moves: ['Hypnosis'], requireBeforeBall: true },
+      },
+      team: { healBelowUsable: 2, keepMoves: ['False Swipe', 'Soak'] },
+    }),
+  },
+
+  {
+    id: 'skillSwap',
+    label: 'Skill Swap the ability away',
+    description: 'Hands the wild Pokémon a harmless ability before anything else, for the ones that punish a long fight.',
+    build: () => from({
+      meta: {
+        name: 'Skill Swap Hunt',
+        description: 'Neutralises the opponent ability before catching.',
+        fileName: 'skill_swap_hunt.lua',
+      },
+      mode: 'hunt',
+      route: { kind: 'here', farmAction: 'moveToGrass' },
+      target: { shiny: true, requireAll: false },
+      battle: {
+        helperMoves: [
+          { move: 'Skill Swap', trigger: 'oppName', type: '', names: ['Gengar'], slot: 1, ability: '' },
+        ],
+        weaken: { mode: 'falseSwipe', move: 'False Swipe', percent: 30 },
+        status: { moves: ['Spore'], requireBeforeBall: false },
+      },
+      team: { leadAbility: 'Magic Guard', keepMoves: ['Skill Swap', 'False Swipe'] },
+    }),
+  },
+
+  {
+    id: 'thiefFarm',
+    label: 'Item farm with Thief',
+    description: 'Steals the held item from everything that walks past, then leaves without a fight.',
+    build: () => from({
+      meta: {
+        name: 'Item Farm',
+        description: 'Thieves held items and runs.',
+        fileName: 'item_farm.lua',
+      },
+      // Stealing and leaving is a two-step battle, not a catch, so this is
+      // written as a rule: take the item on the first turn, run on the second.
+      mode: 'rules',
+      route: { kind: 'here', farmAction: 'moveToGrass' },
+      battle: { onOther: 'run' },
+      team: { secondAbility: 'Frisk', keepMoves: ['Thief'] },
+      rules: [
+        {
+          id: 'template-rule-thief',
+          label: 'Take the item',
+          // No conditions: every wild Pokémon is worth one turn of Thief.
+          match: { op: 'or', negate: false, items: [] },
+          fallback: 'run',
+          steps: [
+            createStep({ action: 'useMove', move: 'Thief', slot: 'auto', once: true }),
+            createStep({ action: 'run' }),
+          ],
+        },
+      ],
+    }),
+  },
+
+  {
+    id: 'abilityHunt',
+    label: 'Ability hunt with Trace',
+    description: 'A Trace lead reads the wild ability out loud; the filter listens for the ones you want.',
+    build: () => from({
+      meta: {
+        name: 'Ability Hunt',
+        description: 'Hunts a specific ability using a Trace lead.',
+        fileName: 'ability_hunt.lua',
+      },
+      mode: 'hunt',
+      route: { kind: 'here', farmAction: 'moveToGrass' },
+      target: {
+        shiny: false, notCaught: false, names: [], requireAll: false,
+        abilities: ['Contrary', 'Mold Breaker'],
+      },
+      battle: {
+        weaken: { mode: 'falseSwipe', move: 'False Swipe', percent: 30 },
+        status: { moves: ['Spore'], requireBeforeBall: true },
+      },
+      // Synchronize keeps working from slot 1 even when it faints, so slot 2 is
+      // where the Pokémon that actually fights — and reads the ability — goes.
+      team: { leadAbility: 'Synchronize', secondAbility: 'Trace', healBelowUsable: 2 },
+    }),
+  },
+
+  {
+    id: 'doubleSleep',
+    label: 'Two layers of sleep',
+    description: 'Spore first, Hypnosis when the Spore carrier runs dry, and back to the Pokécenter when both do.',
+    build: () => from({
+      meta: {
+        name: 'Double Sleep Hunt',
+        description: 'Keeps a backup sleep move for when the first runs out of PP.',
+        fileName: 'double_sleep_hunt.lua',
+      },
+      mode: 'hunt',
+      route: { kind: 'here', farmAction: 'moveToGrass' },
+      target: { shiny: true, notCaught: true, requireAll: false },
+      battle: {
+        weaken: { mode: 'falseSwipe', move: 'False Swipe', percent: 30 },
+        // Tried in order; whichever team member still has PP is switched in.
+        status: { moves: ['Spore', 'Hypnosis'], requireBeforeBall: true },
+      },
+      team: {
+        healBelowUsable: 2,
+        healOnPPOut: true,
+        keepMoves: ['Spore', 'Hypnosis', 'False Swipe'],
+      },
+    }),
+  },
+
+  {
+    id: 'evChain',
+    label: 'EV chain across the team',
+    description: 'Three Pokémon, three spreads, worked in order — the run stops itself when the last one is done.',
+    build: () => from({
+      meta: {
+        name: 'EV Chain',
+        description: 'Trains a queue of Pokémon, each to its own spread.',
+        fileName: 'ev_chain.lua',
+      },
+      mode: 'ev',
+      route: { kind: 'here', farmAction: 'moveToGrass', endBehaviour: 'stop', endMessage: 'Every spread is done.' },
+      team: {
+        healBelowUsable: 2,
+        rotation: {
+          mode: 'uidEv',
+          stat: 'ATK',
+          target: 252,
+          ids: [],
+          // Names rather than unique ids, so the table reads as a plan rather
+          // than as a row of numbers. The same Pokémon twice means two stats.
+          goals: [
+            createEvGoal({ id: 'Larvitar', stat: 'ATK', target: 252 }),
+            createEvGoal({ id: 'Larvitar', stat: 'HP', target: 252 }),
+            createEvGoal({ id: 'Ralts', stat: 'SPATK', target: 252 }),
+            createEvGoal({ id: 'Magikarp', stat: 'SPD', target: 252 }),
+          ],
+        },
+      },
+    }),
+  },
+
+  {
     id: 'rulesExample',
     label: 'Custom rules, worked example',
     description: 'A three-rule battle plan: catch a target, escape a trap, fight anything else.',

@@ -15,8 +15,8 @@ import { findTemplate } from '../domain/templates.js';
 import { generateScript, parseConfigHeader } from '../generators/index.js';
 import { runLint } from '../lint/rules.js';
 import {
-  consumeFocusRequest,
   h,
+  keepingFocus,
   must,
   prefersReducedMotion,
   rafThrottle,
@@ -110,41 +110,20 @@ export class BuilderApp {
   /** @param {import('../generators/mode-registry.js').FarmMode} mode */
   _renderPanels(mode) {
     const config = this._store.state;
-    const active = document.activeElement;
-    // An explicit request wins: a control that reordered its own rows knows
-    // better than "whatever happened to be focused" which element to return to.
-    const requested = consumeFocusRequest();
-    const focusPath = requested ?? (active instanceof HTMLElement ? active.id || null : null);
-    const selectionStart = !requested && active instanceof HTMLInputElement
-      ? active.selectionStart
-      : null;
-
-    replaceChildren(this._mounts.panels, PANELS
-      .filter((panel) => !panel.visibleWhen || panel.visibleWhen(config, mode))
-      .map((panel, index) => h('section.panel', { id: `panel-${panel.id}`, style: `--i:${index}` }, [
-        h('header.panel-head', {}, [
-          h('span.panel-icon', { 'aria-hidden': 'true', text: panel.icon }),
-          h('div.panel-titles', {}, [
-            h('h2.panel-title', { text: t(panel.title) }),
-            h('p.panel-sub', { text: t(panel.subtitle) }),
+    keepingFocus(() => {
+      replaceChildren(this._mounts.panels, PANELS
+        .filter((panel) => !panel.visibleWhen || panel.visibleWhen(config, mode))
+        .map((panel, index) => h('section.panel', { id: `panel-${panel.id}`, style: `--i:${index}` }, [
+          h('header.panel-head', {}, [
+            h('span.panel-icon', { 'aria-hidden': 'true', text: panel.icon }),
+            h('div.panel-titles', {}, [
+              h('h2.panel-title', { text: t(panel.title) }),
+              h('p.panel-sub', { text: t(panel.subtitle) }),
+            ]),
           ]),
-        ]),
-        h('div.panel-body', {}, panel.build(this._store, mode)),
-      ])));
-
-    // Re-rendering the panel list drops focus; put the caret back so typing
-    // into a text field is not interrupted on every keystroke.
-    if (!focusPath) return;
-    const restored = document.getElementById(focusPath);
-    if (!(restored instanceof HTMLElement)) return;
-    restored.focus({ preventScroll: true });
-    if (restored instanceof HTMLInputElement && selectionStart !== null && restored.type !== 'number') {
-      try {
-        restored.setSelectionRange(selectionStart, selectionStart);
-      } catch {
-        // Some input types forbid selection ranges; focus alone is enough.
-      }
-    }
+          h('div.panel-body', {}, panel.build(this._store, mode)),
+        ])));
+    });
   }
 
   /** @param {import('../generators/index.js').GenerationResult} generation */
@@ -197,6 +176,7 @@ export class BuilderApp {
         mode: generation.mode,
         zones: generation.zones,
         team: generation.team,
+        linkGraph: this._linkGraph,
         unknownCalls: generation.unknownCalls,
         retiredCalls: generation.retiredCalls,
       }),
@@ -470,6 +450,16 @@ export class BuilderApp {
   /** Apply the remembered preview visibility. */
   restorePreviewVisibility() {
     this.togglePreview(isPreviewHidden());
+  }
+
+  /**
+   * Swap in a configuration built elsewhere — the quick form, for instance.
+   *
+   * @param {object} config already normalised
+   */
+  replaceConfig(config) {
+    this._importFindings = [];
+    this._store.replace(config);
   }
 
   /** Reset every setting back to the defaults. */

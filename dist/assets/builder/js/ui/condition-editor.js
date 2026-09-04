@@ -9,10 +9,10 @@
  */
 
 import { t } from '../core/i18n.js';
-import { apiEntry } from '../domain/api-catalog.js';
+import { apiEntry } from '../domain/api-registry.js';
 import { COMPARATORS, CONDITION_KINDS, createLeaf, emptyGroup, isGroup } from '../domain/condition.js';
 import { EV_STATS, splitList } from '../domain/config.js';
-import { apiDatalistId } from './api-datalist.js';
+import { apiDatalistId } from './datalists.js';
 import { h } from './dom.js';
 
 /** Condition kinds grouped by their `group` field, for the add menu. */

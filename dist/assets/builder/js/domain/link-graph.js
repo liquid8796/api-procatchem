@@ -216,6 +216,59 @@ export class LinkGraph {
   }
 
   /**
+   * One hop from every map that can reach `destination`, pointing at it.
+   *
+   * `findRoute` answers "how do I get from here to there"; this answers "from
+   * anywhere, which way is there" — the table a bot consults when it wakes up
+   * somewhere the route never planned for. It is a breadth-first search over
+   * the edges reversed, so each map gets the first step of its own shortest
+   * path, and the whole thing is one table lookup at runtime.
+   *
+   * The destination itself is not included: standing on it, there is nothing
+   * left to walk.
+   *
+   * @param {string} destination
+   * @returns {Hop[]} nearest maps first, ties broken by name
+   */
+  hopsToward(destination) {
+    const goalKey = normalise(destination);
+    if (!goalKey || !this._displayNames.has(goalKey)) return [];
+
+    /** @type {Map<string, string>} normalised map -> the map to step into next */
+    const nextHop = new Map();
+    let frontier = [goalKey];
+    /** @type {Hop[]} */
+    const hops = [];
+
+    while (frontier.length) {
+      /** @type {string[]} */
+      const nextFrontier = [];
+      for (const target of frontier) {
+        // Everything with an edge *into* target can take one step toward it.
+        for (const [from, targets] of this._edges) {
+          if (from === goalKey || nextHop.has(from) || !targets.has(target)) continue;
+          // A pair recorded without a cell cannot be walked. Skipping it here
+          // rather than when writing the rows matters: accepted, it would
+          // become the way home for everything behind it, and every one of
+          // those maps would walk into a dead end.
+          if (!targets.get(target)?.length) continue;
+          nextHop.set(from, target);
+          nextFrontier.push(from);
+        }
+      }
+      nextFrontier.sort((a, b) => a.localeCompare(b));
+      for (const from of nextFrontier) {
+        const fromName = this._displayNames.get(from) ?? from;
+        const toName = this._displayNames.get(nextHop.get(from)) ?? nextHop.get(from);
+        const cell = this.hopCell(fromName, toName);
+        if (cell) hops.push({ from: fromName, to: toName, x: cell.x, y: cell.y });
+      }
+      frontier = nextFrontier;
+    }
+    return hops;
+  }
+
+  /**
    * Turn a map path into the concrete hops a script walks.
    *
    * @param {string[]} path display names, as returned by {@link findRoute}

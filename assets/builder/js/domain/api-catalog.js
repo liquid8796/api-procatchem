@@ -10,7 +10,7 @@
  */
 
 /** Spec version this catalog was generated from. */
-export const API_VERSION = "1.0.108";
+export const API_VERSION = "1.0.109";
 
 /** Tag names, in the order the reference presents them. */
 export const API_GROUPS = Object.freeze(["Script metadata","Lifecycle callbacks","Core utilities","Workflow","Map and NPC","General state","Team Pokémon","Items and shop","PC storage","Battle state","Path actions","Dialog functions","Battle actions","Bot configuration","Move learning actions","Custom options","File APIs","Chat","Notifications","Legacy special actions"]);

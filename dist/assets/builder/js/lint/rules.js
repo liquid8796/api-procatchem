@@ -15,6 +15,7 @@ import {
   CHAIN_ACTIONS,
   EV_STATS,
   FISHING_ACTION,
+  TARGET_ACTIONS,
   TIME_PERIODS,
   periodFields,
   toStringList,
@@ -37,6 +38,8 @@ import { parseZone } from '../domain/zone.js';
  * @property {import('../generators/team.js').TeamPlan} team
  * @property {string[]} unknownCalls
  * @property {string[]} retiredCalls
+ * @property {import('../domain/link-graph.js').LinkGraph} [linkGraph] the graph the
+ *           route was planned against, for checks the plan itself cannot answer
  *
  * @typedef {(input: LintInput) => Finding[] | Finding | null} LintRule
  */
@@ -158,6 +161,32 @@ lintRegistry.register('requires-all-conflict', ({ config, mode }) => {
   );
 });
 
+lintRegistry.register('range-joined-with-or', ({ config, mode }) => {
+  if (!mode.traits.usesTargetFilters || config.target.requireAll) return null;
+  const bounded = config.target.levelMin !== null
+    || config.target.levelMax !== null
+    || Boolean(config.target.gender);
+  if (!bounded) return null;
+  // Every filter joins the same OR, so a range reads as another way to match
+  // rather than as a limit on what already did — which is almost never what
+  // someone typing "level 40 to 50" has in mind.
+  const others = config.target.shiny
+    || config.target.notCaught
+    || config.target.form
+    || config.target.names.length > 0
+    || Boolean(config.target.evYield)
+    || toStringList(config.target.abilities).length > 0
+    || toStringList(config.target.heldItems).length > 0;
+  if (!others) return null;
+  return finding(
+    'warning',
+    t('A level range or a gender is joined to the other filters with OR, so it matches on '
+      + 'its own rather than narrowing them. Switch to "All must match" if you meant it as '
+      + 'a limit.'),
+    'target',
+  );
+});
+
 lintRegistry.register('never-heals', ({ config }) => {
   if (config.team.healBelowUsable !== null && config.team.healBelowUsable > 0) return null;
   if (config.team.healOnPPOut) return null;
@@ -275,7 +304,9 @@ lintRegistry.register('zone-rotation-range', ({ config, zones }) => {
 });
 
 lintRegistry.register('zone-flat-note', ({ zones }) => {
-  if (!zones.zones.some((zone) => zone.flat)) return null;
+  // Every list in play, not just the all-day one: a period's line zone is
+  // patrolled the same way and the note is just as useful.
+  if (!zones.sets.some((set) => set.zones.some((zone) => zone.flat))) return null;
   return finding(
     'info',
     t('A zone is a single row or column, so the bot patrols its two ends with moveToCell '
@@ -307,10 +338,13 @@ lintRegistry.register('time-of-day-empty', ({ config }) => {
   const timeOfDay = config.route.timeOfDay ?? {};
   if (!timeOfDay.enabled) return null;
 
+  // Every field a period can redefine, not just the first two it could when
+  // periods were only about where and how to hunt.
   const changes = TIME_PERIODS.some((period) => {
     const fields = periodFields(period.id);
-    return String(timeOfDay[fields.map] ?? '').trim()
-      || String(timeOfDay[fields.action] ?? '').trim();
+    return [fields.map, fields.action, fields.pokecenter, fields.healAction, fields.endBehaviour]
+      .some((field) => String(timeOfDay[field] ?? '').trim())
+      || toStringList(timeOfDay[fields.zones]).length > 0;
   });
   if (changes) return null;
   return finding(
@@ -381,10 +415,17 @@ lintRegistry.register('rotation-conflicts-with-pins', ({ team }) => {
 lintRegistry.register('rotation-uid-list', ({ config }) => {
   if (config.team.rotation.mode !== 'uid') return null;
   const ids = config.team.rotation.ids;
-  if (!ids.length) return finding('error', t('Unique-id rotation needs at least one id.'), 'team');
-  const bad = ids.find((id) => !/^[0-9]+$/.test(String(id).trim()));
-  if (!bad) return null;
-  return finding('error', t('Unique ids must be whole numbers: "{id}" is not.', { id: bad }), 'team');
+  if (!ids.length) return finding('error', t('The rotation list is empty.'), 'team');
+  // Names are matched literally against getPokemonName, so a nickname or a
+  // typo simply never matches and the row does nothing.
+  const named = ids.filter((id) => !/^[0-9]+$/.test(String(id).trim()));
+  if (!named.length) return null;
+  return finding(
+    'info',
+    t('Matched by name: {names}. Spelling has to be the species name the game shows, '
+      + 'not a nickname — a unique id never has that problem.', { names: named.join(', ') }),
+    'team',
+  );
 });
 
 lintRegistry.register('rotation-ev-table', ({ config, mode }) => {
@@ -394,29 +435,28 @@ lintRegistry.register('rotation-ev-table', ({ config, mode }) => {
 
   /** @type {Finding[]} */
   const out = [];
-  const seen = new Set();
+  /** @type {Map<string, Set<string>>} Pokémon -> the stats already claimed for it */
+  const seen = new Map();
   goals.forEach((goal, index) => {
     const id = String(goal.id ?? '').trim();
     if (!id) {
-      out.push(finding('error', t('EV table row {n} still needs a unique id.', { n: index + 1 }), 'team'));
+      out.push(finding('error', t('EV table row {n} still needs a Pokémon.', { n: index + 1 }), 'team'));
       return;
     }
-    if (!/^[0-9]+$/.test(id)) {
-      out.push(finding('error', t('EV table row {n}: "{id}" is not a whole unique id.', {
-        n: index + 1, id,
-      }), 'team'));
-      return;
-    }
-    if (seen.has(id)) {
+    const stats = seen.get(id) ?? new Set();
+    // Two rows for the same Pokémon are how a two-stat spread is written; two
+    // rows for the same *stat* is the mistake, because only one is ever reached.
+    if (stats.has(goal.stat)) {
       out.push(finding(
         'warning',
-        t('EV table row {n}: {id} is listed twice; only the first row is ever reached.', {
-          n: index + 1, id,
+        t('EV table row {n}: {id} already has a {stat} target above, so this row is never reached.', {
+          n: index + 1, id, stat: goal.stat,
         }),
         'team',
       ));
     }
-    seen.add(id);
+    stats.add(goal.stat);
+    seen.set(id, stats);
   });
 
   if (mode.id !== 'ev') {
@@ -452,8 +492,8 @@ lintRegistry.register('end-behaviour-arguments', ({ config, plan }) => {
   if (behaviour !== 'pcLoop' && plan.travels) {
     out.push(finding(
       'info',
-      t('The route still walks to the hunting map, but it never walks back — the return '
-        + 'trip is only used for breaks now.'),
+      t('The route still walks to the hunting map, but it never walks back to heal — the '
+        + 'return table is only read for breaks and for finding the way home.'),
       'team',
     ));
   }
@@ -475,6 +515,120 @@ lintRegistry.register('relog-delay', ({ config, mode }) => {
   const delay = Number.parseInt(String(config.safety.relogDelay ?? ''), 10);
   if (Number.isFinite(delay) && delay > 0) return null;
   return finding('warning', t('The relog delay must be above zero; 30 seconds is used instead.'), 'safety');
+});
+
+lintRegistry.register('other-policy-guard', ({ config, mode }) => {
+  if (mode.traits.engagesEveryEncounter || config.battle.onOther !== 'conditional') return null;
+  if (!isEmptyCondition(config.battle.otherGuard)) return null;
+  return finding(
+    'warning',
+    t('"Fight only if…" has no condition yet, so every unwanted encounter is fled.'),
+    'battle',
+  );
+});
+
+lintRegistry.register('target-needs-a-reader', ({ config, mode }) => {
+  if (!mode.traits.usesTargetFilters) return null;
+  /** @type {Finding[]} */
+  const out = [];
+  const abilities = toStringList(config.target.abilities);
+  const items = toStringList(config.target.heldItems);
+  const leads = [config.team.leadAbility, config.team.secondAbility]
+    .map((ability) => String(ability ?? '').trim().toLowerCase());
+
+  if (abilities.length && !leads.includes('trace')) {
+    out.push(finding(
+      'warning',
+      t('Filtering on an ability needs a Trace lead: the game only names the wild ability '
+        + 'when Trace copies it. Pin Trace to slot 1 or 2 under Team and healing.'),
+      'target',
+    ));
+  }
+  if (items.length && !leads.includes('frisk')) {
+    out.push(finding(
+      'warning',
+      t('Filtering on a held item needs a Frisk lead: that is what makes the game say '
+        + 'what the wild Pokémon is carrying.'),
+      'target',
+    ));
+  }
+  return out;
+});
+
+lintRegistry.register('target-action-side-effects', ({ config, mode }) => {
+  if (!mode.traits.usesTargetFilters || config.target.onMatch === 'catch') return null;
+  const action = TARGET_ACTIONS.find((entry) => entry.id === config.target.onMatch);
+  return finding(
+    'info',
+    t('Matches are set to "{action}", so the ball ladder and the weakening moves below '
+      + 'are not part of this script.', { action: t(action?.label ?? config.target.onMatch) }),
+    'battle',
+  );
+});
+
+lintRegistry.register('hunt-anywhere-note', ({ config, plan }) => {
+  if (!config.route.huntAnywhere || plan.kind !== 'route') return null;
+  return finding(
+    'info',
+    t('Hunting anywhere: the hunting map is only used to plan the walk back, not to '
+      + 'decide where to farm.'),
+    'route',
+  );
+});
+
+lintRegistry.register('recovery-off', ({ config, plan }) => {
+  if (plan.kind !== 'route' || config.route.recoverWhenLost) return null;
+  return finding(
+    'info',
+    t('Recovery is off: started away from the route, the bot will stand still until you '
+      + 'walk it back yourself.'),
+    'route',
+  );
+});
+
+lintRegistry.register('period-pokecenter-reachable', ({ plan }) => {
+  if (plan.legs.length < 2) return null;
+  /** @type {Finding[]} */
+  const out = [];
+  // The clock can move the run onto another period from wherever it happens to
+  // be standing, so every spot has to be able to reach every Pokécenter — and
+  // what settles that is the table the script will actually read, not what the
+  // graph could work out given a search the script cannot run.
+  for (const from of plan.legs) {
+    for (const to of plan.legs) {
+      if (from.pokecenterMap === to.pokecenterMap) continue;
+      if (to.toHeal.some((hop) => hop.from === from.farmMap)) continue;
+      out.push(finding(
+        'error',
+        t('Nothing takes the bot from "{from}" to "{to}", so the run is stuck once the '
+          + 'clock moves it onto that route. Walk it once to record it.', {
+          from: from.farmMap, to: to.pokecenterMap,
+        }),
+        'stops',
+      ));
+    }
+  }
+  return out;
+});
+
+lintRegistry.register('period-zones-without-map', ({ config }) => {
+  const timeOfDay = config.route.timeOfDay ?? {};
+  if (!timeOfDay.enabled) return null;
+  /** @type {Finding[]} */
+  const out = [];
+  for (const period of TIME_PERIODS) {
+    const fields = periodFields(period.id);
+    if (!toStringList(timeOfDay[fields.zones]).length) continue;
+    const map = String(timeOfDay[fields.map] ?? '').trim();
+    if (map && map !== config.route.farmMap) continue;
+    out.push(finding(
+      'info',
+      t('{period} has its own zones but hunts on the main map — check the coordinates '
+        + 'belong there.', { period: t(period.label) }),
+      'stops',
+    ));
+  }
+  return out;
 });
 
 lintRegistry.register('custom-guard-overrides', ({ config }) => {

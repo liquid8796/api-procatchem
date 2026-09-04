@@ -73,9 +73,10 @@ test('several zones rotate on a fixed timer', () => {
     c.route.zoneRotation = { mode: 'fixed', min: 15, max: 40 };
   }));
   assertSound(result, 'zones-fixed');
-  assert.match(result.lua, /local function rerollZone\(\)/);
+  assert.match(result.lua, /local function rerollZone\(set\)/);
   assert.match(result.lua, /return 900\b/, '15 minutes should become 900 seconds');
-  assert.match(result.lua, /if pick == zoneIdx then pick = \(pick % #ZONES\) \+ 1 end/);
+  assert.match(result.lua, /if pick == zoneIdx then pick = \(pick % #set\) \+ 1 end/);
+  assert.match(result.lua, /local set = ZONES/, 'one list needs no runtime choice');
 });
 
 test('random rotation never emits a reversed math.random range', () => {
@@ -386,9 +387,16 @@ test('time-of-day hunting builds one hop table per period', () => {
   assertSound(result, 'time-of-day');
   assert.match(result.lua, /local TO_FARM_MORNING = \{/);
   assert.match(result.lua, /local function activeLeg\(\)/);
-  assert.match(result.lua, /if isMorning\(\) then return "Route 21", TO_FARM_MORNING, TO_HEAL_MORNING end/);
-  assert.match(result.lua, /local farmMap, toFarm, toHeal = activeLeg\(\)/);
-  assert.match(result.lua, /return walk\(toFarm\)/);
+  assert.match(
+    result.lua,
+    /if isMorning\(\) then return "Route 21", "Pokecenter Viridian", TO_FARM_MORNING, TO_HEAL end/,
+  );
+  assert.match(result.lua, /local farmMap, pcMap, toFarm, toHeal = activeLeg\(\)/);
+  assert.match(result.lua, /if walk\(toFarm\) then return true end/);
+  assert.ok(
+    !/local TO_HEAL_MORNING = \{/.test(result.lua),
+    'both periods heal at the same Pokécenter, so one return table is enough',
+  );
 });
 
 test('a time-of-day map missing from the link graph is reported', () => {

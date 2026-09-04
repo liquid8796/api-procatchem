@@ -148,6 +148,40 @@ export function consumeFocusRequest() {
   return id;
 }
 
+/**
+ * Run `render`, then put the caret back where it was.
+ *
+ * The builder rebuilds its controls from state on every change, which drops
+ * focus — and a text field that loses focus on every keystroke is unusable. An
+ * explicit {@link requestFocus} wins over "whatever happened to be focused",
+ * because a control that reordered its own rows knows better which element the
+ * caret should end up in.
+ *
+ * @param {() => void} render
+ */
+export function keepingFocus(render) {
+  const active = document.activeElement;
+  const requested = consumeFocusRequest();
+  const focusId = requested ?? (active instanceof HTMLElement ? active.id || null : null);
+  const selectionStart = !requested && active instanceof HTMLInputElement
+    ? active.selectionStart
+    : null;
+
+  render();
+
+  if (!focusId) return;
+  const restored = document.getElementById(focusId);
+  if (!(restored instanceof HTMLElement)) return;
+  restored.focus({ preventScroll: true });
+  if (restored instanceof HTMLInputElement && selectionStart !== null && restored.type !== 'number') {
+    try {
+      restored.setSelectionRange(selectionStart, selectionStart);
+    } catch {
+      // Some input types forbid selection ranges; focus alone is enough.
+    }
+  }
+}
+
 /** @returns {boolean} true when the visitor asked for reduced motion */
 export function prefersReducedMotion() {
   return typeof matchMedia === 'function'

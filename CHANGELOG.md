@@ -1,5 +1,126 @@
 # Changelog
 
+## PROCatchem content — v1.0.116
+
+*September 4, 2026*
+
+**Added — the route can change with the clock:**
+
+- **Each time of day may bring its own route.** A period was already allowed its own hunting map
+  and its own way of finding encounters; it can now also name its own Pokécenter, its own way of
+  healing there, its own farm zones and its own answer to "what now" when farming stops. Anything a
+  period leaves blank falls back to the main setting, so a run that hunts one spot all day still
+  costs one field per period. The four route-shaped overrides need "Pokécenter loop"; a period's
+  hunting style still works when you are staying put.
+- A period's patches belong to the map that period hunts, so they are not borrowed for the rest of
+  the day: outside those hours the run hunts the plain way instead of walking to coordinates
+  measured somewhere else.
+- The way home is planned from **every** spot the clock can put the bot on, not just from the leg
+  it belongs to — otherwise a route that changes Pokécenter at dusk walks the bot to a table with
+  no row for where it is standing and it waits there until morning.
+- `activeLeg()` grew accordingly: it returns the period's spot, its Pokécenter and its hop tables,
+  and the whole out-and-back loop is written once against those values. Two periods anchored at the
+  same Pokécenter share one return table rather than emitting the same rows twice — and, since it
+  is the Pokécenter the detour is about, moving between two periods that heal in the same place is
+  not treated as a change at all.
+- **When the clock moves a run onto another route**, it can go by way of the new Pokécenter first
+  so the next stretch starts on a full team, or head straight out. The setting only appears once a
+  period names a Pokécenter of its own, and the first frame of a session is never treated as a
+  change — starting the bot does not send it on a detour.
+- **A bot that wakes up off-route now walks home.** The return table is no longer the path it
+  walked out on; it is one hop for every map the link graph can reach the Pokécenter from, so
+  logging in halfway across the region ends in a walk back rather than a bot standing still. It is
+  a toggle, for anyone who would rather keep the script short: turned off, the table shrinks back to
+  the direct path and the diagnostics say what that costs.
+- **"Hunt wherever the bot is standing"** drops the map check for runs that work whatever ground
+  they are on. The walk back to heal is untouched.
+- The link-graph workbench gained **"Check the route I have configured"**: it walks every leg the
+  current form plans and then cross-checks them, because it is not enough for each period to work
+  on its own — every spot has to be able to reach every Pokécenter, or the run stops at dusk. The
+  same check runs as a lint rule.
+
+**Added — the mount comes back on:**
+
+- `disMount()` clears the configured mount as well as dismounting, so a map ticked "dismount here"
+  used to leave automatic mounting off for the rest of the run. The script now remembers that it
+  dropped the mount and puts it back the moment it steps off that map, guarded by a `NO_MOUNT`
+  table and by `isSurfing()` — Surf is not a ground mount and is never interrupted.
+
+**Added — filters that read the battle log:**
+
+- **Alternate forms, announced abilities, announced held items and effort-value yield** joined the
+  target filters. Ability and held item have no getter at all: a Trace lead copies the wild ability
+  and the game says so, a Frisk lead names the item, and the filter latches what it hears. The
+  diagnostics ask for the lead that makes each one work.
+- **What a match is for** is now a choice: catch it, knock it out, run from it, or stop the bot and
+  hand it over. Anything but catching skips the ball ladder and the weakening moves entirely rather
+  than emitting code nothing calls.
+- **"Fight only if…"** gives the wild Pokémon you did not ask for their own condition tree — clear
+  the low levels and flee the rest, or only fight what feeds the right effort value.
+- Two new conditions: **the health percentage of one of your own slots**, and **the PP one slot has
+  left for a move** alongside the existing whole-team check.
+
+**Added — the team list speaks names:**
+
+- **Rotation lists take Pokémon names as well as unique ids.** An id survives boxing and
+  reordering, which is why it is still the better answer, but most people know their team by name
+  and have never looked an id up. Digits are read as an id, anything else as a name.
+- **The EV table takes a Pokémon more than once**, one row per stat, and moves on to the second row
+  by itself once the first is met. In EV farm mode the encounter filter follows whichever stat the
+  leader still owes rather than the first row that matches it.
+- **A finished EV table ends the run.** It is a job with a last page, so once every row is met the
+  farm guard goes false and the "when that condition fails" behaviour takes over — stop with a
+  message, log out, go and heal. Previously the run stayed up fleeing every encounter, silently,
+  because there was no longer a stat it wanted.
+
+**Added — two ways in, and a way to stay current:**
+
+- **Quick build.** The questions that decide almost every run, assembled into a complete
+  configuration and dropped into the main form — where all sixty settings are still there to
+  adjust. It writes a configuration, not a script: there is nothing it can express that the form
+  cannot.
+- **A newer `openapi.yaml` can be loaded into the running page.** The checked-in catalog is a
+  snapshot of one build of the host, so when the API moves on the builder would otherwise report
+  every new function as a typo. Load the spec from the API browser and the function list, the
+  completion boxes, the guided call step and the verification pass all follow it, with a summary of
+  what changed; one button puts the built-in catalog back.
+- Six starter templates for the shapes that were awkward to reach from a blank form: **Ghost hunt
+  with Soak**, **Skill Swap**, **item farm with Thief**, **ability hunt with Trace**, **two layers
+  of sleep**, and **an EV chain across the team**.
+- Held-item fields suggest the items worth handing to a lead — Everstone, Exp. Share, Macho Brace,
+  Soothe Bell, Amulet Coin, Lucky Egg, Leftovers — without restricting what you can type.
+
+**Added — the handbook explains the machinery:**
+
+- Three new sections: **what the builder assembles for you** (the six shapes that are
+  several API calls plus a variable rather than one function), **lists, separators and quotes**,
+  and **two things that read backwards** — the `return` inside an `if` that is not a fallback, and
+  the OR-by-default filter that is not "shiny Ralts".
+- **"Every choice, and what it writes"** is generated by running each condition through the same
+  emitter the script uses, so the table cannot drift from the generator the way a hand-written list
+  would.
+- The diagnostics gained a warning that has been earned for a while: a **level range or a gender is
+  OR-ed with the other filters**, so "shiny, level 40 to 50" catches everything from level 40 up.
+  Turning on "All must match" is what makes a range a limit, and the handbook now says so instead
+  of claiming those two were special.
+
+**Translated:**
+
+- All of the above in Tiếng Việt, 日本語 and 简体中文 — 396 new strings, 132 per language, hand
+  written in the same voice as the rest of each pack. `tests/builder-i18n.test.mjs` now scans the
+  quick form's field descriptors too, which is the hole the first pass went through.
+
+**Changed:**
+
+- **API version bumped to 1.0.109**, in `openapi.yaml` and everything derived from it: the
+  generated catalog, `package.json`, and the badge on both pages. The Lua surface itself is
+  unchanged — no function was added, removed or resignatured — so a script written against 1.0.108
+  runs untouched.
+- `yaml-lite` and the spec reader moved from `scripts/` into `assets/builder/js/`, so the page and
+  the build script read `openapi.yaml` through one implementation instead of two.
+- The generated script's return table is bigger by default: one row per map you have walked, rather
+  than one per map on the route. Turn "find the way back from anywhere" off to get the old shape.
+
 ## PROCatchem content — v1.0.115
 
 *August 24, 2026*

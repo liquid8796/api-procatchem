@@ -189,7 +189,9 @@ function describeGuard(config) {
 function farmBranch(plan, zones, config) {
   /** @type {Node[]} */
   const nodes = [];
-  if (plan.travels) {
+  if (config.route.huntAnywhere) {
+    nodes.push(step(t('Hunt wherever the bot is standing'), t('no map check')));
+  } else if (plan.walks) {
     nodes.push(check(
       plan.timeOfDay
         ? t('On the hunting map for this time of day?')
@@ -200,14 +202,24 @@ function farmBranch(plan, zones, config) {
       t('Otherwise walk one hop towards it'),
       t('{count} hop(s)', { count: plan.toFarm.length }),
     ));
+    if (plan.recovers) {
+      nodes.push(step(
+        t('Off the route entirely? Walk back towards the Pokécenter'),
+        t('{count} map(s) know the way home', { count: plan.toHeal.length }),
+      ));
+    }
   }
   if (config.mounts.dismountOnFarm) nodes.push(step(t('Dismount')));
   if (zones.active) {
+    // Every list in play, so a run whose only patches belong to one period is
+    // not described as having none.
+    const patches = zones.sets.reduce((total, set) => total + set.zones.length, 0);
     nodes.push(step(
       t('Work the current farm zone'),
-      t('{count} zone(s), rotating {mode}', { count: zones.zones.length, mode: zones.mode }),
+      t('{count} zone(s), rotating {mode}', { count: patches, mode: zones.mode }),
     ));
-    return nodes;
+    if (zones.hasDefault) return nodes;
+    nodes.push(step(t('Outside those periods, hunt the plain way')));
   }
 
   // Periods that hunt their own way are branches of their own; each carries its
@@ -253,8 +265,13 @@ function endBranch(config, plan) {
       return step(t('Stand still'));
     case 'pcLoop':
     default:
-      return plan.travels
-        ? step(t('Walk back to the Pokécenter and heal'), t('{count} hop(s)', { count: plan.toHeal.length }))
+      return plan.walks
+        ? step(
+          t('Walk back to the Pokécenter and heal'),
+          plan.recovers
+            ? t('{count} map(s) know the way home', { count: plan.toHeal.length })
+            : t('{count} hop(s)', { count: plan.toHeal.length }),
+        )
         : step(t('Heal'), config.route.healAction);
   }
 }

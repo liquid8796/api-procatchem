@@ -23,7 +23,7 @@ import {
   emitCondition,
   isEmptyCondition,
 } from '../domain/condition.js';
-import { hasTrappedEscape, helperMovesOf } from './battle.js';
+import { hasTrappedEscape, helperMovesOf, targetFlags } from './battle.js';
 
 /** Host sentinel for "the opponent has no status condition". */
 const NO_STATUS_LITERAL = '""';
@@ -46,6 +46,8 @@ const NO_STATUS_LITERAL = '""';
  * @property {boolean} teamUpkeep     out-of-battle team management is emitted
  * @property {boolean} zoneReroll     a zone rotation is triggered by an event
  * @property {boolean} stopUpkeep     at least one stop emits a branch
+ * @property {boolean} remount        the ground mount is dropped somewhere and has to come back
+ * @property {boolean} legSwitch      a period change routes through the new Pokécenter first
  * @property {Set<string>} conditionHelpers helper ids the condition trees need
  * @property {Map<string, import('../domain/condition.js').ConditionFlag>} conditionFlags
  *           battle-log flags the condition trees latch
@@ -67,24 +69,30 @@ const NO_STATUS_LITERAL = '""';
  * @returns {Needs}
  */
 export function analyseNeeds(config, plan, modeTraits) {
+  // A filter set to knock its matches out, flee them, or stop on them never
+  // reaches the catch sequence, so nothing it would have needed is emitted.
+  const catches = !modeTraits.usesTargetFilters || config.target.onMatch === 'catch';
+  const weakens = modeTraits.usesWeaken && catches;
+  const throwsBalls = modeTraits.usesBalls && catches;
+
   const moves = [];
-  if (modeTraits.usesWeaken && config.battle.weaken.mode === 'falseSwipe') {
+  if (weakens && config.battle.weaken.mode === 'falseSwipe') {
     const move = String(config.battle.weaken.move ?? '').trim();
     if (move) moves.push(move);
   }
-  if (modeTraits.usesBalls) {
+  if (throwsBalls) {
     for (const move of config.battle.status.moves) {
       if (move && !moves.includes(move)) moves.push(move);
     }
   }
 
   // Preparation moves only exist where the catch sequence is emitted.
-  const helpers = modeTraits.usesBalls ? helperMovesOf(config) : [];
+  const helpers = throwsBalls ? helperMovesOf(config) : [];
   const helperConditionHelpers = helpers.some((helper) => helper.trigger === 'oppType')
     ? ['opponentHasType']
     : [];
 
-  const statusGated = modeTraits.usesBalls
+  const statusGated = throwsBalls
     && (config.battle.status.requireBeforeBall
       || config.battle.balls.some((ball) => ball.condition === 'status'));
 
@@ -96,6 +104,20 @@ export function analyseNeeds(config, plan, modeTraits) {
   // PP helper is only needed when the guard is not in use.
   const usesCustomGuard = !isEmptyCondition(config.team.customGuard);
 
+  // "Fight these, flee the rest" carries a condition tree of its own, and it
+  // runs in the same place as the rest of the battle logic.
+  const gatesOthers = !modeTraits.engagesEveryEncounter
+    && config.battle.onOther === 'conditional';
+  const otherGuard = gatesOthers ? config.battle.otherGuard : null;
+
+  const flags = collectConditionFlags(config.team.customGuard);
+  if (otherGuard) {
+    for (const [name, flag] of collectConditionFlags(otherGuard)) flags.set(name, flag);
+  }
+  if (modeTraits.usesTargetFilters) {
+    for (const flag of targetFlags(config)) flags.set(flag.name, flag);
+  }
+
   return {
     moves,
     usesCustomGuard,
@@ -103,11 +125,14 @@ export function analyseNeeds(config, plan, modeTraits) {
     teamUpkeep: false,
     zoneReroll: false,
     stopUpkeep: false,
+    remount: false,
+    legSwitch: false,
     conditionHelpers: new Set([
       ...collectConditionHelpers(config.team.customGuard),
+      ...(otherGuard ? collectConditionHelpers(otherGuard) : []),
       ...helperConditionHelpers,
     ]),
-    conditionFlags: collectConditionFlags(config.team.customGuard),
+    conditionFlags: flags,
     // Preparation moves go through `useOnce`, which needs both the slot helpers
     // and the once-per-battle table.
     slotHelpers: moves.length > 0 || helpers.length > 0,
@@ -118,7 +143,7 @@ export function analyseNeeds(config, plan, modeTraits) {
     counters: Boolean(config.logging.counters),
     trapFlag: moves.length > 0 || helpers.length > 0 || escapes,
     relogEscape: escapes && config.safety.onTrapped === 'relog',
-    statusHelper: statusGated || (modeTraits.usesBalls && config.battle.status.moves.length > 0),
+    statusHelper: statusGated || (throwsBalls && config.battle.status.moves.length > 0),
   };
 }
 
@@ -168,6 +193,15 @@ export function emitState(writer, { needs }) {
   }
   if (needs.onceFlags) {
     writer.line('local F           = {} -- once-per-battle step flags, cleared between battles');
+  }
+  if (needs.remount) {
+    writer.comment('disMount() clears the configured mount as well as dismounting, so');
+    writer.comment('automatic mounting has to be switched back on once we leave the map.');
+    writer.line('local mountDropped = false');
+  }
+  if (needs.legSwitch) {
+    writer.line('local currentCentre = nil -- the Pokécenter the last frame belonged to');
+    writer.line('local needCentre  = false -- head for the new route\'s Pokécenter first');
   }
   emitFlagState(writer, needs);
   writer.blank();
@@ -298,7 +332,8 @@ export function emitConditionHelpers(writer, { needs }) {
  * @param {LuaWriter} writer
  * @param {EmitContext} context
  */
-export function emitMountHelper(writer, { config, needs }) {
+export function emitMountHelper(writer, context) {
+  const { config, needs } = context;
   if (!needs.mounts) return;
   const land = toStringList(config.mounts.land);
   const water = toStringList(config.mounts.water);
@@ -319,6 +354,68 @@ export function emitMountHelper(writer, { config, needs }) {
     w.line('return list[1]');
   }, { local: true });
   writer.blank();
+
+  if (!needs.remount) return;
+  const maps = dismountMaps(context);
+  writer.comment('Maps the mount is deliberately off on.');
+  writer.block('local NO_MOUNT = {', (w) => {
+    for (const map of maps) w.line(`${luaKey(map)} = true,`);
+  }, '}');
+  writer.blank();
+}
+
+/**
+ * Every map where the script drops the ground mount on purpose.
+ *
+ * @param {EmitContext} context
+ * @returns {string[]} sorted, without duplicates
+ */
+export function dismountMaps(context) {
+  const { config, plan } = context;
+  const maps = new Set();
+  for (const stop of plan.stops) {
+    if (stop.mount === 'off') maps.add(stop.map);
+  }
+  // Only a run that knows where it hunts can name the maps it hunts on.
+  if (config.mounts.dismountOnFarm && !huntsAnywhere(config, plan)) {
+    for (const leg of plan.legs) maps.add(leg.farmMap);
+    if (!plan.legs.length && plan.farmMap) maps.add(plan.farmMap);
+  }
+  return [...maps].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * True when the run hunts on whatever map it is standing on.
+ *
+ * "Stay put" is that by definition, and the route-mode toggle says the same
+ * thing out loud. Either way there is no map where hunting is known *not* to
+ * happen, which is what the mount re-arm would need.
+ *
+ * @param {EmitContext} context
+ * @returns {boolean}
+ */
+function huntsAnywhere(config, plan) {
+  return plan.kind === 'here' || Boolean(config.route.huntAnywhere);
+}
+
+/**
+ * Whether the script has to put the ground mount back on after dropping it.
+ *
+ * Only worth emitting when there is a mount to restore and somewhere it is
+ * deliberately taken off; without a named map the re-arm would fire on the very
+ * map that just dismounted and fight itself.
+ *
+ * @param {EmitContext} context
+ * @returns {boolean}
+ */
+export function needsRemount(context) {
+  const { config, plan, needs } = context;
+  if (!needs.mounts || !toStringList(config.mounts.land).length) return false;
+  // Dismounting to hunt, on a run that hunts wherever it stands, means the
+  // mount is unwanted everywhere. Restoring it would only get it taken off
+  // again on the next frame, forever.
+  if (config.mounts.dismountOnFarm && huntsAnywhere(config, plan)) return false;
+  return dismountMaps(context).length > 0;
 }
 
 /**
@@ -328,19 +425,31 @@ export function emitMountHelper(writer, { config, needs }) {
  * @param {EmitContext} context
  */
 export function emitRoute(writer, context) {
-  const { plan } = context;
-  if (!plan.travels && !plan.stops.length) return;
+  const { config, plan } = context;
+  if (!plan.walks && !plan.stops.length) return;
   section(writer, 'Route');
 
-  if (plan.travels) {
+  if (plan.walks) {
     writer.comment('Each entry is the cell to step on to leave that map toward the next one.');
+    if (plan.recovers) {
+      writer.comment('The return tables list every map the graph can get home from, so a bot');
+      writer.comment('that starts somewhere unplanned walks back instead of standing still.');
+    }
+    const returnTables = returnTableNames(plan);
+    /** @type {Set<string>} tables already written out */
+    const written = new Set();
     for (const leg of plan.legs) {
-      emitHopTable(writer, hopTableName(leg, 'TO_FARM'), leg.toFarm);
-      emitHopTable(writer, hopTableName(leg, 'TO_HEAL'), leg.toHeal);
+      // A run that hunts wherever it stands never consults the way out.
+      if (walksOut(config)) emitHopTable(writer, hopTableName(leg, 'TO_FARM'), leg.toFarm);
+      const name = returnTables.get(leg.id);
+      // Legs anchored at the same Pokécenter come home the same way.
+      if (written.has(name)) continue;
+      written.add(name);
+      emitHopTable(writer, name, leg.toHeal);
     }
     writer.blank();
 
-    if (plan.legs.length > 1) emitLegSelector(writer, plan);
+    if (plan.legs.length > 1) emitLegSelector(writer, plan, config);
 
     writer.comment('Take one hop along `hops`. Returns false when the bot is somewhere the');
     writer.comment('route does not cover, which the host reports as "no action executed".');
@@ -357,6 +466,19 @@ export function emitRoute(writer, context) {
 }
 
 /**
+ * Whether the script consults the way out to the hunting map.
+ *
+ * A run that hunts wherever it stands never asks, so emitting the outbound
+ * tables would leave the generated file carrying data nothing reads.
+ *
+ * @param {object} config
+ * @returns {boolean}
+ */
+function walksOut(config) {
+  return !config.route.huntAnywhere;
+}
+
+/**
  * Suffix a hop table with its leg, so the time-of-day legs do not collide.
  *
  * @param {import('./route-plan.js').RouteLeg} leg
@@ -368,16 +490,53 @@ function hopTableName(leg, base) {
 }
 
 /**
- * `activeLeg()` — which hunting map and hop tables apply right now.
+ * Which return table each leg reads.
+ *
+ * A recovery table describes the way home from anywhere, so two periods
+ * anchored at the same Pokécenter share one instead of emitting the same rows
+ * twice. Plain return paths start at the leg's own spot and cannot be shared.
+ * The default leg claims its name first, so a route that heals in one place
+ * reads as plain `TO_HEAL` rather than borrowing a period's name.
+ *
+ * @param {import('./route-plan.js').RoutePlan} plan
+ * @returns {Map<string, string>} leg id -> table name
+ */
+function returnTableNames(plan) {
+  /** @type {Map<string, string>} */
+  const names = new Map();
+  if (!plan.recovers) {
+    for (const leg of plan.legs) names.set(leg.id, hopTableName(leg, 'TO_HEAL'));
+    return names;
+  }
+  /** @type {Map<string, string>} Pokécenter -> the name its first owner chose */
+  const byCentre = new Map();
+  const defaultFirst = [...plan.legs].sort(
+    (a, b) => Number(Boolean(a.guard)) - Number(Boolean(b.guard)),
+  );
+  for (const leg of defaultFirst) {
+    if (!byCentre.has(leg.pokecenterMap)) byCentre.set(leg.pokecenterMap, hopTableName(leg, 'TO_HEAL'));
+    names.set(leg.id, byCentre.get(leg.pokecenterMap));
+  }
+  return names;
+}
+
+/**
+ * `activeLeg()` — which route applies right now.
+ *
+ * Returns the period's id, its hunting map, its Pokécenter, and its two hop
+ * tables, so the loop below can be written once and work for every period.
  *
  * @param {LuaWriter} writer
  * @param {import('./route-plan.js').RoutePlan} plan
  */
-function emitLegSelector(writer, plan) {
-  writer.comment('The hunting map changes with the time of day.');
+function emitLegSelector(writer, plan, config) {
+  const returnTables = returnTableNames(plan);
+  writer.comment('Which route the clock puts us on: its spot, its Pokécenter, its hops.');
   writer.fn('activeLeg()', (w) => {
     for (const leg of plan.legs) {
-      const values = `${luaString(leg.farmMap)}, ${hopTableName(leg, 'TO_FARM')}, ${hopTableName(leg, 'TO_HEAL')}`;
+      const out = walksOut(config) ? `${hopTableName(leg, 'TO_FARM')}, ` : '';
+      const values = `${luaString(leg.farmMap)}, ${luaString(leg.pokecenterMap)}, `
+        + `${out}${returnTables.get(leg.id)}`;
       if (!leg.guard) {
         w.line(`return ${values}`);
         continue;
@@ -423,8 +582,7 @@ function emitStopUpkeep(writer, { plan, config, needs }) {
     for (const stop of usable) {
       w.block(`if map == ${luaString(stop.map)} then`, (inner) => {
         if (stop.mount === 'off') {
-          inner.useHosts(['isMounted', 'disMount']);
-          inner.line('if isMounted() then return disMount() end');
+          emitDismount(inner, needs);
         } else if (stop.mount === 'force' && hasLandMount) {
           inner.useHosts(['isMounted', 'setMount']);
           inner.line('if not isMounted() then return setMount(pickMount(LAND_MOUNTS)) end');
@@ -441,6 +599,24 @@ function emitStopUpkeep(writer, { plan, config, needs }) {
     w.line('return false');
   }, { local: true });
   writer.blank();
+}
+
+/**
+ * Drop the ground mount, remembering to put it back on if anything will.
+ *
+ * @param {LuaWriter} writer
+ * @param {Needs} needs
+ */
+function emitDismount(writer, needs) {
+  writer.useHosts(['isMounted', 'disMount']);
+  if (!needs.remount) {
+    writer.line('if isMounted() then return disMount() end');
+    return;
+  }
+  writer.block('if isMounted() then', (drop) => {
+    drop.line('mountDropped = true');
+    drop.line('return disMount()');
+  });
 }
 
 /**
@@ -506,7 +682,7 @@ export function emitBreaks(writer, { config, needs }) {
  * @param {LuaWriter} writer
  * @param {EmitContext} context
  */
-export function emitTeamReady(writer, { config, needs }) {
+export function emitTeamReady(writer, { config, needs, team }) {
   const clauses = [];
   const usableFloor = config.team.healBelowUsable;
   if (usableFloor !== null && usableFloor > 0) {
@@ -521,13 +697,22 @@ export function emitTeamReady(writer, { config, needs }) {
   section(writer, 'Team readiness');
   writer.comment('False means: stop farming and go heal.');
   writer.fn('teamIsReady()', (w) => {
+    // An EV table is a finite job. Whatever else the guard says, a run whose
+    // every row is met is over — and "over" is the end behaviour the player
+    // chose, not an endless loop of fleeing encounters it no longer wants.
+    if (team.exposeEvPending) {
+      w.comment('The EV table is complete, so there is nothing left to farm for.');
+      w.line('if not evGoalsPending() then return false end');
+    }
     if (needs.usesCustomGuard) {
       w.comment('Custom guard from the editor.');
       w.line(`return ${emitCondition(config.team.customGuard, w)}`);
       return;
     }
     if (!clauses.length) {
-      w.comment('No healing rules configured, so the script never leaves the farm.');
+      w.comment(team.exposeEvPending
+        ? 'No healing rules configured, so only the EV table ends this run.'
+        : 'No healing rules configured, so the script never leaves the farm.');
       w.line('return true');
       return;
     }
@@ -604,17 +789,49 @@ export function emitOnPathAction(writer, context) {
     // `map` is only read when the script has to tell maps apart. Hunting in
     // place with no Pokécenter never does, so declaring it there would leave an
     // unused local in the output.
-    const readsMap = plan.travels
+    const readsMap = plan.walks
       || needs.stopUpkeep
+      || needs.remount
       || (plan.kind === 'route' && Boolean(plan.farmMap || plan.pokecenterMap));
     if (readsMap) {
       w.useHost('getMapName');
       w.line('local map = getMapName()');
     }
     if (multiLeg(plan)) {
-      w.line('local farmMap, toFarm, toHeal = activeLeg()');
+      w.line(config.route.huntAnywhere
+        ? 'local farmMap, pcMap, toHeal = activeLeg()'
+        : 'local farmMap, pcMap, toFarm, toHeal = activeLeg()');
     }
     w.blank();
+
+    if (needs.legSwitch) {
+      w.comment('The clock has moved us to another Pokécenter: heal there before');
+      w.comment('walking out, so the new stretch starts on a full team. Two periods');
+      w.comment('that heal in the same place are not worth the detour.');
+      w.block('if pcMap ~= currentCentre then', (inner) => {
+        inner.comment('Not on the first frame: starting up is not a route change.');
+        inner.line('if currentCentre ~= nil then needCentre = true end');
+        inner.line('currentCentre = pcMap');
+      });
+      w.block('if needCentre then', (inner) => {
+        inner.block('if map == pcMap then', (arrived) => {
+          arrived.line('needCentre = false');
+          emitHealAction(arrived, context);
+        });
+        inner.line('return walk(toHeal)');
+      });
+      w.blank();
+    }
+
+    if (needs.remount) {
+      w.comment('Off the map that wanted the mount gone: turn it back on.');
+      w.useHosts(['setMount', 'isSurfing']);
+      w.block('if mountDropped and not NO_MOUNT[map] and not isSurfing() then', (inner) => {
+        inner.line('mountDropped = false');
+        inner.line('return setMount(pickMount(LAND_MOUNTS))');
+      });
+      w.blank();
+    }
 
     if (needs.stopUpkeep) {
       w.comment('Adjust mount and terrain before travelling on.');
@@ -651,8 +868,30 @@ export function emitOnPathAction(writer, context) {
  * @param {EmitContext} context
  */
 function emitEndOfFarm(writer, context) {
+  const { config, plan } = context;
+
+  // A period may want a different ending: loop back to the Pokécenter all day,
+  // then stop cleanly at night rather than farming unattended until morning.
+  for (const leg of plan.legs) {
+    if (!leg.guard || !leg.endBehaviour) continue;
+    writer.useHost(leg.guard.replace('()', ''));
+    writer.block(`if ${leg.guard} then`, (inner) => {
+      emitEndBehaviour(inner, context, leg.endBehaviour);
+    });
+  }
+  emitEndBehaviour(writer, context, config.route.endBehaviour);
+}
+
+/**
+ * One "farming is over" behaviour.
+ *
+ * @param {LuaWriter} writer
+ * @param {EmitContext} context
+ * @param {string} behaviour
+ */
+function emitEndBehaviour(writer, context, behaviour) {
   const { config } = context;
-  switch (config.route.endBehaviour) {
+  switch (behaviour) {
     case 'healNpc':
       emitHealHere(writer, config);
       return;
@@ -716,9 +955,12 @@ function emitHealHere(writer, config) {
  */
 function emitBreakTick(writer, { plan }) {
   writer.comment('Stay logged in without triggering encounters.');
-  if (plan.travels) {
+  if (plan.walks) {
+    // A break is taken at whichever Pokécenter this period belongs to; the
+    // table it walks along leads there and nowhere else.
+    const centre = multiLeg(plan) ? 'pcMap' : luaString(plan.pokecenterMap);
     writer.useHost('moveToNormalGround');
-    writer.block(`if map == ${luaString(plan.pokecenterMap)} then`, (inner) => {
+    writer.block(`if map == ${centre} then`, (inner) => {
       inner.line('return moveToNormalGround()');
     });
     writer.line(`return walk(${multiLeg(plan) ? 'toHeal' : 'TO_HEAL'})`);
@@ -735,11 +977,19 @@ function emitBreakTick(writer, { plan }) {
  * @param {EmitContext} context
  */
 function emitFarmTick(writer, context) {
-  const { plan } = context;
+  const { config, plan } = context;
   const target = multiLeg(plan) ? 'farmMap' : luaString(plan.farmMap);
   const table = multiLeg(plan) ? 'toFarm' : 'TO_FARM';
 
-  if (!plan.travels) {
+  // "Hunt wherever I am" drops the map check entirely: the bot works whatever
+  // ground it is standing on and only travels when it is time to heal.
+  if (config.route.huntAnywhere) {
+    writer.comment('Configured to hunt on whatever map the bot is standing on.');
+    emitFarmAction(writer, context);
+    return;
+  }
+
+  if (!plan.walks) {
     if (plan.kind === 'route' && plan.farmMap) {
       writer.block(`if map == ${target} then`, (inner) => {
         emitFarmAction(inner, context);
@@ -754,7 +1004,14 @@ function emitFarmTick(writer, context) {
   writer.block(`if map == ${target} then`, (inner) => {
     emitFarmAction(inner, context);
   });
-  writer.line(`return walk(${table})`);
+  if (!plan.recovers) {
+    writer.line(`return walk(${table})`);
+    return;
+  }
+  writer.line(`if walk(${table}) then return true end`);
+  writer.comment('Somewhere the outbound route never passes through: head home,');
+  writer.comment('which is the one table that knows the way from anywhere.');
+  writer.line(`return walk(${multiLeg(plan) ? 'toHeal' : 'TO_HEAL'})`);
 }
 
 /**
@@ -763,17 +1020,19 @@ function emitFarmTick(writer, context) {
  * @param {LuaWriter} writer
  * @param {EmitContext} context
  */
-function emitFarmAction(writer, { config, zones }) {
-  if (config.mounts.dismountOnFarm) {
-    writer.useHosts(['isMounted', 'disMount']);
-    writer.line('if isMounted() then return disMount() end');
-  }
-  if (zones.active) {
+function emitFarmAction(writer, context) {
+  const { config, zones, needs } = context;
+  if (config.mounts.dismountOnFarm) emitDismount(writer, needs);
+  if (zones.active && zones.hasDefault) {
     // The surf guard belongs to a plain hunting action; a zone walks to
     // coordinates and decides its own terrain.
     writer.comment('Zones replace the plain hunting action.');
     writer.line('return farmZone()');
     return;
+  }
+  if (zones.active) {
+    writer.comment('Only some periods have patches; the rest hunt the plain way.');
+    writer.line('if farmZone() then return true end');
   }
 
   // A period that hunts a different way gets its own branch, with its own surf
@@ -881,9 +1140,10 @@ function emitFarmCall(writer, action, route) {
  */
 function emitHealTick(writer, context) {
   const { plan } = context;
-  if (!plan.travels) {
+  const centre = multiLeg(plan) ? 'pcMap' : luaString(plan.pokecenterMap);
+  if (!plan.walks) {
     if (plan.kind === 'route' && plan.pokecenterMap) {
-      writer.block(`if map == ${luaString(plan.pokecenterMap)} then`, (inner) => {
+      writer.block(`if map == ${centre} then`, (inner) => {
         emitHealAction(inner, context);
       });
       writer.line('return false');
@@ -893,7 +1153,7 @@ function emitHealTick(writer, context) {
     return;
   }
 
-  writer.block(`if map == ${luaString(plan.pokecenterMap)} then`, (inner) => {
+  writer.block(`if map == ${centre} then`, (inner) => {
     emitHealAction(inner, context);
   });
   writer.line(`return walk(${multiLeg(plan) ? 'toHeal' : 'TO_HEAL'})`);
@@ -907,23 +1167,44 @@ function emitHealTick(writer, context) {
  * @returns {boolean}
  */
 function multiLeg(plan) {
-  return plan.travels && plan.legs.length > 1;
+  return plan.walks && plan.legs.length > 1;
 }
 
 /**
  * @param {LuaWriter} writer
  * @param {EmitContext} context
  */
-function emitHealAction(writer, { config, zones }) {
-  const { healAction, healArgs } = config.route;
+function emitHealAction(writer, context) {
+  const { config, zones, plan } = context;
   writer.useHosts(['isSurfing', 'moveToNormalGround']);
   writer.line('if isSurfing() then return moveToNormalGround() end');
   if (zones.eventDriven && zones.mode === 'onHeal') {
     writer.comment('Healing is the trigger for picking a different zone.');
     writer.line('zoneReroll = true');
   }
-  if (healAction === 'talkToNpcOnCell') {
-    const [x, y] = splitList(healArgs);
+
+  // A period anchored somewhere else may also heal differently — a town with a
+  // Pokécenter counter, a route with a nurse standing on a tile.
+  for (const leg of plan.legs) {
+    if (!leg.guard || !leg.healAction) continue;
+    writer.useHost(leg.guard.replace('()', ''));
+    writer.block(`if ${leg.guard} then`, (inner) => {
+      emitHealCall(inner, leg.healAction, leg.healArgs);
+    });
+  }
+  emitHealCall(writer, config.route.healAction, config.route.healArgs);
+}
+
+/**
+ * The healing call itself.
+ *
+ * @param {LuaWriter} writer
+ * @param {string} action
+ * @param {string} args
+ */
+function emitHealCall(writer, action, args) {
+  if (action === 'talkToNpcOnCell') {
+    const [x, y] = splitList(args);
     writer.useHost('talkToNpcOnCell');
     writer.line(`return talkToNpcOnCell(${luaNumber(x, 0)}, ${luaNumber(y, 0)})`);
     return;

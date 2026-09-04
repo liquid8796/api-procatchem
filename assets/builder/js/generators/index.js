@@ -28,6 +28,7 @@ import {
   emitState,
   emitTeamHelpers,
   emitTeamReady,
+  needsRemount,
   usableStops,
 } from './runtime.js';
 
@@ -70,7 +71,7 @@ const NOT_CALLS = new Set([
 export function generateScript(config, linkGraph) {
   const mode = requireMode(config.mode);
   const plan = planRoute(config, linkGraph);
-  const zones = planZones(config);
+  const zones = planZones(config, plan);
   const team = planTeam(config);
   const needs = mergeNeeds(analyseNeeds(config, plan, mode.traits), mode, config, zones, team, plan);
   const context = { config, plan, needs, mode, zones, team };
@@ -132,7 +133,7 @@ function mergeNeeds(base, mode, config, zones, team, plan) {
     ...(extra.conditionFlags ?? new Map()),
   ]);
 
-  return {
+  const merged = {
     ...base,
     ...extra,
     conditionHelpers,
@@ -149,7 +150,16 @@ function mergeNeeds(base, mode, config, zones, team, plan) {
     teamUpkeep: hasUpkeep(team),
     zoneReroll: zones.eventDriven,
     stopUpkeep: usableStops(plan, config, hasLandMount(config)).length > 0,
+    // Only worth routing through the Pokécenter on a period change when the
+    // periods actually heal in different places — and only possible when the
+    // route emitted `activeLeg()`, which is what the switch reads.
+    legSwitch: plan.switchesCentre
+      && plan.walks
+      && plan.legs.length > 1
+      && config.route.switchVia === 'center',
   };
+  merged.remount = needsRemount({ config, plan, needs: merged });
+  return merged;
 }
 
 /**

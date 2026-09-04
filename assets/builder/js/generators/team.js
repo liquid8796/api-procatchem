@@ -26,8 +26,8 @@ import { planRules } from './rules.js';
  * @property {string} rotationMode    'off' | 'weakest' | 'highest' | 'ev' | 'uid' | 'uidEv'
  * @property {string} evStat
  * @property {number} evTarget
- * @property {number[]} uids
- * @property {Array<{ id: number, stat: string, target: number }>} evGoals
+ * @property {string[]} uids  Lua literals: a number for a unique id, a quoted name otherwise
+ * @property {Array<{ id: string, stat: string, target: number }>} evGoals
  *           one EV goal per Pokémon, for the `uidEv` rotation
  * @property {string} leadItem        '' when no item is kept on the lead
  * @property {string[]} keepMoves
@@ -49,17 +49,15 @@ export function planTeam(config) {
   // each other forever, swapping the same Pokémon back and forth.
   const pinnedSlots = (leadAbility ? 1 : 0) + (secondAbility ? 1 : 0);
 
-  const uids = toStringList(rotation.ids)
-    .map((entry) => Number.parseInt(entry, 10))
-    .filter(Number.isInteger);
+  const uids = toStringList(rotation.ids).map(rosterEntry).filter(Boolean);
 
   const evGoals = (Array.isArray(rotation.goals) ? rotation.goals : [])
     .map((goal) => ({
-      id: Number.parseInt(String(goal?.id ?? ''), 10),
+      id: rosterEntry(goal?.id),
       stat: String(goal?.stat ?? 'ATK').toUpperCase(),
       target: Number.parseInt(String(goal?.target ?? 252), 10) || 252,
     }))
-    .filter((goal) => Number.isInteger(goal.id));
+    .filter((goal) => goal.id);
 
   // A list rotation with an empty list would emit a loop over nothing, which
   // silently never rotates; treating it as "off" says so in the lint instead.
@@ -89,6 +87,9 @@ export function planTeam(config) {
     // The EV encounter filter is the only caller of the goal-stat helper, and
     // it only exists in EV mode; emitting it elsewhere would leave dead code.
     exposeEvGoalStat: config.mode === 'ev' && rotationMode === 'uidEv',
+    // The farm guard reads this in any mode: an EV table is a finite job, and
+    // a run that has finished it should end rather than idle.
+    exposeEvPending: rotationMode === 'uidEv',
     leadItem,
     keepMoves,
     useStrongest,
@@ -97,6 +98,38 @@ export function planTeam(config) {
       leadAbility || secondAbility || leadItem || rotationMode !== 'off' || useStrongest,
     ),
   };
+}
+
+/**
+ * One entry of a rotation list, as the Lua literal that identifies a Pokémon.
+ *
+ * A unique id survives boxing and reordering, so it is the better answer — but
+ * most people know their team by name and have never seen a unique id, and a
+ * name works perfectly well for a team that is not about to change. Digits are
+ * read as an id, anything else as a name.
+ *
+ * @param {unknown} value
+ * @returns {string} a Lua number or string literal, '' when there is nothing to match
+ */
+function rosterEntry(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+  return /^\d+$/.test(text) ? text : luaString(text);
+}
+
+/**
+ * `matchesEntry(slot, entry)` — is this slot the Pokémon that entry names?
+ *
+ * @param {LuaWriter} writer
+ */
+function emitRosterMatcher(writer) {
+  writer.comment('A list entry is either a unique id or a name; both identify one Pokémon.');
+  writer.fn('matchesEntry(slot, entry)', (w) => {
+    w.useHosts(['getPokemonUniqueId', 'getPokemonName']);
+    w.line('if type(entry) == "number" then return getPokemonUniqueId(slot) == entry end');
+    w.line('return getPokemonName(slot) == entry');
+  }, { local: true });
+  writer.blank();
 }
 
 /**
@@ -111,6 +144,7 @@ export function emitTeamManagement(writer, plan) {
 
   if (plan.useStrongest) emitStrongestSlot(writer);
   if (plan.needsAbilityLookup) emitAbilityLookup(writer);
+  if (plan.rotationMode === 'uid' || plan.rotationMode === 'uidEv') emitRosterMatcher(writer);
   if (plan.leadAbility) emitAbilityPin(writer, 1, plan.leadAbility, 'LEAD_ABILITY');
   if (plan.secondAbility) emitAbilityPin(writer, 2, plan.secondAbility, 'SECOND_ABILITY');
   emitRotation(writer, plan);
@@ -214,10 +248,10 @@ function emitRotation(writer, plan) {
       writer.line(`local ROTATE_IDS = { ${plan.uids.join(', ')} }`);
       writer.comment('First listed Pokémon that can still fight leads; the list is the priority order.');
       writer.fn('rotateTeam()', (w) => {
-        w.useHosts(['getTeamSize', 'getPokemonUniqueId', 'isPokemonUsable', 'swapPokemon']);
-        w.block('for _, uid in ipairs(ROTATE_IDS) do', (loop) => {
+        w.useHosts(['getTeamSize', 'isPokemonUsable', 'swapPokemon']);
+        w.block('for _, entry in ipairs(ROTATE_IDS) do', (loop) => {
           loop.block('for slot = 1, getTeamSize() do', (inner) => {
-            inner.block('if getPokemonUniqueId(slot) == uid and isPokemonUsable(slot) then', (hit) => {
+            inner.block('if matchesEntry(slot, entry) and isPokemonUsable(slot) then', (hit) => {
               hit.line(`if slot ~= ${target} then return swapPokemon(${target}, slot) end`);
               hit.line('return false');
             });
@@ -269,7 +303,8 @@ function emitLevelRotation(writer, plan, target) {
  * @param {number} target
  */
 function emitEvGoalRotation(writer, plan, target) {
-  writer.comment('Each row is { unique id, stat, EV target }.');
+  writer.comment('Each row is { unique id or name, stat, EV target }. The same Pokémon may');
+  writer.comment('appear more than once — one row per stat it is being trained for.');
   writer.block('local EV_GOALS = {', (w) => {
     for (const goal of plan.evGoals) {
       w.line(`{ ${goal.id}, ${luaString(goal.stat)}, ${luaNumber(goal.target, 252)} },`);
@@ -278,22 +313,41 @@ function emitEvGoalRotation(writer, plan, target) {
   writer.blank();
 
   if (plan.exposeEvGoalStat) {
-    writer.comment('The stat the current leader is being trained for, for the EV encounter filter.');
+    writer.comment('The stat the leader still owes, for the EV encounter filter. Rows it has');
+    writer.comment('already finished are skipped, so a two-stat spread moves on by itself.');
     writer.fn('currentEvGoalStat()', (w) => {
-      w.useHost('getPokemonUniqueId');
-      w.line(`local uid = getPokemonUniqueId(${target})`);
+      w.useHost('getPokemonEffortValue');
       w.block('for _, goal in ipairs(EV_GOALS) do', (loop) => {
-        loop.line('if goal[1] == uid then return goal[2] end');
+        loop.block(`if matchesEntry(${target}, goal[1]) then`, (hit) => {
+          hit.line(`if getPokemonEffortValue(${target}, goal[2]) < goal[3] then return goal[2] end`);
+        });
       });
       w.line('return nil');
     }, { local: true });
     writer.blank();
   }
 
+  if (plan.exposeEvPending) {
+    writer.comment('False once every row is met. The farm guard reads it, so the run ends on');
+    writer.comment('the behaviour you chose instead of fleeing encounters it no longer wants.');
+    writer.fn('evGoalsPending()', (w) => {
+      w.useHosts(['getTeamSize', 'getPokemonEffortValue']);
+      w.block('for _, goal in ipairs(EV_GOALS) do', (loop) => {
+        loop.block('for slot = 1, getTeamSize() do', (inner) => {
+          inner.block('if matchesEntry(slot, goal[1]) and getPokemonEffortValue(slot, goal[2]) < goal[3] then', (hit) => {
+            hit.line('return true');
+          });
+        });
+      });
+      w.line('return false');
+    }, { local: true });
+    writer.blank();
+  }
+
   writer.comment('Lead with the first listed Pokémon that is still short of its target.');
   writer.fn('rotateTeam()', (w) => {
-    w.useHosts(['getTeamSize', 'getPokemonUniqueId', 'isPokemonUsable', 'getPokemonEffortValue', 'swapPokemon']);
-    const matches = 'getPokemonUniqueId(slot) == goal[1] and isPokemonUsable(slot)'
+    w.useHosts(['getTeamSize', 'isPokemonUsable', 'getPokemonEffortValue', 'swapPokemon']);
+    const matches = 'matchesEntry(slot, goal[1]) and isPokemonUsable(slot)'
       + ' and getPokemonEffortValue(slot, goal[2]) < goal[3]';
     w.block('for _, goal in ipairs(EV_GOALS) do', (loop) => {
       loop.block('for slot = 1, getTeamSize() do', (inner) => {

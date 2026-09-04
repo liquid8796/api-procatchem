@@ -21,6 +21,7 @@ import {
   toNullableInt,
 } from '../domain/config.js';
 import { renderConditionTree } from './condition-editor.js';
+import { heldItemDatalistId } from './datalists.js';
 import { makeReorderable, moveEntry } from './drag-reorder.js';
 import { renderHelperMoves } from './helper-moves.js';
 import { renderRuleList } from './rule-editor.js';
@@ -38,6 +39,8 @@ import { wireRadioGroup } from './radio-group.js';
  * @property {number} [min]
  * @property {number} [max]
  * @property {boolean} [nullable]    a blank number field stores null
+ * @property {'heldItems'} [suggestions] a shared datalist to offer on a text field
+ * @property {string} [idPrefix]   set by renderFields; keeps two forms' ids apart
  * @property {(config: object) => boolean} [visibleWhen]
  */
 
@@ -76,10 +79,10 @@ export function renderField(field, store) {
  * @param {import('../core/store.js').Store} store
  * @returns {DocumentFragment}
  */
-export function renderFields(fields, store) {
+export function renderFields(fields, store, options = {}) {
   const fragment = document.createDocumentFragment();
   for (const field of fields) {
-    const node = renderField(field, store);
+    const node = renderField(options.idPrefix ? { ...field, idPrefix: options.idPrefix } : field, store);
     if (node) fragment.appendChild(node);
   }
   return fragment;
@@ -100,9 +103,19 @@ function wrap(field, control) {
   ]);
 }
 
-/** @param {string} path @returns {string} */
-function idFor(path) {
-  return `f-${String(path).replace(/\./g, '-')}`;
+/**
+ * The DOM id for a field's control.
+ *
+ * Two forms can be open at once — the main panels and the quick dialog — and
+ * they bind many of the same paths. Without a prefix per form the ids collide,
+ * which sends `<label for>` and the caret rescue in {@link keepingFocus} to the
+ * wrong element: the one behind the modal.
+ *
+ * @param {Field} field
+ * @returns {string}
+ */
+function idFor(field) {
+  return `${field.idPrefix ?? 'f'}-${String(field.path).replace(/\./g, '-')}`;
 }
 
 /**
@@ -112,10 +125,12 @@ function idFor(path) {
  */
 function renderText(field, store) {
   const input = h('input.input', {
-    id: idFor(field.path),
+    id: idFor(field),
     type: 'text',
     value: String(store.getIn(field.path) ?? ''),
     placeholder: field.placeholder ? t(field.placeholder) : '',
+    // Suggestions only: anything typed is still accepted.
+    list: field.suggestions === 'heldItems' ? heldItemDatalistId() : undefined,
     onInput: (event) => store.setIn(field.path, event.target.value),
   });
   return wrap(field, input);
@@ -132,7 +147,7 @@ function renderText(field, store) {
 function renderNumber(field, store) {
   const current = store.getIn(field.path);
   const input = h('input.input', {
-    id: idFor(field.path),
+    id: idFor(field),
     type: 'number',
     value: current === null || current === undefined ? '' : String(current),
     placeholder: field.placeholder ? t(field.placeholder) : '',
@@ -182,7 +197,7 @@ function clamp(value, min, max) {
 function renderSelect(field, store) {
   const current = String(store.getIn(field.path) ?? '');
   const select = h('select.input.select', {
-    id: idFor(field.path),
+    id: idFor(field),
     onChange: (event) => store.setIn(field.path, event.target.value),
   }, field.options.map((option) => {
     const value = option.value ?? option.id ?? '';
@@ -214,7 +229,7 @@ function renderSegmented(field, store) {
       const active = String(value) === current;
       return h('button.seg', {
         // Stable per-option id: focus restoration after a re-render keys off it.
-        id: `${idFor(field.path)}-${index}`,
+        id: `${idFor(field)}-${index}`,
         type: 'button',
         role: 'radio',
         'aria-checked': String(active),
@@ -238,7 +253,7 @@ function renderSegmented(field, store) {
 function renderToggle(field, store) {
   const checked = Boolean(store.getIn(field.path));
   const input = h('input', {
-    id: idFor(field.path),
+    id: idFor(field),
     type: 'checkbox',
     checked,
     onChange: (event) => store.setIn(field.path, event.target.checked),
@@ -281,7 +296,7 @@ function renderChips(field, store) {
     store.setIn(field.path, cleaned);
   };
 
-  const inputId = `${idFor(field.path)}-entry`;
+  const inputId = `${idFor(field)}-entry`;
   const input = h('input.chip-input', {
     // Stable id: adding a chip re-renders the panel, and focus is restored by id.
     id: inputId,
@@ -342,7 +357,7 @@ function renderTextList(field, store) {
   // Every mutation is derived from the live value, not from `values`: rendering
   // is throttled, so this closure can outlive the state it was built from.
   const update = (fn) => store.update(field.path, fn, []);
-  const rowId = (index) => `${idFor(field.path)}-row-${index}`;
+  const rowId = (index) => `${idFor(field)}-row-${index}`;
 
   const rows = values.map((value, index) => h('div.list-row', {}, [
     h('span.ladder-rank', { text: String(index + 1) }),
@@ -392,7 +407,7 @@ function renderStopList(field, store) {
   const patchAt = (index, patch) => update(
     (live) => live.map((stop, i) => (i === index ? { ...stop, ...patch } : stop)),
   );
-  const rowId = (index) => `${idFor(field.path)}-map-${index}`;
+  const rowId = (index) => `${idFor(field)}-map-${index}`;
 
   const rows = stops.map((stop, index) => h('div.stop-row', {}, [
     h('input.input', {
@@ -449,7 +464,7 @@ function renderEvGoals(field, store) {
   const patchAt = (index, patch) => update(
     (live) => live.map((goal, i) => (i === index ? { ...goal, ...patch } : goal)),
   );
-  const rowId = (index) => `${idFor(field.path)}-uid-${index}`;
+  const rowId = (index) => `${idFor(field)}-uid-${index}`;
 
   const rows = goals.map((goal, index) => h('div.stop-row', {}, [
     h('span.ladder-rank', { text: String(index + 1) }),
@@ -523,7 +538,7 @@ function renderHelperField(field, store) {
   const list = renderHelperMoves(
     store.getIn(field.path) ?? [],
     (fn) => store.update(field.path, fn, []),
-    idFor(field.path),
+    idFor(field),
   );
   return wrap(field, list);
 }
@@ -551,7 +566,7 @@ function renderRuleField(field, store) {
 function renderBallLadder(field, store) {
   /** @type {Array<{item: string, condition: string}>} */
   const balls = store.getIn(field.path) ?? [];
-  const rowId = (index, part) => `${idFor(field.path)}-${part}-${index}`;
+  const rowId = (index, part) => `${idFor(field)}-${part}-${index}`;
   const update = (fn) => store.update(field.path, fn, []);
   const replaceAt = (index, patch) => update(
     (live) => live.map((ball, i) => (i === index ? { ...ball, ...patch } : ball)),

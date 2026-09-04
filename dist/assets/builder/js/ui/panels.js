@@ -16,6 +16,8 @@ import {
   HEAL_ACTIONS,
   OTHER_POLICIES,
   ROTATION_MODES,
+  SWITCH_MODES,
+  TARGET_ACTIONS,
   TIME_PERIODS,
   TRAINER_POLICIES,
   TRAPPED_POLICIES,
@@ -61,6 +63,7 @@ function periodFieldSet(period) {
   const fields = periodFields(period.id);
   const base = `route.timeOfDay.${fields.action}`;
   const shown = (config) => config.route.timeOfDay.enabled;
+  const onRoute = (config) => shown(config) && config.route.kind === 'route';
   const action = (config) => config.route.timeOfDay[fields.action];
 
   return [
@@ -102,6 +105,52 @@ function periodFieldSet(period) {
       label: t('{period} — item to use', { period: t(period.label) }),
       placeholder: 'Repel',
       visibleWhen: (config) => shown(config) && action(config) === 'useItem',
+    },
+    {
+      type: 'textList',
+      path: `route.timeOfDay.${fields.zones}`,
+      label: t('{period} — farm zones', { period: t(period.label) }),
+      placeholder: '10, 10, 20, 20',
+      addLabel: '+ Add a zone for this period',
+      hint: 'Rectangles measured on this period’s map. Leave empty to reuse the main list.',
+      visibleWhen: onRoute,
+    },
+    {
+      type: 'text',
+      path: `route.timeOfDay.${fields.pokecenter}`,
+      label: t('{period} — Pokécenter', { period: t(period.label) }),
+      placeholder: 'leave blank to use the main one',
+      hint: 'A period hunting on the other side of the region can heal on its own doorstep.',
+      visibleWhen: onRoute,
+    },
+    {
+      type: 'select',
+      path: `route.timeOfDay.${fields.healAction}`,
+      label: t('{period} — how to heal', { period: t(period.label) }),
+      options: [
+        { value: '', label: 'Same as the main setting' },
+        ...HEAL_ACTIONS.map((entry) => ({ value: entry.id, label: t(entry.label) })),
+      ],
+      visibleWhen: onRoute,
+    },
+    {
+      type: 'text',
+      path: `route.timeOfDay.${fields.healArgs}`,
+      label: t('{period} — nurse cell', { period: t(period.label) }),
+      placeholder: '7, 9',
+      visibleWhen: (config) => onRoute(config)
+        && config.route.timeOfDay[fields.healAction] === 'talkToNpcOnCell',
+    },
+    {
+      type: 'select',
+      path: `route.timeOfDay.${fields.endBehaviour}`,
+      label: t('{period} — when farming stops', { period: t(period.label) }),
+      options: [
+        { value: '', label: 'Same as the main setting' },
+        ...END_BEHAVIOURS.map((entry) => ({ value: entry.id, label: t(entry.label) })),
+      ],
+      hint: 'Loop all day and call it a night at night, for instance.',
+      visibleWhen: onRoute,
     },
   ];
 }
@@ -263,6 +312,22 @@ export const PANELS = [
       },
       {
         type: 'toggle',
+        path: 'route.huntAnywhere',
+        label: 'Hunt wherever the bot is standing',
+        hint: 'Skips the "am I on the right map" check. The walk back to heal still happens.',
+        visibleWhen: (config) => config.route.kind === 'route',
+      },
+      {
+        type: 'toggle',
+        path: 'route.recoverWhenLost',
+        label: 'Find the way back from anywhere',
+        hint: 'Lets the return table cover every map in the graph, so a bot that starts '
+          + 'somewhere unexpected walks home instead of standing still. Costs a few '
+          + 'lines per map you have walked.',
+        visibleWhen: (config) => config.route.kind === 'route',
+      },
+      {
+        type: 'toggle',
         path: 'route.surfFix',
         label: 'Step off the water before hunting on land',
         hint: 'Prevents the script getting stuck surfing.',
@@ -359,7 +424,19 @@ export const PANELS = [
         path: 'route.timeOfDay.enabled',
         label: 'Hunt differently depending on the time',
         hint: 'Each period can take its own map — with its own outbound and return '
-          + 'route — its own way of finding encounters, or both.',
+          + 'route — its own Pokécenter, its own patches, its own way of finding '
+          + 'encounters, and its own answer to "what now" when farming stops.',
+      },
+      {
+        type: 'segmented',
+        path: 'route.switchVia',
+        label: 'When the clock moves you to another spot',
+        options: asOptions(SWITCH_MODES),
+        visibleWhen: (config) => config.route.timeOfDay.enabled
+          && config.route.kind === 'route'
+          && TIME_PERIODS.some((period) => (
+            String(config.route.timeOfDay[periodFields(period.id).pokecenter] ?? '').trim()
+          )),
       },
       ...TIME_PERIODS.flatMap(periodFieldSet),
     ], store)],
@@ -384,10 +461,43 @@ export const PANELS = [
       { type: 'toggle', path: 'target.shiny', label: 'Shiny Pokémon', hint: 'Almost always worth keeping on.' },
       { type: 'toggle', path: 'target.notCaught', label: 'Anything not in your Pokédex yet' },
       {
+        type: 'toggle',
+        path: 'target.form',
+        label: 'Alternate forms',
+        hint: 'Event hats, regional variants — anything the game gives a form number to.',
+      },
+      {
         type: 'chips',
         path: 'target.names',
         label: 'Named Pokémon',
         placeholder: 'Larvitar, Pikachu',
+      },
+      {
+        type: 'chips',
+        path: 'target.abilities',
+        label: 'Abilities worth stopping for',
+        placeholder: 'Contrary, Mold Breaker',
+        hint: 'Lead with Trace: it copies the wild ability and the log names it. Without a '
+          + 'Trace lead there is nothing to hear and nothing matches — and because it is '
+          + 'heard rather than asked, the answer only arrives once the battle has started.',
+      },
+      {
+        type: 'chips',
+        path: 'target.heldItems',
+        label: 'Held items worth stopping for',
+        placeholder: 'Leftovers, Lucky Egg',
+        hint: 'Lead with Frisk: it reads what the wild Pokémon is carrying and says so on the '
+          + 'first turn. Set "Wild Pokémon you do not want" to something other than running, '
+          + 'or the encounter is fled before the answer arrives.',
+      },
+      {
+        type: 'select',
+        path: 'target.evYield',
+        label: 'Gives this effort value',
+        options: [
+          { value: '', label: 'Any effort value' },
+          ...EV_STATS.map((stat) => ({ value: stat.id, label: t(stat.label) })),
+        ],
       },
       {
         type: 'number', path: 'target.levelMin', label: 'Minimum level',
@@ -396,6 +506,12 @@ export const PANELS = [
       {
         type: 'number', path: 'target.levelMax', label: 'Maximum level',
         placeholder: 'any', min: 1, max: 100, nullable: true,
+      },
+      {
+        type: 'segmented',
+        path: 'target.onMatch',
+        label: 'What a match is for',
+        options: asOptions(TARGET_ACTIONS),
       },
       {
         type: 'select',
@@ -491,6 +607,15 @@ export const PANELS = [
         label: 'Wild Pokémon you do not want',
         options: asOptions(OTHER_POLICIES),
         visibleWhen: () => !mode.traits.engagesEveryEncounter,
+      },
+      {
+        type: 'conditionTree',
+        path: 'battle.otherGuard',
+        label: 'Fight these ones',
+        hint: 'Anything that fails this is fled. Useful for "clear the low levels, '
+          + 'leave the rest" or for only fighting what feeds the right effort value.',
+        visibleWhen: (config) => !mode.traits.engagesEveryEncounter
+          && config.battle.onOther === 'conditional',
       },
     ], store)],
   },
@@ -595,10 +720,12 @@ export const PANELS = [
       {
         type: 'textList',
         path: 'team.rotation.ids',
-        label: 'Unique ids, in priority order',
-        placeholder: '123456',
-        addLabel: '+ Add an id',
-        hint: 'The first one that can still fight takes the lead.',
+        label: 'Unique ids or names, in priority order',
+        placeholder: '123456 or Larvitar',
+        addLabel: '+ Add a Pokémon',
+        hint: 'The first one that can still fight takes the lead. A unique id survives '
+          + 'boxing and reordering; a name is easier to type and works just as well '
+          + 'on a team you are not about to shuffle.',
         visibleWhen: (config) => config.team.rotation.mode === 'uid',
       },
       {
@@ -606,7 +733,9 @@ export const PANELS = [
         path: 'team.rotation.goals',
         label: 'EV table',
         hint: 'Worked top to bottom: the first Pokémon still short of its target leads. '
-          + 'In EV farm mode the encounter filter follows whichever stat that is.',
+          + 'List the same Pokémon twice to train two stats — it moves on to the second '
+          + 'row by itself. In EV farm mode the encounter filter follows whichever stat '
+          + 'the leader still owes.',
         visibleWhen: (config) => config.team.rotation.mode === 'uidEv',
       },
       {
@@ -627,7 +756,9 @@ export const PANELS = [
         path: 'team.leadItem',
         label: 'Item the lead should hold',
         placeholder: 'Leftovers',
-        hint: 'Reclaimed from a team-mate when the bag runs out.',
+        suggestions: 'heldItems',
+        hint: 'Reclaimed from a team-mate when the bag runs out. The list suggests the '
+          + 'usual ones; any item name works.',
       },
       {
         type: 'toggle',

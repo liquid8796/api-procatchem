@@ -8,7 +8,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { parseYaml } from '../scripts/lib/yaml-lite.mjs';
+import { parseYaml } from '../assets/builder/js/core/yaml-lite.js';
 
 test('reads nested mappings by indentation', () => {
   assert.deepEqual(parseYaml('a:\n  b:\n    c: 1\n'), { a: { b: { c: 1 } } });

@@ -13,7 +13,7 @@
  */
 
 import { t } from '../core/i18n.js';
-import { API_ENTRIES, apiEntry } from './api-catalog.js';
+import { apiEntries, apiEntry } from './api-registry.js';
 import { HOST_FUNCTIONS, isHostFunction, RETIRED_FUNCTIONS } from './host-api.js';
 
 /** Longest name distance still worth offering as "did you mean". */
@@ -301,15 +301,13 @@ export function suggestName(name) {
  * Every callable name, documented ones first so a tie in edit distance offers
  * the one the builder can show a signature for.
  *
- * @type {readonly string[]}
+ * Derived on each call rather than cached: loading a newer spec changes the
+ * answer, and a stale list would suggest a function that no longer exists.
+ *
+ * @returns {readonly string[]}
  */
-const KNOWN_NAMES = Object.freeze([
-  ...new Set([...API_ENTRIES.map((entry) => entry.name), ...HOST_FUNCTIONS]),
-]);
-
-/** @returns {readonly string[]} */
 function knownNames() {
-  return KNOWN_NAMES;
+  return [...new Set([...apiEntries().map((entry) => entry.name), ...HOST_FUNCTIONS])];
 }
 
 /**

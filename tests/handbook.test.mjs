@@ -12,6 +12,7 @@ import { createDefaultConfig, normaliseConfig } from '../assets/builder/js/domai
 import { LinkGraph } from '../assets/builder/js/domain/link-graph.js';
 import { generateScript } from '../assets/builder/js/generators/index.js';
 import { HANDBOOK_SECTIONS } from '../assets/builder/js/ui/handbook.js';
+import { actionSamples, conditionSamples } from '../assets/builder/js/ui/emit-reference.js';
 
 const { graph } = LinkGraph.parse([
   'PROCATCHEM-LINKGRAPH\tv1',
@@ -116,4 +117,44 @@ test('the one-action example uses only calls that exist', () => {
   for (const call of ['useMoveFromAnySlot(', 'opponentStatused()', 'getOpponentHealth()', 'useItem(']) {
     assert.ok(lua.includes(call), `the handbook shows ${call} but the generator never emits it`);
   }
+});
+
+test('the mount re-arm example matches what the generator writes', () => {
+  const config = createDefaultConfig();
+  config.route.kind = 'route';
+  config.route.farmMap = 'Viridian Forest';
+  config.route.pokecenterMap = 'Pokecenter Viridian';
+  config.mounts.land = ['Arcanine Mount'];
+  config.route.stops = [{ map: 'Viridian City', mount: 'off', terrain: 'any' }];
+
+  const { lua } = generateScript(normaliseConfig(config), graph);
+  assert.ok(
+    containsBlock(lua, section('built-from-parts').lua),
+    'the composite-algorithms section quotes code the generator no longer writes',
+  );
+});
+
+test('every condition in the generated reference produces real Lua', () => {
+  const samples = conditionSamples();
+  assert.ok(samples.length >= 30, `suspiciously few samples: ${samples.length}`);
+
+  for (const sample of samples) {
+    assert.ok(sample.lua.trim(), `${sample.label} produced nothing`);
+    assert.ok(!sample.lua.startsWith('--'), `${sample.label} threw: ${sample.lua}`);
+    // A bare boolean is what an unfilled row emits; the reference fills the
+    // placeholders precisely so no row illustrates itself as "false".
+    assert.ok(
+      !['true', 'false'].includes(sample.lua.trim()),
+      `${sample.label} shows a bare boolean instead of the shape it writes`,
+    );
+  }
+});
+
+test('the reference names the hunting and healing actions too', () => {
+  const labels = actionSamples().map((sample) => sample.label);
+  assert.ok(labels.includes('Fish from a cell'));
+  assert.ok(labels.includes('Use the Pokécenter'));
+  const fishing = actionSamples().find((sample) => sample.label === 'Fish from a cell');
+  assert.match(fishing.lua, /moveToCell/);
+  assert.match(fishing.lua, /useItem\("Super Rod"\)/);
 });

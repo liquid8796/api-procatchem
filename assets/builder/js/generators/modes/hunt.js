@@ -1,9 +1,9 @@
 /**
  * Hunt mode: engage only the wild Pokémon that match the target filters, and
- * catch them.
+ * do whatever the filter says they are for — usually catching them.
  */
 
-import { emitCatchSequence, emitTargetPredicate } from '../battle.js';
+import { emitCatchSequence, emitTargetAction, emitTargetPredicate } from '../battle.js';
 
 /** @type {import('../mode-registry.js').FarmMode} */
 export const huntMode = {
@@ -24,12 +24,14 @@ export const huntMode = {
 
   emitHelpers(writer, context) {
     emitTargetPredicate(writer, context.config);
-    emitCatchSequence(writer, context);
+    // Knocking a target out, fleeing it, or stopping on it needs no ball ladder,
+    // and an unused tryCatch() would drag in weakening moves nobody asked for.
+    if (context.config.target.onMatch === 'catch') emitCatchSequence(writer, context);
   },
 
-  emitEngagement(writer) {
+  emitEngagement(writer, context) {
     writer.block('if isTarget() then', (inner) => {
-      inner.line('return tryCatch()');
+      emitTargetAction(inner, context.config);
     });
   },
 };

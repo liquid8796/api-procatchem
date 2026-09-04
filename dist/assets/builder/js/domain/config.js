@@ -36,8 +36,16 @@ export const TIME_PERIODS = Object.freeze([
 /**
  * The field names one period uses inside `route.timeOfDay`.
  *
+ * A period may redefine as much or as little of the route as it likes: where to
+ * hunt, how, which Pokécenter it belongs to, which patches to work, and what to
+ * do when farming stops. Everything left blank falls back to the main setting,
+ * so the common case — one spot, one style, one Pokécenter — still costs one
+ * field per period.
+ *
  * @param {string} period
- * @returns {{ map: string, action: string, args: string, rod: string }}
+ * @returns {{ map: string, action: string, args: string, rod: string,
+ *             pokecenter: string, healAction: string, healArgs: string,
+ *             zones: string, endBehaviour: string }}
  */
 export function periodFields(period) {
   return {
@@ -45,6 +53,11 @@ export function periodFields(period) {
     action: `${period}Action`,
     args: `${period}Args`,
     rod: `${period}Rod`,
+    pokecenter: `${period}Pokecenter`,
+    healAction: `${period}HealAction`,
+    healArgs: `${period}HealArgs`,
+    zones: `${period}Zones`,
+    endBehaviour: `${period}EndBehaviour`,
   };
 }
 
@@ -89,6 +102,21 @@ export const OTHER_POLICIES = Object.freeze([
   { id: 'run', label: 'Run away', hint: 'Fastest reset' },
   { id: 'fight', label: 'Knock it out', hint: 'Earns EXP but costs PP' },
   { id: 'weakAttack', label: 'Weak attack only', hint: 'Spares your strongest move' },
+  { id: 'conditional', label: 'Fight only if…', hint: 'Your own condition decides; the rest are fled' },
+]);
+
+/**
+ * What a matched wild encounter is for.
+ *
+ * Catching is the usual answer, but the same filter is just as useful for
+ * "level on exactly these" or for stopping the session the moment something
+ * rare turns up so a human can take over.
+ */
+export const TARGET_ACTIONS = Object.freeze([
+  { id: 'catch', label: 'Catch it', hint: 'Weaken, status, then the ball ladder' },
+  { id: 'fight', label: 'Knock it out', hint: 'For experience, money, or EVs' },
+  { id: 'run', label: 'Run from it', hint: 'A filter that says what to avoid' },
+  { id: 'stop', label: 'Stop the bot', hint: 'Logs the encounter and halts so you can take over' },
 ]);
 
 export const TRAINER_POLICIES = Object.freeze([
@@ -116,6 +144,19 @@ export const ZONE_ROTATION_MODES = Object.freeze([
   { id: 'chaotic', label: 'Fully random', hint: 'Anywhere from a minute to the maximum' },
   { id: 'onHeal', label: 'After every heal', hint: 'No clock — rerolls on the Pokécenter trip' },
   { id: 'onWin', label: 'After every won battle', hint: 'Rerolls when a battle is won' },
+]);
+
+/**
+ * What happens the moment the clock moves a run onto a different period.
+ *
+ * Going by way of the Pokécenter costs a walk but starts the new stretch with a
+ * full team, which is what you want when each period is anchored somewhere
+ * else. Heading straight out is faster and fine when the two spots share a
+ * Pokécenter.
+ */
+export const SWITCH_MODES = Object.freeze([
+  { id: 'center', label: 'Heal at the new Pokécenter first', hint: 'Arrive at the next spot with a fresh team' },
+  { id: 'direct', label: 'Go straight to the new spot', hint: 'No detour; keeps whatever the team has left' },
 ]);
 
 /** Per-stop mount handling on a multi-leg route. */
@@ -371,6 +412,15 @@ export function createDefaultConfig() {
       endHealMoney: null,
       endMessage: '',
       surfFix: true,
+      // Hunt on whatever map the bot is standing on, even in route mode. The
+      // walk to the Pokécenter still happens; only the "am I in the right
+      // place" check is dropped.
+      huntAnywhere: false,
+      // When the clock moves the run onto another period's spot.
+      switchVia: 'center',
+      // Let the return tables cover every map the graph knows, so a bot that
+      // wakes up off-route walks home instead of standing still.
+      recoverWhenLost: true,
       // Group 1 — several rectangles to work, and when to move between them.
       zones: [],
       zoneRotation: { mode: 'fixed', min: 30, max: 60 },
@@ -383,8 +433,14 @@ export function createDefaultConfig() {
       timeOfDay: {
         enabled: false,
         morningMap: '', morningAction: '', morningArgs: '', morningRod: '',
+        morningPokecenter: '', morningHealAction: '', morningHealArgs: '',
+        morningZones: [], morningEndBehaviour: '',
         noonMap: '', noonAction: '', noonArgs: '', noonRod: '',
+        noonPokecenter: '', noonHealAction: '', noonHealArgs: '',
+        noonZones: [], noonEndBehaviour: '',
         nightMap: '', nightAction: '', nightArgs: '', nightRod: '',
+        nightPokecenter: '', nightHealAction: '', nightHealArgs: '',
+        nightZones: [], nightEndBehaviour: '',
       },
     },
     mounts: {
@@ -401,10 +457,24 @@ export function createDefaultConfig() {
       levelMax: null,
       gender: '',
       requireAll: false,
+      // An alternate form — the Christmas hats, the regional variants — reads
+      // as a non-zero form id.
+      form: false,
+      // Neither of these has a getter. The game announces them, so the script
+      // latches what it hears: abilities need a Trace lead, held items a Frisk
+      // one. See the "announced" condition kinds.
+      abilities: [],
+      heldItems: [],
+      // Blank means the yield is not part of the filter.
+      evYield: '',
+      // What a match is for.
+      onMatch: 'catch',
     },
     battle: {
       onTrainer: 'fight',
       onOther: 'run',
+      // Only read when onOther is 'conditional'.
+      otherGuard: emptyGroup('and'),
       weaken: { mode: 'falseSwipe', move: 'False Swipe', percent: 30 },
       status: { moves: ['Spore'], requireBeforeBall: false },
       // Preparation moves used at most once per battle, before weakening.
@@ -459,17 +529,30 @@ export function normaliseConfig(loaded) {
 
   // Fields the UI treats as lists must survive a scalar or null in the file.
   merged.target.names = toStringList(merged.target.names);
+  merged.target.abilities = toStringList(merged.target.abilities);
+  merged.target.heldItems = toStringList(merged.target.heldItems);
+  merged.target.onMatch = TARGET_ACTIONS.some((entry) => entry.id === merged.target.onMatch)
+    ? merged.target.onMatch
+    : 'catch';
+  merged.target.evYield = EV_STATS.some((entry) => entry.id === merged.target.evYield)
+    ? merged.target.evYield
+    : '';
   merged.mounts.land = toStringList(merged.mounts.land);
   merged.mounts.water = toStringList(merged.mounts.water);
   merged.battle.status.moves = toStringList(merged.battle.status.moves);
   merged.battle.helperMoves = toHelperMoveList(merged.battle.helperMoves);
   merged.battle.balls = toBallList(merged.battle.balls, base.battle.balls);
+  merged.battle.otherGuard = normaliseCondition(merged.battle.otherGuard) ?? emptyGroup('and');
 
   merged.route.zones = toStringList(merged.route.zones);
   merged.route.stops = toStopList(merged.route.stops);
+  merged.route.switchVia = SWITCH_MODES.some((entry) => entry.id === merged.route.switchVia)
+    ? merged.route.switchVia
+    : 'center';
   merged.route.endBehaviour = END_BEHAVIOURS.some((entry) => entry.id === merged.route.endBehaviour)
     ? merged.route.endBehaviour
     : 'pcLoop';
+  normalisePeriods(merged.route.timeOfDay);
   merged.route.endHealMoney = toNullableInt(merged.route.endHealMoney);
   merged.team.rotation.ids = toStringList(merged.team.rotation.ids);
   merged.team.rotation.goals = toEvGoalList(merged.team.rotation.goals);
@@ -486,6 +569,26 @@ export function normaliseConfig(loaded) {
   merged.safety.afkTimeout = toNullableInt(merged.safety.afkTimeout);
 
   return merged;
+}
+
+/**
+ * Tidy the per-period overrides in place.
+ *
+ * A period's zone list has to survive the same scalar-or-null a hand-edited
+ * file may hold, and an end behaviour it does not recognise is safer read as
+ * "same as the main setting" than as a behaviour nobody asked for.
+ *
+ * @param {object} timeOfDay
+ */
+function normalisePeriods(timeOfDay) {
+  for (const period of TIME_PERIODS) {
+    const fields = periodFields(period.id);
+    timeOfDay[fields.zones] = toStringList(timeOfDay[fields.zones]);
+    const end = timeOfDay[fields.endBehaviour];
+    timeOfDay[fields.endBehaviour] = END_BEHAVIOURS.some((entry) => entry.id === end) ? end : '';
+    const heal = timeOfDay[fields.healAction];
+    timeOfDay[fields.healAction] = HEAL_ACTIONS.some((entry) => entry.id === heal) ? heal : '';
+  }
 }
 
 /**

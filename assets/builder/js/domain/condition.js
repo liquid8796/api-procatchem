@@ -174,7 +174,7 @@ const FLAG_SLUG_LENGTH = 16;
  * @param {unknown} turns
  * @returns {ConditionFlag}
  */
-function messageFlag(onPhrases, offPhrases, turns) {
+export function messageFlag(onPhrases, offPhrases, turns) {
   const on = toList(onPhrases);
   const off = toList(offPhrases);
   const window = Math.max(0, Number.parseInt(String(turns ?? ''), 10) || 0);
@@ -220,7 +220,7 @@ function shortHash(text) {
  * @param {import('../core/lua-writer.js').LuaWriter} writer
  * @returns {string}
  */
-function readFlag(flag, writer) {
+export function readFlag(flag, writer) {
   if (!flag.turns) return flag.name;
   // A timed flag stores the turn it was heard on, so 0 means "not heard".
   writer.useHost('getBattleTurn');
@@ -299,6 +299,21 @@ export const CONDITION_KINDS = Object.freeze({
     }],
     flag: (p) => messageFlag(p.names, [], 0),
     emit: (p, w) => readFlag(messageFlag(p.names, [], 0), w),
+  },
+  oppHeldItem: {
+    group: 'Battle',
+    label: 'Opponent held item was announced',
+    params: [{
+      key: 'items',
+      type: 'chips',
+      label: 'Items',
+      placeholder: 'Leftovers, Lucky Egg',
+      hint: 'There is no call for what a wild Pokémon is carrying. Lead with Frisk '
+        + 'and it says so on the first turn; this latches when the log names one '
+        + 'of these items.',
+    }],
+    flag: (p) => messageFlag(p.items, [], 0),
+    emit: (p, w) => readFlag(messageFlag(p.items, [], 0), w),
   },
   heardText: {
     group: 'Battle',
@@ -397,6 +412,17 @@ export const CONDITION_KINDS = Object.freeze({
     params: [{ key: 'slot', type: 'number', label: 'Slot', min: 1, max: 6 }],
     emit: (p, w) => `${w.useHost('isPokemonUsable')}(${luaNumber(p.slot, 1)})`,
   },
+  slotHpPercent: {
+    group: 'Team',
+    label: 'Slot health percentage',
+    params: [
+      { key: 'slot', type: 'number', label: 'Slot', min: 1, max: 6 },
+      { key: 'cmp', type: 'comparator', label: 'is' },
+      { key: 'value', type: 'number', label: '% of full', min: 0, max: 100 },
+    ],
+    emit: (p, w) => `${w.useHost('getPokemonHealthPercent')}(${luaNumber(p.slot, 1)}) `
+      + `${comparator(p.cmp)} ${luaNumber(p.value, 50)}`,
+  },
   usableCount: {
     group: 'Team',
     label: 'Usable Pokémon count',
@@ -416,6 +442,18 @@ export const CONDITION_KINDS = Object.freeze({
     ],
     helpers: ['teamPpLeft'],
     emit: (p) => `ppLeft(${luaString(p.move || '')}) ${comparator(p.cmp)} ${luaNumber(p.value, 1)}`,
+  },
+  slotPp: {
+    group: 'Team',
+    label: 'PP left for a move (one slot)',
+    params: [
+      { key: 'slot', type: 'number', label: 'Slot', min: 1, max: 6 },
+      { key: 'move', type: 'text', label: 'Move', placeholder: 'False Swipe' },
+      { key: 'cmp', type: 'comparator', label: 'is' },
+      { key: 'value', type: 'number', label: 'PP', min: 0 },
+    ],
+    emit: (p, w) => `${w.useHost('getRemainingPowerPoints')}(${luaNumber(p.slot, 1)}, `
+      + `${luaString(p.move || '')}) ${comparator(p.cmp)} ${luaNumber(p.value, 1)}`,
   },
   slotAbility: {
     group: 'Team',
@@ -561,6 +599,10 @@ export const CONDITION_KINDS = Object.freeze({
         label: 'Arguments',
         placeholder: '1, "Ultra Ball"',
         hint: 'Lua syntax — quote every text value.',
+        // The placeholder illustrates the syntax, not arguments that belong to
+        // the function the placeholder above names; pairing the two in the
+        // generated reference would show a call that could never be right.
+        sample: false,
       },
       {
         key: 'cmp',

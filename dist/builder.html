@@ -24,13 +24,14 @@
       <span aria-hidden="true" class="pokeball"></span>
       <h1>Script<br/>Builder</h1>
     </div>
-    <p class="brand-sub">Assemble a run<span class="ver">v1.0.108</span></p>
+    <p class="brand-sub">Assemble a run<span class="ver">v1.0.109</span></p>
   </div>
 
   <div class="side-block">
     <h2 class="side-h">Look things up</h2>
     <div class="side-actions">
-      <button class="btn btn-lcd" id="btn-api-browser" type="button">Search the Lua API</button>
+      <button class="btn btn-lcd" id="btn-quick" type="button">Quick build</button>
+      <button class="btn btn-lcd btn-quiet" id="btn-api-browser" type="button">Search the Lua API</button>
       <button class="btn btn-lcd btn-quiet" id="btn-structure" type="button">Show the script structure</button>
       <button class="btn btn-lcd btn-quiet" id="btn-handbook" type="button">How this works</button>
       <button class="btn btn-lcd btn-quiet" id="btn-theme" type="button">Theme: system</button>
@@ -141,6 +142,7 @@
   <span aria-hidden="true">&lt;/&gt;</span><span class="preview-toggle-text">Script</span>
 </button>
 
+<dialog class="tool-dialog" id="quick-dialog" aria-label="Quick build"></dialog>
 <dialog class="tool-dialog" id="graph-dialog" aria-label="Link graph tools"></dialog>
 <dialog class="tool-dialog tool-dialog-wide" id="api-dialog" aria-label="Lua API reference"></dialog>
 <dialog class="tool-dialog" id="structure-dialog" aria-label="Script structure"></dialog>

@@ -1030,6 +1030,16 @@ body.preview-hidden .preview-toggle span[aria-hidden] { color: #0A1811; }
 .api-filters { margin-bottom: 12px; }
 .api-filters .input[type="search"] { flex: 2 1 240px; }
 
+/* The "load a newer spec" footer sits under the results, out of the way of the
+   search it would otherwise compete with. */
+.api-spec {
+  margin-top: 12px; padding-top: 10px;
+  align-items: center;
+  border-top: 2px dashed var(--paper-dash);
+}
+.api-spec .tool-hint { flex: 1 1 200px; }
+.api-spec-result { display: grid; gap: 3px; margin-top: 8px; }
+
 .api-body {
   display: grid; gap: 12px;
   grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
@@ -1214,6 +1224,39 @@ body.preview-hidden .preview-toggle span[aria-hidden] { color: #0A1811; }
   font: 400 12.5px/1.65 var(--ff-mono); color: var(--lcd-text);
   white-space: pre;
 }
+
+/* The generated "choice → Lua" reference. Two columns where there is room, so
+   the label and the code it produces sit side by side; stacked when there is
+   not, because the code is the half that must stay readable. */
+.emit-group { margin-top: 14px; }
+.emit-group-title {
+  margin: 0 0 6px;
+  font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--muted-ink);
+}
+.emit-table {
+  display: grid; gap: 4px 14px; margin: 0;
+  grid-template-columns: minmax(140px, 240px) minmax(0, 1fr);
+  align-items: baseline;
+}
+.emit-label { margin: 0; font-size: 13px; font-weight: 700; color: var(--prose-ink); }
+.emit-lua { margin: 0; min-width: 0; overflow-x: auto; }
+.emit-lua code {
+  font: 400 12px/1.6 var(--ff-mono);
+  color: var(--syn-n);
+  white-space: pre;
+}
+
+@media (max-width: 640px) {
+  .emit-table { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .emit-lua { margin-bottom: 8px; }
+}
+
+/* ===================================================================== quick */
+
+.quick-body { display: grid; gap: 2px; margin: 12px 0; }
+.quick-actions { margin-top: 4px; }
+.quick-actions .btn { flex: 1 1 160px; }
 
 /* ============================================== translated-heading proportions
    The face swap itself lives in assets/i18n/i18n.css, which retargets

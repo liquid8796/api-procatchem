@@ -10,6 +10,7 @@
 
 import { luaNumber, luaString } from '../core/lua-writer.js';
 import { toStringList } from '../domain/config.js';
+import { emitCondition, isEmptyCondition, messageFlag, readFlag } from '../domain/condition.js';
 
 /**
  * @typedef {import('../core/lua-writer.js').LuaWriter} LuaWriter
@@ -50,6 +51,23 @@ export function emitOtherPolicy(writer, config) {
       writer.useHosts(['attack', 'sendUsablePokemon', 'sendAnyPokemon', 'run']);
       writer.line(`return ${FIGHT_CHAIN}`);
       return;
+    case 'conditional': {
+      writer.useHosts(['attack', 'sendUsablePokemon', 'sendAnyPokemon', 'run']);
+      // An empty tree would read as "always", which is not what someone who
+      // picked "fight only if…" and left it blank meant; fleeing is the safe
+      // reading and the lint asks them to fill it in.
+      if (isEmptyCondition(config.battle.otherGuard)) {
+        writer.comment('No condition set for fighting these, so they are all fled.');
+        writer.line(`return ${FLEE_CHAIN}`);
+        return;
+      }
+      writer.comment('Worth the PP only under this condition; everything else is fled.');
+      writer.block(`if ${emitCondition(config.battle.otherGuard, writer)} then`, (inner) => {
+        inner.line(`return ${FIGHT_CHAIN}`);
+      });
+      writer.line(`return ${FLEE_CHAIN}`);
+      return;
+    }
     case 'weakAttack':
       writer.useHosts(['weakAttack', 'attack', 'sendUsablePokemon', 'sendAnyPokemon']);
       writer.line(`return ${WEAK_CHAIN}`);
@@ -103,6 +121,19 @@ export function emitTargetPredicate(writer, config) {
     writer.useHost('getOpponentGender');
     clauses.push(`getOpponentGender() == ${luaString(target.gender)}`);
   }
+  if (target.form) {
+    writer.useHost('getOpponentForm');
+    clauses.push('getOpponentForm() ~= 0');
+  }
+  if (target.evYield) {
+    writer.useHost('isOpponentEffortValue');
+    clauses.push(`isOpponentEffortValue(${luaString(target.evYield)})`);
+  }
+  // Neither of these can be read directly: the game announces them and the
+  // script latches what it heard. See targetFlags below for the declarations.
+  for (const flag of targetFlags(config)) {
+    clauses.push(readFlag(flag, writer));
+  }
 
   writer.comment('Which wild encounters are worth engaging.');
   writer.fn('isTarget()', (w) => {
@@ -115,6 +146,53 @@ export function emitTargetPredicate(writer, config) {
     w.line(`return ${clauses.join(joiner)}`);
   }, { local: true });
   writer.blank();
+}
+
+/**
+ * Battle-log flags the target filter listens for.
+ *
+ * A wild Pokémon's ability and held item have no getter. Lead with Trace and
+ * the game names the ability it copied; lead with Frisk and it names the item.
+ * Both arrive as text, so the filter is a flag raised in `onBattleMessage`.
+ *
+ * @param {object} config
+ * @returns {import('../domain/condition.js').ConditionFlag[]}
+ */
+export function targetFlags(config) {
+  const flags = [];
+  for (const names of [config.target.abilities, config.target.heldItems]) {
+    if (toStringList(names).length) flags.push(messageFlag(names, [], 0));
+  }
+  return flags;
+}
+
+/**
+ * What a matched encounter is for, as the engagement branch of `onBattleAction`.
+ *
+ * @param {LuaWriter} writer
+ * @param {object} config
+ */
+export function emitTargetAction(writer, config) {
+  switch (config.target.onMatch) {
+    case 'fight':
+      writer.useHosts(['attack', 'sendUsablePokemon', 'sendAnyPokemon', 'run']);
+      writer.line(`return ${FIGHT_CHAIN}`);
+      return;
+    case 'run':
+      writer.useHosts(['run', 'attack', 'sendUsablePokemon', 'sendAnyPokemon']);
+      writer.line(`return ${FLEE_CHAIN}`);
+      return;
+    case 'stop':
+      writer.useHosts(['log', 'getOpponentName', 'fatal']);
+      writer.comment('Configured to hand this one over rather than play it out.');
+      writer.line('log("Target found: " .. getOpponentName() .. " — stopping for you.")');
+      writer.line('fatal("A target turned up. The bot is yours.")');
+      writer.line('return true');
+      return;
+    case 'catch':
+    default:
+      writer.line('return tryCatch()');
+  }
 }
 
 /**

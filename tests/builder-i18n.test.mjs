@@ -19,8 +19,9 @@ import { zh } from '../assets/builder/js/i18n/zh.js';
 import {
   BALL_CONDITIONS, CHAIN_ACTIONS, END_BEHAVIOURS, EV_STATS, FARM_ACTIONS,
   HEAL_ACTIONS, HELPER_PRESETS, HELPER_TRIGGERS, OTHER_POLICIES, ROTATION_MODES,
-  RULE_FALLBACKS, STEP_ACTIONS, STOP_MOUNT_MODES, STOP_TERRAINS, TIME_PERIODS,
-  TRAINER_POLICIES, TRAPPED_POLICIES, WEAKEN_MODES, ZONE_ROTATION_MODES,
+  RULE_FALLBACKS, STEP_ACTIONS, STOP_MOUNT_MODES, STOP_TERRAINS, SWITCH_MODES,
+  TARGET_ACTIONS, TIME_PERIODS, TRAINER_POLICIES, TRAPPED_POLICIES, WEAKEN_MODES,
+  ZONE_ROTATION_MODES,
 } from '../assets/builder/js/domain/config.js';
 import { CONDITION_KINDS, OPPONENT_GENDERS, STATUS_VALUES } from '../assets/builder/js/domain/condition.js';
 import { TEMPLATES } from '../assets/builder/js/domain/templates.js';
@@ -116,18 +117,40 @@ test('every literal passed to t() has a translation in each pack', () => {
   }
 });
 
-test('panels.js field labels and hints are covered', () => {
-  const source = readFileSync(`${JS_ROOT}/ui/panels.js`, 'utf8');
+/**
+ * Field descriptors are data, not `t()` calls, so they need their own scan.
+ *
+ * @param {string} file
+ * @returns {string[]}
+ */
+function fieldLiterals(file) {
+  const source = readFileSync(file, 'utf8');
   /** @type {string[]} */
   const literals = [];
   for (const match of source.matchAll(/\b(?:title|subtitle|label|hint|addLabel):\s*/g)) {
     const literal = readLiteral(source, match.index + match[0].length);
     if (literal) literals.push(literal.text);
   }
+  return literals;
+}
+
+test('panels.js field labels and hints are covered', () => {
+  const literals = fieldLiterals(`${JS_ROOT}/ui/panels.js`);
   assert.ok(literals.length >= 60, `suspiciously few panel strings found: ${literals.length}`);
   for (const pack of PACKS) {
     const missing = literals.filter((key) => !pack.dict[key]);
     assert.deepEqual(missing, [], `${pack.code}: untranslated panel strings`);
+  }
+});
+
+test('the quick form asks its questions in every language', () => {
+  // Its fields go through the same renderer as the panels, so they translate
+  // the same way — and are just as easy to add without a translation.
+  const literals = fieldLiterals(`${JS_ROOT}/ui/quick-build.js`);
+  assert.ok(literals.length >= 20, `suspiciously few quick-form strings found: ${literals.length}`);
+  for (const pack of PACKS) {
+    const missing = literals.filter((key) => !pack.dict[key]);
+    assert.deepEqual(missing, [], `${pack.code}: untranslated quick-form strings`);
   }
 });
 
@@ -138,6 +161,7 @@ test('option lists rendered by the form are covered', () => {
     ...BALL_CONDITIONS, ...ZONE_ROTATION_MODES, ...STOP_MOUNT_MODES, ...STOP_TERRAINS,
     ...ROTATION_MODES, ...STEP_ACTIONS, ...RULE_FALLBACKS, ...HELPER_TRIGGERS,
     ...TIME_PERIODS, ...STATUS_VALUES, ...OPPONENT_GENDERS,
+    ...SWITCH_MODES, ...TARGET_ACTIONS,
   ];
   for (const pack of PACKS) {
     const missing = new Set();

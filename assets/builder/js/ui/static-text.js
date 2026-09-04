@@ -19,7 +19,7 @@ const EN_ATTR = 'data-i18n-en';
 const HTML_SELECTORS = [
   '.side-h',
   '.side-block .side-note:not(#template-about)',
-  '#btn-api-browser', '#btn-structure', '#btn-handbook',
+  '#btn-quick', '#btn-api-browser', '#btn-structure', '#btn-handbook',
   '#btn-load-graph', '#btn-graph-tools', '#btn-clear-graph',
   '#btn-template', '#btn-import', '#btn-export', '#btn-reset',
   '.side-back',

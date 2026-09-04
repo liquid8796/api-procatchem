@@ -8,7 +8,14 @@
  */
 
 import { t } from '../core/i18n.js';
-import { API_ENTRIES, API_GROUPS, API_VERSION } from '../domain/api-catalog.js';
+import {
+  apiEntries,
+  apiGroups,
+  apiVersion,
+  isCustomCatalog,
+  loadSpec,
+  resetCatalog,
+} from '../domain/api-registry.js';
 import { h, must, replaceChildren } from './dom.js';
 
 /** How many results to draw before asking the reader to narrow the search. */
@@ -31,6 +38,7 @@ export class ApiBrowser {
     this._selected = null;
     this._list = h('div.api-list', {});
     this._detail = h('div.api-detail', {});
+    this._specResult = h('div.api-spec-result', { 'aria-live': 'polite' });
   }
 
   /** Draw the dialog and show it. */
@@ -40,10 +48,15 @@ export class ApiBrowser {
     must('#api-search', this._dialog).focus();
   }
 
+  /** Redraw in place, for when the API in force has changed underneath it. */
+  redraw() {
+    if (this._dialog.open) this._render();
+  }
+
   _render() {
     replaceChildren(this._dialog, [
       h('header.tool-head', {}, [
-        h('h2.tool-title', { text: t('Lua API · {count} functions', { count: API_ENTRIES.length }) }),
+        h('h2.tool-title', { text: t('Lua API · {count} functions', { count: apiEntries().length }) }),
         h('button.icon-btn', {
           type: 'button', text: '×', title: t('Close'), 'aria-label': t('Close'),
           onClick: () => this._dialog.close(),
@@ -70,17 +83,99 @@ export class ApiBrowser {
           },
         }, [
           h('option', { value: '', text: t('Every group') }),
-          ...API_GROUPS.map((group) => h('option', {
+          ...apiGroups().map((group) => h('option', {
             value: group, selected: group === this._group, text: t(group),
           })),
         ]),
       ]),
 
       h('div.api-body', {}, [this._list, this._detail]),
-      h('p.tool-hint', { text: t('Generated from openapi.yaml, API {version}.', { version: API_VERSION }) }),
+      ...this._renderSpecLoader(),
     ]);
 
     this._renderResults();
+  }
+
+  /**
+   * The "my host is newer than this tool" escape hatch.
+   *
+   * The checked-in catalog is a snapshot of one build of the host. When the API
+   * moves on, the tool would otherwise report every new function as a typo —
+   * so the spec that ships beside these docs can be swapped for a newer one
+   * without waiting for the builder itself to be rebuilt.
+   *
+   * @returns {Node[]}
+   */
+  _renderSpecLoader() {
+    const custom = isCustomCatalog();
+    const input = h('input.visually-hidden', {
+      id: 'api-spec-file',
+      type: 'file',
+      accept: '.yaml,.yml,.txt',
+      onChange: async (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (file) await this._loadSpec(file);
+      },
+    });
+
+    return [
+      h('div.tool-row.api-spec', {}, [
+        h('p.tool-hint', {
+          text: custom
+            ? t('Reading a spec you loaded: API {version}.', { version: apiVersion() })
+            : t('Generated from openapi.yaml, API {version}.', { version: apiVersion() }),
+        }),
+        h('button.btn.btn-lcd.btn-quiet', {
+          type: 'button',
+          text: t('Load a newer openapi.yaml'),
+          onClick: () => input.click(),
+        }),
+        custom ? h('button.btn.btn-lcd.btn-quiet', {
+          type: 'button',
+          text: t('Back to the built-in API'),
+          onClick: () => {
+            resetCatalog();
+            this._app.toast(t('Back to the API this tool was built with.'), 'ok');
+          },
+        }) : null,
+        input,
+      ]),
+      this._specResult,
+    ];
+  }
+
+  /**
+   * @param {File} file
+   */
+  async _loadSpec(file) {
+    let diff;
+    try {
+      diff = loadSpec(await file.text());
+    } catch (error) {
+      this._app.toast(t('Could not read that spec: {message}', { message: error.message }), 'error');
+      return;
+    }
+
+    const lines = [
+      t('Now checking against API {version}.', { version: diff.version }),
+      diff.added.length
+        ? t('{count} new: {names}', { count: diff.added.length, names: diff.added.slice(0, 8).join(', ') })
+        : t('No functions this tool did not already know about.'),
+    ];
+    if (diff.removed.length) {
+      lines.push(t('{count} gone: {names}', {
+        count: diff.removed.length, names: diff.removed.slice(0, 8).join(', '),
+      }));
+    }
+    if (diff.changed.length) {
+      lines.push(t('{count} changed signature: {names}', {
+        count: diff.changed.length, names: diff.changed.slice(0, 8).join(', '),
+      }));
+    }
+
+    replaceChildren(this._specResult, lines.map((line) => h('p.tool-ok', { text: line })));
+    this._app.toast(t('Loaded API {version}.', { version: diff.version }), 'ok');
   }
 
   _renderResults() {
@@ -188,7 +283,7 @@ function describeKind(kind) {
  */
 function search(query, group) {
   const needle = query.trim().toLowerCase();
-  const pool = group ? API_ENTRIES.filter((entry) => entry.group === group) : API_ENTRIES;
+  const pool = group ? apiEntries().filter((entry) => entry.group === group) : apiEntries();
   if (!needle) return [...pool];
 
   /** @type {Array<{ entry: object, rank: number }>} */
