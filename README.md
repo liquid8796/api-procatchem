@@ -9,6 +9,14 @@ This package converts the full PROCatchem Lua API reference from the previous Re
 - The previous Redoc sidebar-scroll workaround is no longer needed because this template uses normal anchor navigation.
 - PC storage APIs include the latest flows: official PC open/close, team-PC swap, deposit/withdraw, release, and internal PC box swap.
 
+## `inRectangle` position query (v1.0.117)
+
+The Lua reference now includes `inRectangle(upperX, upperY, lowerX, lowerY)`. It checks whether the player's current cell is inside a fixed rectangle, with the border included. This is a read-only query: it does not move the player and does not consume a path action.
+
+The entry is available in the OpenAPI spec, both Slate Markdown references, the static reference page, and the Script Builder API catalogue. The reference page wording is also included in all four shipped languages: English, Tiếng Việt, 日本語 and 简体中文.
+
+This Lua surface change bumps the API metadata and page badges from **1.0.109** to **1.0.110**.
+
 ## Pokédex UI theme (v1.0.107)
 
 The static docs now ship with a vivid, Pokémon-game-inspired template:

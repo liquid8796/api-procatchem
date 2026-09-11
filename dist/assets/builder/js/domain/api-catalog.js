@@ -10,7 +10,7 @@
  */
 
 /** Spec version this catalog was generated from. */
-export const API_VERSION = "1.0.109";
+export const API_VERSION = "1.0.110";
 
 /** Tag names, in the order the reference presents them. */
 export const API_GROUPS = Object.freeze(["Script metadata","Lifecycle callbacks","Core utilities","Workflow","Map and NPC","General state","Team Pokémon","Items and shop","PC storage","Battle state","Path actions","Dialog functions","Battle actions","Bot configuration","Move learning actions","Custom options","File APIs","Chat","Notifications","Legacy special actions"]);
@@ -160,6 +160,7 @@ export const API_ENTRIES = Object.freeze([
   {"name":"hasMove","group":"Team Pokémon","kind":"query","signature":"result = hasMove(pokemonIndex, moveName)","summary":"Returns true if the specified pokémon has a move with the specified name.","params":[{"name":"pokemonIndex","type":"integer","required":true,"description":"One-based Pokémon index in the current team."},{"name":"moveName","type":"string","required":true,"description":"Exact move name as shown by the game."}],"returns":"boolean"},
   {"name":"hasPokemonInTeam","group":"Team Pokémon","kind":"query","signature":"result = hasPokemonInTeam(pokemonName)","summary":"Returns true if the specified pokémon is present in the team.","params":[{"name":"pokemonName","type":"string","required":true,"description":"Value passed to the `pokemonName` parameter."}],"returns":"boolean"},
   {"name":"hasShopItem","group":"Items and shop","kind":"query","signature":"result = hasShopItem(itemName)","summary":"Lua function `hasShopItem`.","params":[{"name":"itemName","type":"string","required":true,"description":"Exact item name as shown in the inventory."}],"returns":"boolean"},
+  {"name":"inRectangle","group":"Map and NPC","kind":"query","signature":"result = inRectangle(upperX, upperY, lowerX, lowerY)","summary":"Returns true when the player's current cell is inside the rectangle, including the border. Coordinates are inclusive. Pass the upper-left corner first and the lower-right corner second. The function does not reorder the values.","params":[{"name":"upperX","type":"integer","required":true,"description":"X-coordinate of the rectangle's upper-left corner."},{"name":"upperY","type":"integer","required":true,"description":"Y-coordinate of the rectangle's upper-left corner."},{"name":"lowerX","type":"integer","required":true,"description":"X-coordinate of the rectangle's lower-right corner."},{"name":"lowerY","type":"integer","required":true,"description":"Y-coordinate of the rectangle's lower-right corner."}],"returns":"boolean"},
   {"name":"isAccountMember","group":"General state","kind":"query","signature":"result = isAccountMember()","summary":"Returns current account's membership status.","params":[],"returns":"boolean"},
   {"name":"isAlreadyCaught","group":"Battle state","kind":"query","signature":"result = isAlreadyCaught()","summary":"Returns true if the opponent pokémon has already been caught and has a pokédex entry.","params":[],"returns":"boolean"},
   {"name":"isAutoEvolve","group":"General state","kind":"query","signature":"result = isAutoEvolve()","summary":"Return the state Auto Evolve","params":[],"returns":"boolean"},

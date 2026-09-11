@@ -1,5 +1,20 @@
 # Changelog
 
+## PROCatchem content — v1.0.117
+
+*September 11, 2026*
+
+**Added:**
+
+- Documented the new `inRectangle(upperX, upperY, lowerX, lowerY)` Lua query under **Map and NPC**. The entry explains inclusive borders, coordinate order, the read-only behavior, all four parameters, the boolean return value, and includes a practical `onPathAction()` example.
+- Added the same new prose to the Vietnamese, Japanese and Simplified Chinese reference-page packs, so switching language does not leave the new entry half-English.
+- Added `inRectangle` to the Script Builder host list and regenerated API catalogue so hand-written calls validate like the rest of the host API.
+
+**Changed:**
+
+- API metadata and page badges move from **1.0.109** to **1.0.110** because the documented Lua surface gained a function.
+- Synchronized `openapi.yaml`, both Slate Markdown references, the static reference page, README and deployable `dist/` output.
+
 ## PROCatchem content — v1.0.116
 
 *September 4, 2026*

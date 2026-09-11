@@ -1021,6 +1021,56 @@ end
 <small>Source key: `POST /lua/map-and-npc/getplayery`</small>
 
 
+## inRectangle()
+
+~~~ lua
+function onPathAction()
+    if inRectangle(10, 5, 20, 15) then
+        return moveToGrass()
+    end
+
+    return moveToCell(10, 5)
+end
+~~~
+
+**Signature**
+
+`result = inRectangle(upperX, upperY, lowerX, lowerY)`
+
+Returns true when the player's current cell is inside the rectangle, including the border.
+
+Coordinates are inclusive. Pass the upper-left corner first and the lower-right corner second. The function does not reorder the values.
+
+**Practical scenario**
+
+Use this when a route should behave differently inside a fixed map area. The check is read-only: it does not move the player or consume a path action.
+
+```lua
+function onPathAction()
+    if inRectangle(10, 5, 20, 15) then
+        return moveToGrass()
+    end
+
+    return moveToCell(10, 5)
+end
+```
+
+### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| `upperX` | `integer` | yes | X-coordinate of the rectangle's upper-left corner. |
+| `upperY` | `integer` | yes | Y-coordinate of the rectangle's upper-left corner. |
+| `lowerX` | `integer` | yes | X-coordinate of the rectangle's lower-right corner. |
+| `lowerY` | `integer` | yes | Y-coordinate of the rectangle's lower-right corner. |
+
+### Returns
+
+`boolean` — example: `true`
+
+<small>Source key: `POST /lua/map-and-npc/inrectangle`</small>
+
+
 ## getMapName()
 
 ~~~ lua
