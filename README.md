@@ -22,6 +22,15 @@ This rename bumps the API metadata and page badges from **1.0.110** to **1.0.111
 The reference, Script Builder host catalogue, static page and all shipped language packs
 continue to use the same translated explanation and parameter descriptions.
 
+## Script Builder Pokéball item spelling (v1.0.119)
+
+The Script Builder now uses the in-game item name `Pokéball` everywhere it pre-fills or suggests
+a standard ball. This includes the default battle plan, starter templates, rule-step suggestions,
+the throw-ball input placeholder, and generated fixture data.
+
+This is a Script Builder content correction only. The Lua API surface and API metadata version stay
+at **1.0.111**.
+
 ## Pokédex UI theme (v1.0.107)
 
 The static docs now ship with a vivid, Pokémon-game-inspired template:

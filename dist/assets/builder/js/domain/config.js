@@ -268,7 +268,7 @@ const DEFAULT_BALLS = Object.freeze([
   { item: 'Quick Ball', condition: 'turn1' },
   { item: 'Ultra Ball', condition: 'always' },
   { item: 'Great Ball', condition: 'always' },
-  { item: 'Pokeball', condition: 'always' },
+  { item: 'Pokéball', condition: 'always' },
 ]);
 
 /** Monotonic ids so the editor can key rows without relying on their index. */
@@ -358,7 +358,7 @@ export function createDefaultRule() {
       }),
       createStep({
         action: 'throwBalls',
-        balls: ['Ultra Ball', 'Great Ball', 'Pokeball'],
+        balls: ['Ultra Ball', 'Great Ball', 'Pokéball'],
         when: emptyGroup('and'),
       }),
     ],

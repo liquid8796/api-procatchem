@@ -271,7 +271,7 @@ test('every step action emits something sound', () => {
   const actions = [
     { action: 'useMove', move: 'Tackle' },
     { action: 'useItem', item: 'Ultra Ball' },
-    { action: 'throwBalls', balls: ['Ultra Ball', 'Pokeball'] },
+    { action: 'throwBalls', balls: ['Ultra Ball', 'Pokéball'] },
     { action: 'sendPokemon', slotNumber: 2 },
     { action: 'attack' },
     { action: 'weakAttack' },

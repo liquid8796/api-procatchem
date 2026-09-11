@@ -1,5 +1,14 @@
 # Changelog
 
+## PROCatchem content — v1.0.119
+
+*September 11, 2026*
+
+**Fixed:**
+
+- Corrected the Script Builder item name from `Pokeball` to `Pokéball` everywhere the builder pre-fills, suggests, or emits that ball name: default battle settings, templates, guided rule steps, the throw-ball placeholder, and fixture data.
+- This is a Script Builder content correction only; the Lua API surface and API metadata remain unchanged at **1.0.111**.
+
 ## PROCatchem content — v1.0.118
 
 *September 11, 2026*

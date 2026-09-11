@@ -379,7 +379,7 @@ function renderStepInput(need, step, update, index) {
       return h('input.input.step-input.step-wide', {
         type: 'text',
         value: Array.isArray(step.balls) ? step.balls.join(', ') : '',
-        placeholder: 'Ultra Ball, Great Ball, Pokeball',
+        placeholder: 'Ultra Ball, Great Ball, Pokéball',
         'aria-label': t('Step {n} balls', { n: index + 1 }),
         title: t('Thrown top to bottom until one is used'),
         onChange: (event) => update({ balls: splitList(event.target.value) }),

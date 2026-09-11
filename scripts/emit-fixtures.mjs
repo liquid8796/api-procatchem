@@ -107,7 +107,7 @@ const END_SETUPS = [
 const STEP_SETS = [
   [
     createStep({ action: 'useMove', move: 'False Swipe', slot: 'auto' }),
-    createStep({ action: 'throwBalls', balls: ['Ultra Ball', 'Pokeball'] }),
+    createStep({ action: 'throwBalls', balls: ['Ultra Ball', 'Pokéball'] }),
   ],
   [
     createStep({ action: 'useMove', move: 'Spore', slot: 3, once: true }),
@@ -238,7 +238,7 @@ for (const mode of MODES) {
           config.battle.weaken.mode = weaken;
           config.battle.balls = [
             { item: 'Ultra Ball', condition: BALL_CONDITIONS[index % BALL_CONDITIONS.length] },
-            { item: 'Pokeball', condition: 'always' },
+            { item: 'Pokéball', condition: 'always' },
           ];
           config.battle.status.requireBeforeBall = index % 3 === 0;
           config.battle.status.moves = index % 2 === 0 ? ['Spore', 'Hypnosis'] : [];

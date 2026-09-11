@@ -341,7 +341,7 @@ export const TEMPLATES = Object.freeze([
                 items: [{ kind: 'oppStatus', params: { status: '' }, negate: false }],
               },
             }),
-            createStep({ action: 'throwBalls', balls: ['Ultra Ball', 'Great Ball', 'Pokeball'] }),
+            createStep({ action: 'throwBalls', balls: ['Ultra Ball', 'Great Ball', 'Pokéball'] }),
           ],
         },
         {
