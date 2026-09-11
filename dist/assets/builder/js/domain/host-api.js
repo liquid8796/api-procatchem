@@ -27,7 +27,7 @@ export const HOST_FUNCTIONS = Object.freeze([
   'getPokemonStat', 'getPokemonStatFromPC', 'getPokemonStatus', 'getPokemonStatusFromPC', 'getPokemonTotalExperience', 'getPokemonTotalExperienceFromPC',
   'getPokemonType', 'getPokemonTypeFromPC', 'getPokemonUniqueId', 'getPokemonUniqueIdFromPC', 'getRemainingPowerPoints', 'getServer',
   'getTeamSize', 'getTextOption', 'getTime', 'getUsablePokemonCount', 'giveItemToPokemon', 'hasItem',
-  'hasItemId', 'hasMove', 'hasPokemonInTeam', 'hasShopItem', 'inRectangle', 'isAccountMember', 'isAlreadyCaught',
+  'hasItemId', 'hasMove', 'hasPokemonInTeam', 'hasShopItem', 'isInRectangle', 'isAccountMember', 'isAlreadyCaught',
   'isAutoEvolve', 'isCurrentPCBoxRefreshed', 'isGameScriptActive', 'isInArea', 'isMorning', 'isMounted',
   'isNight', 'isNoon', 'isNpcInteractionsEnabled', 'isNpcOnCell', 'isNpcVisible', 'isOpponentEffortValue',
   'isOpponentShiny', 'isOutside', 'isPCOpen', 'isPartyInspectionEnabled', 'isPokemonFromPCShiny', 'isPokemonShiny',

@@ -1,5 +1,16 @@
 # Changelog
 
+## PROCatchem content — v1.0.118
+
+*September 11, 2026*
+
+**Changed:**
+
+- Renamed the Lua rectangle-position query from `inRectangle(...)` to `isInRectangle(...)`. The new name makes the boolean result explicit and matches condition helpers such as `isInArea()`.
+- The old function name is no longer listed as a host API. Existing scripts should switch to `isInRectangle(upperX, upperY, lowerX, lowerY)`. Runtime behavior is unchanged: borders remain inclusive and the call is read-only.
+- Renamed the pseudo endpoint to `/lua/map-and-npc/isinrectangle`, updated the navigation anchor, Lua signatures, examples, both Markdown references and the Script Builder catalogue.
+- API metadata and page badges move from **1.0.110** to **1.0.111**. Vietnamese, Japanese and Simplified Chinese packs keep serving the translated prose for the renamed entry.
+
 ## PROCatchem content — v1.0.117
 
 *September 11, 2026*

@@ -9,13 +9,18 @@ This package converts the full PROCatchem Lua API reference from the previous Re
 - The previous Redoc sidebar-scroll workaround is no longer needed because this template uses normal anchor navigation.
 - PC storage APIs include the latest flows: official PC open/close, team-PC swap, deposit/withdraw, release, and internal PC box swap.
 
-## `inRectangle` position query (v1.0.117)
+## `isInRectangle` position query (v1.0.118)
 
-The Lua reference now includes `inRectangle(upperX, upperY, lowerX, lowerY)`. It checks whether the player's current cell is inside a fixed rectangle, with the border included. This is a read-only query: it does not move the player and does not consume a path action.
+The rectangle-position query is now exposed as
+`isInRectangle(upperX, upperY, lowerX, lowerY)`. The `is...` prefix makes the boolean
+return value clearer and matches condition helpers such as `isInArea()`.
 
-The entry is available in the OpenAPI spec, both Slate Markdown references, the static reference page, and the Script Builder API catalogue. The reference page wording is also included in all four shipped languages: English, Tiếng Việt, 日本語 and 简体中文.
+The behavior did not change: rectangle borders are inclusive, the call only reads the
+current player coordinates, and the four coordinate values are used exactly as supplied.
 
-This Lua surface change bumps the API metadata and page badges from **1.0.109** to **1.0.110**.
+This rename bumps the API metadata and page badges from **1.0.110** to **1.0.111**.
+The reference, Script Builder host catalogue, static page and all shipped language packs
+continue to use the same translated explanation and parameter descriptions.
 
 ## Pokédex UI theme (v1.0.107)
 
@@ -224,6 +229,6 @@ npm run slate:build
 
 Vercel uses the default `npm run build` static build to avoid failing when Bundler gems are not installed.
 
-Version: `1.0.109`.
+Version: `1.0.111`.
 
 - Sidebar categories are collapsed by default on first landing. Clicking either the category label or the chevron toggles collapse/expand; function links still scroll to their API sections.

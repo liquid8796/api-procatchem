@@ -1021,11 +1021,11 @@ end
 <small>Source key: `POST /lua/map-and-npc/getplayery`</small>
 
 
-## inRectangle()
+## isInRectangle()
 
 ~~~ lua
 function onPathAction()
-    if inRectangle(10, 5, 20, 15) then
+    if isInRectangle(10, 5, 20, 15) then
         return moveToGrass()
     end
 
@@ -1035,7 +1035,7 @@ end
 
 **Signature**
 
-`result = inRectangle(upperX, upperY, lowerX, lowerY)`
+`result = isInRectangle(upperX, upperY, lowerX, lowerY)`
 
 Returns true when the player's current cell is inside the rectangle, including the border.
 
@@ -1047,7 +1047,7 @@ Use this when a route should behave differently inside a fixed map area. The che
 
 ```lua
 function onPathAction()
-    if inRectangle(10, 5, 20, 15) then
+    if isInRectangle(10, 5, 20, 15) then
         return moveToGrass()
     end
 
@@ -1068,7 +1068,7 @@ end
 
 `boolean` — example: `true`
 
-<small>Source key: `POST /lua/map-and-npc/inrectangle`</small>
+<small>Source key: `POST /lua/map-and-npc/isinrectangle`</small>
 
 
 ## getMapName()

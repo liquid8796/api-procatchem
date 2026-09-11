@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: PROCatchem Lua Script API
   summary: Lua API reference for PROCatchem script authors, including notification helpers.
-  version: 1.0.110
+  version: 1.0.111
   description: "This documentation describes the Lua functions exposed by PROCatchem to user scripts.\n\
     \nThe API is represented as OpenAPI pseudo-endpoints so it can be rendered with Redoc/Redocly and\
     \ deployed as a static documentation site. These are not HTTP endpoints. Each operation describes\
@@ -916,13 +916,13 @@ paths:
         source: "function onPathAction()\n    function onPathAction()\n    local result = getPlayerY()\n\
           \    log(\"getPlayerY: \" .. tostring(result))\nend\n    log(\"getPlayerY: \" .. tostring(result))\n\
           end"
-  /lua/map-and-npc/inrectangle:
+  /lua/map-and-npc/isinrectangle:
     post:
       tags:
       - Map and NPC
-      operationId: inRectangle
-      summary: inRectangle()
-      description: "**Lua global function**\n\n```lua\nresult = inRectangle(upperX, upperY, lowerX, lowerY)\n```\n\nReturns true when the player's current cell is inside the rectangle, including the border.\n\nCoordinates are inclusive. Pass the upper-left corner first and the lower-right corner second. The function does not reorder the values.\n\n**Practical scenario**\n\nUse this when a route should behave differently inside a fixed map area. The check is read-only: it does not move the player or consume a path action.\n\n```lua\nfunction onPathAction()\n    if inRectangle(10, 5, 20, 15) then\n        return moveToGrass()\n    end\n\n    return moveToCell(10, 5)\nend\n```"
+      operationId: isInRectangle
+      summary: isInRectangle()
+      description: "**Lua global function**\n\n```lua\nresult = isInRectangle(upperX, upperY, lowerX, lowerY)\n```\n\nReturns true when the player's current cell is inside the rectangle, including the border.\n\nCoordinates are inclusive. Pass the upper-left corner first and the lower-right corner second. The function does not reorder the values.\n\n**Practical scenario**\n\nUse this when a route should behave differently inside a fixed map area. The check is read-only: it does not move the player or consume a path action.\n\n```lua\nfunction onPathAction()\n    if isInRectangle(10, 5, 20, 15) then\n        return moveToGrass()\n    end\n\n    return moveToCell(10, 5)\nend\n```"
       requestBody:
         required: true
         content:
@@ -960,10 +960,10 @@ paths:
               schema:
                 type: boolean
               example: true
-      x-lua-signature: result = inRectangle(upperX, upperY, lowerX, lowerY)
+      x-lua-signature: result = isInRectangle(upperX, upperY, lowerX, lowerY)
       x-codeSamples:
       - lang: Lua
-        source: "function onPathAction()\n    if inRectangle(10, 5, 20, 15) then\n        return moveToGrass()\n    end\n\n    return moveToCell(10, 5)\nend"
+        source: "function onPathAction()\n    if isInRectangle(10, 5, 20, 15) then\n        return moveToGrass()\n    end\n\n    return moveToCell(10, 5)\nend"
   /lua/general-state/getaccountname:
     post:
       tags:
