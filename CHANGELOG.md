@@ -1,5 +1,18 @@
 # Changelog
 
+## PROCatchem Lua API — v1.0.112
+
+*October 13, 2026*
+
+**Added:** \`surrender()\` to the Battle actions Lua API. Sends one \`/surrender\`
+command for non-Wild Trainer/PvP battles; rejects Wild/finished/repeated calls.
+\`true\` means the command was sent, not server-confirmed. No Lua confirmation
+dialog; call intentionally. \`run()\` remains Wild-only.
+
+**Docs:** Updated OpenAPI, both Slate references, static HTML navigation and article,
+Script Builder host/catalog and optional action, translations, tests and deployable assets.
+
+
 ## PROCatchem content — v1.0.119
 
 *September 11, 2026*

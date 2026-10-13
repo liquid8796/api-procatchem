@@ -224,6 +224,8 @@ export const CHAIN_ACTIONS = Object.freeze([
   { id: 'attack', label: 'attack()', needs: 'none' },
   { id: 'weakAttack', label: 'weakAttack()', needs: 'none' },
   { id: 'run', label: 'run()', needs: 'none' },
+  // Explicit opt-in: surrender is never part of the default battle policy.
+  { id: 'surrender', label: 'surrender() — forfeit non-wild battle', needs: 'none' },
   { id: 'useAnyMove', label: 'useAnyMove()', needs: 'none' },
   { id: 'sendUsablePokemon', label: 'sendUsablePokemon()', needs: 'none' },
   { id: 'sendAnyPokemon', label: 'sendAnyPokemon()', needs: 'none' },

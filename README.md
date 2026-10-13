@@ -1,5 +1,21 @@
 # PROCatchem Lua API Docs - Slate Template
 
+## Lua surrender API (v1.0.112)
+
+The battle-only \`surrender()\` global forfeits a non-Wild (Trainer/PvP) battle by sending
+\`/surrender\`. It returns \`true\` when sent (not when the server confirms the result), and
+\`false\` for Wild, finished, or previously-requested battles. Only one command is sent
+per battle, even if \`onBattleAction()\` runs again before the server responds.
+Calls outside battle follow the normal fatal battle-only API validation.
+
+This is a deliberate, irreversible battle action: Lua does **not** show a confirmation
+dialog. \`run()\` still only attempts Wild escape. The Script Builder exposes the new
+action as an explicit choice and does not add it to default battle policies.
+
+The reference, OpenAPI metadata, generated host catalog, static site and translations
+are synchronized with API version **1.0.112**.
+
+
 This package converts the full PROCatchem Lua API reference from the previous Redoc/OpenAPI page to the uploaded Slate-style template.
 
 ## What changed

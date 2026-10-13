@@ -36,7 +36,7 @@ export const HOST_FUNCTIONS = Object.freeze([
   'logout', 'moveNearExit', 'moveToCell', 'moveToGrass', 'moveToListCell', 'moveToMap',
   'moveToNormalGround', 'moveToRectangle', 'moveToWater', 'notify', 'openPCBox', 'playSound',
   'pushDialogAnswer', 'readLinesFromFile', 'refreshPCBox', 'registerHook', 'relearnMove', 'releasePokemonFromPC',
-  'releasePokemonFromTeam', 'relog', 'removeOption', 'removeTextOption', 'restart', 'run',
+  'releasePokemonFromTeam', 'relog', 'removeOption', 'removeTextOption', 'restart', 'run', 'surrender',
   'sendAnyPokemon', 'sendNotification', 'sendNotificationTo', 'sendNotificationWith', 'sendNotificationWithTo', 'sendPokemon',
   'sendUsablePokemon', 'setAfk', 'setAfkTimeout', 'setBattleTimeout', 'setDialogTimeout', 'setFishingTimeout',
   'setItemUseTimeout', 'setLoadingMapTimeout', 'setLoadingTimeout', 'setMount', 'setMountingTimeout', 'setMoveRelearnerTimeout',

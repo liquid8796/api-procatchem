@@ -9778,6 +9778,49 @@ end
 <small>Source key: `POST /lua/battle-actions/run`</small>
 
 
+## surrender()
+
+~~~ lua
+function onBattleAction()
+    if not isWildBattle() then
+        surrender()
+        return
+    end
+    attack()
+end
+~~~
+
+**Signature**
+
+\`result = surrender()\`
+
+Surrenders the current non-wild (Trainer/PvP) battle by sending /surrender.
+
+**Practical scenario**
+
+Call from onBattleAction() only when intentionally forfeiting a Trainer or PvP battle. Lua scripts do not show a confirmation dialog.
+
+**Behavior**
+
+Returns true when the command is sent, not when the server confirms defeat. Returns false in wild, finished or already-requested battles. A battle-only script error occurs if called outside battle.
+
+\`\`\`lua
+function onBattleAction()
+    if not isWildBattle() then
+        surrender()
+        return
+    end
+    attack()
+end
+\`\`\`
+
+### Returns
+
+\`boolean\` — \`true\` when a command was sent; \`false\` when refused.
+
+<small>Source key: \`POST /lua/battle-actions/surrender\`</small>
+
+
 ## sendUsablePokemon()
 
 ~~~ lua
