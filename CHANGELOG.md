@@ -1,5 +1,17 @@
 # Changelog
 
+## Script Builder — LinkGraph v2 sync
+
+*October 13, 2026*
+
+- Script Builder imports and exports the native maps-cache/link_graph_v2.txt format:
+  eight columns with source, destination spawn, confirmed state and observation time.
+- Legacy v1 rows import as legacy-unknown, never silently routed as confirmed links.
+- Directed same-map cave links are retained. Name-only Lua routing refuses ambiguous
+  cave sectors and multi-warp choices instead of guessing an exit.
+- Merging confirmed observations over legacy cells persists upgrades correctly.
+- Regression fixtures and documentation updated for v2.
+
 ## PROCatchem Lua API — v1.0.112
 
 *October 13, 2026*

@@ -16,11 +16,11 @@ import {
 import { modeRegistry } from '../assets/builder/js/generators/mode-registry.js';
 
 const SAMPLE_GRAPH = LinkGraph.parse([
-  'PROCATCHEM-LINKGRAPH\tv1',
-  'Pokecenter Viridian\t9\t14\tViridian City',
-  'Viridian City\t23\t8\tPokecenter Viridian',
-  'Viridian City\t12\t3\tViridian Forest',
-  'Viridian Forest\t14\t46\tViridian City',
+  'PROCATCHEM-LINKGRAPH\tv2',
+  'Pokecenter Viridian\t9\t14\tViridian City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian City\t23\t8\tPokecenter Viridian\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian City\t12\t3\tViridian Forest\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian Forest\t14\t46\tViridian City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
 ].join('\n')).graph;
 
 const EMPTY_GRAPH = new LinkGraph();
@@ -99,7 +99,7 @@ test('route mode without a link graph reports a problem instead of emitting a st
   const result = generate(config, EMPTY_GRAPH);
 
   assert.equal(result.plan.problems.length, 1);
-  assert.match(result.plan.problems[0], /link_graph\.txt/);
+  assert.match(result.plan.problems[0], /link_graph_v2\.txt/);
   assert.equal(result.plan.travels, false);
   // Still a valid script — it just hunts in place rather than emitting bad hops.
   assertSound(result, 'route-no-graph');

@@ -120,7 +120,7 @@ catalogue before you copy it.
 
 The host retired `moveToMap()`: calling it raises a fatal error and stops the script. The builder
 therefore expresses every map transition as `moveToCell(x, y)` onto a warp tile, using the link
-graph the bot writes to `maps-cache/link_graph.txt` while it plays:
+graph the bot writes to `maps-cache/link_graph_v2.txt` while it plays:
 
 ```lua
 local TO_FARM = {
@@ -133,6 +133,18 @@ local function walk(hops)
     return false
 end
 ```
+
+The v2 cache is tab-separated with exactly eight fields:
+FromMap, FromX, FromY, ToMap, ToX, ToY, confirmed/legacy-unknown and UTC
+observation time. The old v1 cache can still be imported and exported as v2,
+but its unknown destination spawn must be re-observed before route generation.
+
+**Cave / same-map warp safety:** Source cells and destination spawns are retained
+in the graph. However, a Lua route keyed solely by getMapName() cannot tell
+which cave sector the player is in, and multiple exits to one named map are
+ambiguous without per-map collision data. Script Builder refuses those unsafe
+routes. Use the native position-aware navigation with cached .pm collider data
+for such cases instead of guessing a warp tile.
 
 Load that file in the builder's sidebar to unlock Pokécenter routes. Without it the builder says so
 rather than emitting a route that cannot work; hunting on the current map needs no link graph.

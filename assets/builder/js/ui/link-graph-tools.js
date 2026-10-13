@@ -47,7 +47,7 @@ export class LinkGraphTools {
     this._pasteBox = /** @type {HTMLTextAreaElement} */ (h('textarea.input.tool-textarea', {
       rows: 5,
       spellcheck: 'false',
-      placeholder: 'Viridian City\t12\t3\tViridian Forest',
+      placeholder: 'Viridian City\t12\t3\tViridian Forest\t14\t46\tconfirmed\t2026-10-13T00:00:00Z',
       'aria-label': t('Link graph rows'),
     }));
     this._scriptBox = /** @type {HTMLTextAreaElement} */ (h('textarea.input.tool-textarea', {
@@ -68,15 +68,13 @@ export class LinkGraphTools {
 
       h('p.tool-lead', {
         text: this._app.linkGraph.isEmpty
-          ? t('Nothing loaded. The bot writes maps-cache/link_graph.txt as it walks between maps.')
-          : t('{maps} maps, {edges} connections, {cells} warp cells.', {
-            maps: stats.maps, edges: stats.edges, cells: stats.cells,
-          }),
+          ? t('Nothing loaded. The bot writes maps-cache/link_graph_v2.txt as it walks between maps.')
+          : t('{maps} maps, {confirmed} confirmed, {unverified} unverified, {sameMap} same-map warps.', stats),
       }),
 
       this._renderSection(t('Edit by hand'), [
         h('p.tool-hint', {
-          text: t('One connection per line: from map, x, y, to map — separated by tabs.'),
+          text: t('LinkGraph v2 (tabs): from map, x, y, to map, spawn x, spawn y, confirmed/legacy-unknown, UTC timestamp. v1 imports as unverified.'),
         }),
         this._pasteBox,
         h('div.tool-actions', {}, [
@@ -89,7 +87,7 @@ export class LinkGraphTools {
             onClick: () => this._applyPaste((text) => this._app.replaceLinkGraph(text)),
           }),
           h('button.btn.btn-lcd.btn-quiet', {
-            type: 'button', text: t('Export link_graph.txt'),
+            type: 'button', text: t('Export link_graph_v2.txt'),
             onClick: () => this._app.exportLinkGraph(),
           }),
         ]),
@@ -249,7 +247,10 @@ export class LinkGraphTools {
 
     const path = graph.findRoute(from, to);
     if (!path) {
-      this._showResult(this._routeResult, 'error', t('No path from "{from}" to "{to}".', { from, to }));
+      this._showResult(this._routeResult, 'error',
+        graph.hasSameMapWarp(from) || graph.hasSameMapWarp(to)
+          ? t('Same-map cave warps need position-aware routing. The builder cannot safely choose an exit using map names alone.')
+          : t('No confirmed, unambiguous path from "{from}" to "{to}".', { from, to }));
       return;
     }
     if (path.length === 1) {

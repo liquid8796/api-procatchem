@@ -1,328 +1,206 @@
 /**
- * Map-to-map link graph.
- *
- * The bot host learns which cell on map A warps to map B and caches it in
- * `maps-cache/link_graph.txt`:
- *
- *     PROCATCHEM-LINKGRAPH<TAB>v1
- *     Viridian City<TAB>12<TAB>3<TAB>Viridian Forest
- *
- * That file is the reason the builder never needs the retired `moveToMap()`:
- * travelling from A to B is just walking onto the warp cell with
- * `moveToCell(x, y)`, one hop per map, until `getMapName()` reports the goal.
+ * PROCatchem LinkGraph v2: directed observed warp cells and destination spawns.
+ * v1 cells are importable but unverified and NEVER used for routing.
+ * Same-map cave warps require collision/position-aware navigation, so map-name
+ * only scripts deliberately refuse to choose an arbitrary exit.
  */
-
 import { t } from '../core/i18n.js';
-
 export const LINK_GRAPH_HEADER = 'PROCATCHEM-LINKGRAPH';
-const FIELDS_PER_RECORD = 4;
-/** Fallback for files whose tabs were flattened to runs of spaces by an editor. */
-const SPACED_RECORD_PATTERN = /^(.+?)\s{2,}(-?\d+)\s+(-?\d+)\s{2,}(.+)$/;
-
-/**
- * @typedef {{ x: number, y: number }} Cell
- * @typedef {{ from: string, to: string, x: number, y: number }} Hop
- * @typedef {{ maps: number, edges: number, cells: number, skipped: number }} ParseStats
- */
-
-/** @param {string} name @returns {string} */
-function normalise(name) {
-  return String(name ?? '').trim().toLowerCase();
-}
+const LEGACY = 'legacy-unknown';
+const SPACED_V1 = /^(.+?)\s{2,}(-?\d+)\s+(-?\d+)\s{2,}(.+)$/;
+const normalise = (name) => String(name ?? '').trim().toLowerCase();
+const cellKey = (x, y) => x + '\t' + y;
+const sortCell = (a, b) => a.x - b.x || a.y - b.y;
+const validTimestamp = (value) => !value || (!Number.isNaN(Date.parse(value)) && /(?:Z|[+-]\d\d:\d\d)$/i.test(value));
+/** @typedef {{x:number,y:number}} Cell */
+/** @typedef {{from:string,x:number,y:number,to:string,toX:number,toY:number,confirmed:boolean,lastObservedUtc:string}} WarpEdge */
+/** @typedef {WarpEdge} Hop */
 
 export class LinkGraph {
   constructor() {
-    /** @type {Map<string, Map<string, Cell[]>>} normalised from -> normalised to -> cells */
+    /** @type {Map<string, Map<string, WarpEdge>>} */
+    this._records = new Map();
+    /** @type {Map<string, Map<string, WarpEdge[]>>} */
     this._edges = new Map();
-    /** @type {Map<string, string>} normalised name -> display name */
     this._displayNames = new Map();
     this._edgeCount = 0;
     this._cellCount = 0;
   }
+  get isEmpty() { return this._cellCount === 0; }
+  get edgeCount() { return this._edgeCount; }
+  get cellCount() { return this._cellCount; }
 
-  /** @returns {boolean} true when nothing has been loaded */
-  get isEmpty() {
-    return this._edges.size === 0;
-  }
-
-  /** @returns {number} number of distinct directed map pairs */
-  get edgeCount() {
-    return this._edgeCount;
-  }
-
-  /** @returns {number} number of distinct warp cells */
-  get cellCount() {
-    return this._cellCount;
-  }
-
-  /**
-   * Parse the contents of a `link_graph.txt` file.
-   *
-   * Unparseable lines are counted rather than thrown, because the host writes
-   * the cache incrementally and a partially-flushed file is normal.
-   *
-   * @param {string} text
-   * @returns {{ graph: LinkGraph, stats: ParseStats }}
-   */
   static parse(text) {
     const graph = new LinkGraph();
     let skipped = 0;
-
-    for (const rawLine of String(text ?? '').split(/\r?\n/)) {
-      const line = rawLine.trim();
-      if (!line || line.toUpperCase().startsWith(LINK_GRAPH_HEADER)) continue;
-
-      let fields = rawLine.split('\t').map((part) => part.trim()).filter(Boolean);
-      if (fields.length < FIELDS_PER_RECORD) {
-        const relaxed = rawLine.match(SPACED_RECORD_PATTERN);
-        fields = relaxed ? [relaxed[1].trim(), relaxed[2], relaxed[3], relaxed[4].trim()] : fields;
+    for (const raw of String(text ?? '').split(/\r?\n/)) {
+      if (!raw.trim() || raw.trim().toUpperCase().startsWith(LINK_GRAPH_HEADER)) continue;
+      let parts = raw.split('\t').map((v) => v.trim());
+      if (parts.length === 1) {
+        const relaxed = raw.match(SPACED_V1);
+        if (relaxed) parts = [relaxed[1].trim(), relaxed[2], relaxed[3], relaxed[4].trim()];
       }
-      if (fields.length < FIELDS_PER_RECORD) {
-        skipped += 1;
-        continue;
-      }
-
-      const [from, rawX, rawY, ...rest] = fields;
-      const x = Number.parseInt(rawX, 10);
-      const y = Number.parseInt(rawY, 10);
-      const to = rest.join(' ').trim();
-      if (!graph.addLink(from, x, y, to)) skipped += 1;
+      if (parts.length === 8) {
+        const [from,sx,sy,to,dx,dy,status,stamp] = parts;
+        if ([sx,sy,dx,dy].some((v) => !/^-?\d+$/.test(v)) ||
+            !['confirmed',LEGACY].includes(status) ||
+            !graph.addLink(from,Number(sx),Number(sy),to,Number(dx),Number(dy),
+              status === 'confirmed',stamp)) skipped += 1;
+      } else if (parts.length === 4) {
+        const [from,sx,sy,to] = parts;
+        if (!/^-?\d+$/.test(sx) || !/^-?\d+$/.test(sy) ||
+            !graph.addLink(from,Number(sx),Number(sy),to)) skipped += 1;
+      } else skipped += 1;
     }
-
     return { graph, stats: { ...graph.stats(), skipped } };
   }
 
-  /**
-   * Record one warp cell. Duplicate cells for the same pair are ignored.
-   *
-   * @param {string} from
-   * @param {number} x
-   * @param {number} y
-   * @param {string} to
-   * @returns {boolean} false when the record was malformed
-   */
-  addLink(from, x, y, to) {
-    const fromKey = normalise(from);
-    const toKey = normalise(to);
-    if (!fromKey || !toKey || !Number.isInteger(x) || !Number.isInteger(y)) return false;
-
-    this._displayNames.set(fromKey, String(from).trim());
-    this._displayNames.set(toKey, String(to).trim());
-
-    let targets = this._edges.get(fromKey);
-    if (!targets) {
-      targets = new Map();
-      this._edges.set(fromKey, targets);
-    }
-
-    let cells = targets.get(toKey);
-    if (!cells) {
-      cells = [];
-      targets.set(toKey, cells);
-      this._edgeCount += 1;
-    }
-    if (cells.some((cell) => cell.x === x && cell.y === y)) return true;
-
-    cells.push({ x, y });
-    // Keep a deterministic order so the same file always emits the same script.
-    cells.sort((a, b) => a.x - b.x || a.y - b.y);
-    this._cellCount += 1;
+  /** Record a directed source cell. Unknown destination means NOT confirmed. */
+  addLink(from,x,y,to,toX=-1,toY=-1,confirmed=false,lastObservedUtc='') {
+    const fk = normalise(from), tk = normalise(to);
+    if (!fk || !tk || ![x,y,toX,toY].every(Number.isInteger) ||
+        typeof confirmed !== 'boolean' || !validTimestamp(lastObservedUtc) ||
+        (confirmed && (toX < 0 || toY < 0))) return false;
+    const edge = {
+      from:String(from).trim(),x,y,to:String(to).trim(),toX,toY,confirmed,
+      lastObservedUtc:String(lastObservedUtc ?? ''),
+    };
+    const entries = this._records.get(fk) ?? new Map();
+    const old = entries.get(cellKey(x,y));
+    if (old?.confirmed && !confirmed) return true; // no v1 downgrade
+    if (old && old.confirmed === confirmed && normalise(old.to) === tk &&
+        old.toX === toX && old.toY === toY &&
+        (!lastObservedUtc || old.lastObservedUtc === lastObservedUtc)) return true;
+    entries.set(cellKey(x,y),edge);
+    this._records.set(fk,entries);
+    this._rebuild();
     return true;
   }
 
-  /** @returns {ParseStats} */
+  _rebuild() {
+    this._edges.clear(); this._displayNames.clear();
+    const pairs = new Set();
+    let count = 0;
+    for (const [fk,entries] of this._records) {
+      for (const edge of entries.values()) {
+        count += 1;
+        const tk = normalise(edge.to);
+        this._displayNames.set(fk,edge.from);
+        this._displayNames.set(tk,edge.to);
+        pairs.add(fk + '\t' + tk);
+        if (!edge.confirmed || fk === tk) continue;
+        const targets = this._edges.get(fk) ?? new Map();
+        const list = targets.get(tk) ?? [];
+        list.push(edge);
+        targets.set(tk,list);
+        this._edges.set(fk,targets);
+      }
+    }
+    for (const targets of this._edges.values()) for (const list of targets.values()) list.sort(sortCell);
+    this._cellCount = count; this._edgeCount = pairs.size;
+  }
+
+  allEdges() {
+    return [...this._records.values()].flatMap((m) => [...m.values()].map((v) => ({...v})));
+  }
   stats() {
+    const records = this.allEdges();
+    const confirmed = records.filter((v) => v.confirmed).length;
     return {
-      maps: this.mapNames().length,
-      edges: this._edgeCount,
-      cells: this._cellCount,
-      skipped: 0,
+      maps:this.mapNames().length,edges:this.edgeCount,cells:this.cellCount,
+      confirmed,unverified:records.length-confirmed,
+      sameMap:records.filter((v) => normalise(v.from) === normalise(v.to)).length,
+      skipped:0,
     };
   }
-
-  /** @returns {string[]} every map mentioned, display-cased, alphabetical */
-  mapNames() {
-    return [...this._displayNames.values()].sort((a, b) => a.localeCompare(b));
+  hasSameMapWarp(name) {
+    const key = normalise(name);
+    return [...(this._records.get(key)?.values() ?? [])].some(
+      (v) => normalise(v.to) === key);
   }
-
-  /**
-   * Resolve user-typed text to the stored display name.
-   *
-   * @param {string} name
-   * @returns {string | null}
-   */
-  resolveName(name) {
-    return this._displayNames.get(normalise(name)) ?? null;
-  }
-
-  /** @param {string} name @returns {boolean} */
-  hasMap(name) {
-    return this._displayNames.has(normalise(name));
-  }
-
-  /**
-   * @param {string} from
-   * @returns {string[]} display names reachable in one hop
-   */
+  mapNames() { return [...this._displayNames.values()].sort((a,b) => a.localeCompare(b)); }
+  resolveName(name) { return this._displayNames.get(normalise(name)) ?? null; }
+  hasMap(name) { return this._displayNames.has(normalise(name)); }
   neighbours(from) {
-    const targets = this._edges.get(normalise(from));
-    if (!targets) return [];
-    return [...targets.keys()]
-      .map((key) => this._displayNames.get(key) ?? key)
-      .sort((a, b) => a.localeCompare(b));
+    return [...(this._edges.get(normalise(from))?.keys() ?? [])]
+      .map((key) => this.resolveName(key)).sort((a,b) => a.localeCompare(b));
   }
 
-  /**
-   * The warp cell to step on to get from `from` to `to`.
-   *
-   * @param {string} from
-   * @param {string} to
-   * @returns {Cell | null}
-   */
-  hopCell(from, to) {
-    const cells = this._edges.get(normalise(from))?.get(normalise(to));
-    return cells && cells.length ? { ...cells[0] } : null;
+  // Never choose the first of several exits to the same named map, and never
+  // mistake a self-warp for reaching a new map. Both require position semantics.
+  hopCell(from,to) {
+    if (normalise(from) === normalise(to) || this.hasSameMapWarp(from)) return null;
+    const variants = this._edges.get(normalise(from))?.get(normalise(to));
+    return variants?.length === 1 ? {x:variants[0].x,y:variants[0].y} : null;
   }
-
-  /**
-   * Breadth-first shortest path, so a route never takes more map transitions
-   * than it has to. Returns display names including both endpoints.
-   *
-   * @param {string} from
-   * @param {string} to
-   * @returns {string[] | null} null when no path exists
-   */
-  findRoute(from, to) {
-    const startKey = normalise(from);
-    const goalKey = normalise(to);
-    if (!startKey || !goalKey) return null;
-    if (!this._displayNames.has(startKey) || !this._displayNames.has(goalKey)) return null;
-    if (startKey === goalKey) return [this._displayNames.get(startKey)];
-
-    /** @type {Map<string, string | null>} child -> parent */
-    const cameFrom = new Map([[startKey, null]]);
-    const queue = [startKey];
-
-    for (let head = 0; head < queue.length; head += 1) {
-      const current = queue[head];
-      for (const next of this._edges.get(current)?.keys() ?? []) {
+  hopEdge(from,to) {
+    return this.hopCell(from,to)
+      ? { ...this._edges.get(normalise(from)).get(normalise(to))[0] } : null;
+  }
+  _safeNeighbours(from) {
+    if (this.hasSameMapWarp(from)) return [];
+    return [...(this._edges.get(normalise(from))?.keys() ?? [])]
+      .filter((to) => this.hopCell(from,to));
+  }
+  findRoute(from,to) {
+    const start=normalise(from),goal=normalise(to);
+    if (!start || !goal || !this.hasMap(start) || !this.hasMap(goal) ||
+        this.hasSameMapWarp(start) || this.hasSameMapWarp(goal)) return null;
+    if (start === goal) return [this.resolveName(start)];
+    const cameFrom=new Map([[start,null]]);
+    const queue=[start];
+    for (let i=0;i<queue.length;i+=1) {
+      for (const next of this._safeNeighbours(queue[i])) {
         if (cameFrom.has(next)) continue;
-        cameFrom.set(next, current);
-        if (next === goalKey) return this._reconstruct(cameFrom, goalKey);
+        cameFrom.set(next,queue[i]);
+        if (next === goal) return this._reconstruct(cameFrom,goal);
         queue.push(next);
       }
     }
     return null;
   }
-
-  /**
-   * One hop from every map that can reach `destination`, pointing at it.
-   *
-   * `findRoute` answers "how do I get from here to there"; this answers "from
-   * anywhere, which way is there" — the table a bot consults when it wakes up
-   * somewhere the route never planned for. It is a breadth-first search over
-   * the edges reversed, so each map gets the first step of its own shortest
-   * path, and the whole thing is one table lookup at runtime.
-   *
-   * The destination itself is not included: standing on it, there is nothing
-   * left to walk.
-   *
-   * @param {string} destination
-   * @returns {Hop[]} nearest maps first, ties broken by name
-   */
-  hopsToward(destination) {
-    const goalKey = normalise(destination);
-    if (!goalKey || !this._displayNames.has(goalKey)) return [];
-
-    /** @type {Map<string, string>} normalised map -> the map to step into next */
-    const nextHop = new Map();
-    let frontier = [goalKey];
-    /** @type {Hop[]} */
-    const hops = [];
-
-    while (frontier.length) {
-      /** @type {string[]} */
-      const nextFrontier = [];
-      for (const target of frontier) {
-        // Everything with an edge *into* target can take one step toward it.
-        for (const [from, targets] of this._edges) {
-          if (from === goalKey || nextHop.has(from) || !targets.has(target)) continue;
-          // A pair recorded without a cell cannot be walked. Skipping it here
-          // rather than when writing the rows matters: accepted, it would
-          // become the way home for everything behind it, and every one of
-          // those maps would walk into a dead end.
-          if (!targets.get(target)?.length) continue;
-          nextHop.set(from, target);
-          nextFrontier.push(from);
-        }
-      }
-      nextFrontier.sort((a, b) => a.localeCompare(b));
-      for (const from of nextFrontier) {
-        const fromName = this._displayNames.get(from) ?? from;
-        const toName = this._displayNames.get(nextHop.get(from)) ?? nextHop.get(from);
-        const cell = this.hopCell(fromName, toName);
-        if (cell) hops.push({ from: fromName, to: toName, x: cell.x, y: cell.y });
-      }
-      frontier = nextFrontier;
-    }
-    return hops;
-  }
-
-  /**
-   * Turn a map path into the concrete hops a script walks.
-   *
-   * @param {string[]} path display names, as returned by {@link findRoute}
-   * @returns {Hop[]}
-   * @throws {Error} when a consecutive pair has no recorded warp cell
-   */
   hopsFor(path) {
-    /** @type {Hop[]} */
-    const hops = [];
-    for (let i = 0; i < path.length - 1; i += 1) {
-      const from = path[i];
-      const to = path[i + 1];
-      const cell = this.hopCell(from, to);
-      if (!cell) throw new Error(t('No warp cell recorded for "{from}" -> "{to}"', { from, to }));
-      hops.push({ from, to, x: cell.x, y: cell.y });
+    const hops=[];
+    for(let i=0;i<path.length-1;i+=1) {
+      const edge=this.hopEdge(path[i],path[i+1]);
+      if(!edge) throw new Error(t('No warp cell recorded for "{from}" -> "{to}"',{
+        from:path[i],to:path[i+1],
+      }));
+      hops.push(edge);
     }
     return hops;
   }
-
-  /**
-   * Serialise back to `link_graph.txt` format.
-   *
-   * @returns {string} empty string when the graph holds nothing
-   */
-  toText() {
-    /** @type {string[]} */
-    const rows = [];
-    for (const fromKey of [...this._edges.keys()].sort()) {
-      const targets = this._edges.get(fromKey);
-      for (const toKey of [...targets.keys()].sort()) {
-        for (const cell of targets.get(toKey)) {
-          rows.push([
-            this._displayNames.get(fromKey) ?? fromKey,
-            cell.x,
-            cell.y,
-            this._displayNames.get(toKey) ?? toKey,
-          ].join('\t'));
+  hopsToward(destination) {
+    const goal=normalise(destination);
+    if (!this.hasMap(goal) || this.hasSameMapWarp(goal)) return [];
+    const seen=new Set([goal]);
+    let frontier=[goal];
+    const hops=[];
+    while(frontier.length) {
+      const next=[];
+      for(const target of frontier) {
+        for(const from of this._edges.keys()) {
+          if(seen.has(from) || !this._safeNeighbours(from).includes(target)) continue;
+          const edge=this.hopEdge(from,target);
+          if(!edge) continue;
+          seen.add(from); next.push(from); hops.push(edge);
         }
       }
+      frontier=next.sort();
     }
-    return rows.length ? `${LINK_GRAPH_HEADER}\tv1\n${rows.join('\n')}\n` : '';
+    return hops;
   }
-
-  /**
-   * @param {Map<string, string | null>} cameFrom
-   * @param {string} goalKey
-   * @returns {string[]}
-   */
-  _reconstruct(cameFrom, goalKey) {
-    /** @type {string[]} */
-    const reversed = [];
-    for (let key = goalKey; key != null; key = cameFrom.get(key)) {
-      reversed.push(this._displayNames.get(key) ?? key);
-    }
-    return reversed.reverse();
+  toText() {
+    const rows=this.allEdges().sort((a,b) =>
+      normalise(a.from).localeCompare(normalise(b.from)) || sortCell(a,b))
+      .map((e)=>[e.from,e.x,e.y,e.to,e.toX,e.toY,
+        e.confirmed?'confirmed':LEGACY,
+        e.lastObservedUtc||'0001-01-01T00:00:00.0000000Z'].join('\t'));
+    return rows.length?LINK_GRAPH_HEADER+'\tv2\n'+rows.join('\n')+'\n':'';
+  }
+  _reconstruct(cameFrom,goal) {
+    const reverse=[];
+    for(let x=goal;x!=null;x=cameFrom.get(x)) reverse.push(this.resolveName(x)??x);
+    return reverse.reverse();
   }
 }

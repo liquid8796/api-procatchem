@@ -17,17 +17,17 @@ import { generateScript } from '../assets/builder/js/generators/index.js';
  * tell "walked out and back" apart from "knows the way home from anywhere".
  */
 const { graph: GRAPH } = LinkGraph.parse([
-  'PROCATCHEM-LINKGRAPH\tv1',
-  'Pokecenter Viridian\t9\t14\tViridian City',
-  'Viridian City\t23\t8\tPokecenter Viridian',
-  'Viridian City\t12\t3\tViridian Forest',
-  'Viridian Forest\t14\t46\tViridian City',
-  'Viridian City\t40\t20\tRoute 21',
-  'Route 21\t2\t2\tViridian City',
-  'Route 21\t60\t11\tPewter City',
-  'Pewter City\t1\t1\tRoute 21',
-  'Pewter City\t5\t5\tPokecenter Pewter',
-  'Pokecenter Pewter\t4\t9\tPewter City',
+  'PROCATCHEM-LINKGRAPH\tv2',
+  'Pokecenter Viridian\t9\t14\tViridian City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian City\t23\t8\tPokecenter Viridian\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian City\t12\t3\tViridian Forest\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian Forest\t14\t46\tViridian City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian City\t40\t20\tRoute 21\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Route 21\t2\t2\tViridian City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Route 21\t60\t11\tPewter City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Pewter City\t1\t1\tRoute 21\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Pewter City\t5\t5\tPokecenter Pewter\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Pokecenter Pewter\t4\t9\tPewter City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
 ].join('\n'));
 
 /**
@@ -296,9 +296,9 @@ test('a one-way graph is reported even when recovery is on', () => {
   // answer for is genuinely stranded — and used to be reported as a clean route
   // with an empty table.
   const { graph } = LinkGraph.parse([
-    'PROCATCHEM-LINKGRAPH\tv1',
-    'Pokecenter Viridian\t9\t14\tViridian City',
-    'Viridian City\t12\t3\tViridian Forest',
+    'PROCATCHEM-LINKGRAPH\tv2',
+    'Pokecenter Viridian\t9\t14\tViridian City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+    'Viridian City\t12\t3\tViridian Forest\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
   ].join('\n'));
 
   for (const recoverWhenLost of [true, false]) {
@@ -313,7 +313,7 @@ test('a one-way graph is reported even when recovery is on', () => {
     const { plan } = generateScript(config, graph);
     assert.match(
       plan.problems.join('\n'),
-      /No path from "Viridian Forest" to "Pokecenter Viridian"/,
+      /No confirmed, unambiguous path from "Viridian Forest" to "Pokecenter Viridian"/,
       `recoverWhenLost=${recoverWhenLost} should have reported the dead end`,
     );
   }
@@ -367,4 +367,19 @@ test('an EV table that is finished ends the run', () => {
     'the farm guard has to see it, or the run flees encounters forever instead of stopping',
   );
   assert.match(result.lua, /fatal\("Every spread is done\."\)/);
+});
+
+test('v2 cave self-warp is rejected instead of selecting an arbitrary map-only hop', () => {
+  const { graph } = LinkGraph.parse([
+    'PROCATCHEM-LINKGRAPH\tv2',
+    'Cave\t2\t3\tCave\t20\t10\tconfirmed\t2026-10-13T00:00:00Z',
+    'Cave\t25\t10\tPokecenter Cave\t5\t5\tconfirmed\t2026-10-13T00:00:00Z',
+    'Pokecenter Cave\t4\t4\tCave\t1\t1\tconfirmed\t2026-10-13T00:00:00Z',
+  ].join('\n'));
+  const config = normaliseConfig({ route: {
+    kind: 'route', farmMap: 'Cave', pokecenterMap: 'Pokecenter Cave',
+  }});
+  const { plan } = generateScript(config, graph);
+  assert.ok(plan.problems.some((problem) => /position-aware routing/.test(problem)),
+    'do not emit a guessed warp choice when cave sectors share one map name');
 });

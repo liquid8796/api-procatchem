@@ -56,7 +56,7 @@ export const HANDBOOK_SECTIONS = Object.freeze([
       'The host aborts any script that calls moveToMap(). Travelling from one map to the '
       + 'next is really "walk onto the tile that warps there", so the builder emits '
       + 'moveToCell(x, y) instead — one hop per map, until getMapName() reports the goal.',
-      'Those tiles come from maps-cache/link_graph.txt, which the bot writes as it walks '
+      'Those tiles come from maps-cache/link_graph_v2.txt, which the bot writes as it walks '
       + 'around. Load it in the sidebar and the builder can plan a Pokécenter loop; without '
       + 'it, only "hunt where I am standing" is available. The link-graph tools will also '
       + 'convert an older script that still calls moveToMap().',

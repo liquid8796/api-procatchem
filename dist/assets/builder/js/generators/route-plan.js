@@ -106,7 +106,7 @@ export function planRoute(config, linkGraph) {
 
   if (linkGraph.isEmpty) {
     plan.problems.push(
-      t('Load a link_graph.txt before using route mode — without it the builder cannot know '
+      t('Load a link_graph_v2.txt before using route mode — without it the builder cannot know '
         + 'which cell warps between maps.'),
     );
     return plan;
@@ -205,9 +205,11 @@ function resolveReturn(linkGraph, plan, spots, centre) {
       if (spot === centre || reachable.has(spot)) continue;
       // Recovery covers everything the graph can get home from, so a spot it
       // misses is genuinely one-way — a silent dead end without this.
-      plan.problems.push(t('No path from "{from}" to "{to}" in the link graph — walk it once so the bot learns it.', {
-        from: spot, to: centre,
-      }));
+      plan.problems.push(linkGraph.hasSameMapWarp(spot) || linkGraph.hasSameMapWarp(centre)
+        ? t('Same-map cave warps need position-aware routing. The builder cannot safely choose an exit using map names alone.')
+        : t('No confirmed, unambiguous path from "{from}" to "{to}" in LinkGraph v2. Walk and verify those exits first.', {
+          from: spot, to: centre,
+        }));
     }
     return hops;
   }
@@ -311,9 +313,9 @@ function normaliseStops(stops) {
 function resolveLeg(linkGraph, from, to, problems) {
   const path = linkGraph.findRoute(from, to);
   if (!path) {
-    problems.push(t('No path from "{from}" to "{to}" in the link graph — walk it once so the bot learns it.', {
-      from, to,
-    }));
+    problems.push(linkGraph.hasSameMapWarp(from) || linkGraph.hasSameMapWarp(to)
+      ? t('Same-map cave warps need position-aware routing. The builder cannot safely choose an exit using map names alone.')
+      : t('No confirmed, unambiguous path from "{from}" to "{to}" in LinkGraph v2. Walk and verify those exits first.', { from, to }));
     return [];
   }
   try {

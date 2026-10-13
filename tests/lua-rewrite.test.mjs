@@ -10,10 +10,10 @@ import { LinkGraph } from '../assets/builder/js/domain/link-graph.js';
 import { convertMoveToMap } from '../assets/builder/js/domain/lua-rewrite.js';
 
 const { graph } = LinkGraph.parse([
-  'PROCATCHEM-LINKGRAPH\tv1',
-  'Viridian City\t12\t3\tViridian Forest',
-  'Viridian Forest\t14\t46\tViridian City',
-  'Viridian City\t23\t8\tPokecenter Viridian',
+  'PROCATCHEM-LINKGRAPH\tv2',
+  'Viridian City\t12\t3\tViridian Forest\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian Forest\t14\t46\tViridian City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian City\t23\t8\tPokecenter Viridian\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
 ].join('\n'));
 
 /** @param {string[]} lines */

@@ -14,11 +14,11 @@ import { generateScript } from '../assets/builder/js/generators/index.js';
 import { runLint } from '../assets/builder/js/lint/rules.js';
 
 const { graph } = LinkGraph.parse([
-  'PROCATCHEM-LINKGRAPH\tv1',
-  'Pokecenter Viridian\t9\t14\tViridian City',
-  'Viridian City\t23\t8\tPokecenter Viridian',
-  'Viridian City\t12\t3\tViridian Forest',
-  'Viridian Forest\t14\t46\tViridian City',
+  'PROCATCHEM-LINKGRAPH\tv2',
+  'Pokecenter Viridian\t9\t14\tViridian City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian City\t23\t8\tPokecenter Viridian\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian City\t12\t3\tViridian Forest\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian Forest\t14\t46\tViridian City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
 ].join('\n'));
 
 /**

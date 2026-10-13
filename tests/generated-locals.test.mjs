@@ -21,17 +21,17 @@ import { runLint } from '../assets/builder/js/lint/rules.js';
 
 /** Two towns, each with a Pokécenter, so a period can be anchored elsewhere. */
 const { graph } = LinkGraph.parse([
-  'PROCATCHEM-LINKGRAPH\tv1',
-  'Pokecenter Viridian\t9\t14\tViridian City',
-  'Viridian City\t23\t8\tPokecenter Viridian',
-  'Viridian City\t12\t3\tViridian Forest',
-  'Viridian Forest\t14\t46\tViridian City',
-  'Viridian City\t40\t20\tRoute 21',
-  'Route 21\t2\t2\tViridian City',
-  'Route 21\t60\t11\tPewter City',
-  'Pewter City\t1\t1\tRoute 21',
-  'Pewter City\t5\t5\tPokecenter Pewter',
-  'Pokecenter Pewter\t4\t9\tPewter City',
+  'PROCATCHEM-LINKGRAPH\tv2',
+  'Pokecenter Viridian\t9\t14\tViridian City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian City\t23\t8\tPokecenter Viridian\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian City\t12\t3\tViridian Forest\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian Forest\t14\t46\tViridian City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Viridian City\t40\t20\tRoute 21\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Route 21\t2\t2\tViridian City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Route 21\t60\t11\tPewter City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Pewter City\t1\t1\tRoute 21\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Pewter City\t5\t5\tPokecenter Pewter\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
+  'Pokecenter Pewter\t4\t9\tPewter City\t0\t0\tconfirmed\t2026-10-13T00:00:00Z',
 ].join('\n'));
 
 /**

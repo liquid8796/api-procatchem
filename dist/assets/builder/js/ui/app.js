@@ -222,7 +222,7 @@ export class BuilderApp {
       h('span.graph-dot', { class: loaded ? 'is-on' : '', 'aria-hidden': 'true' }),
       h('span.graph-text', {
         text: loaded
-          ? t('Link graph: {maps} maps, {cells} warp cells', { maps: stats.maps, cells: stats.cells })
+          ? t('Link graph v2: {maps} maps, {confirmed} confirmed, {unverified} unverified, {sameMap} same-map', stats)
           : t('No link graph loaded — Pokécenter routes are unavailable'),
       }),
     ]);
@@ -326,7 +326,7 @@ export class BuilderApp {
   }
 
   /**
-   * Load a `link_graph.txt` exported by the bot's map cache.
+   * Load a `link_graph_v2.txt` exported by the bot's map cache.
    *
    * @param {File} file
    */
@@ -343,7 +343,7 @@ export class BuilderApp {
   replaceLinkGraph(text) {
     const { graph, stats } = LinkGraph.parse(text);
     if (graph.isEmpty) {
-      this.toast(t('No usable links in that text — is it maps-cache/link_graph.txt?'), 'error');
+      this.toast(t('No usable links in that text — is it maps-cache/link_graph_v2.txt?'), 'error');
       return false;
     }
     this._linkGraph = graph;
@@ -367,32 +367,36 @@ export class BuilderApp {
    * @returns {boolean} whether anything was added
    */
   mergeLinkGraph(text) {
-    const before = this._linkGraph.cellCount;
-    const { graph } = LinkGraph.parse(`${this._linkGraph.toText()}\n${text}`);
-    const added = graph.cellCount - before;
+    const before = this._linkGraph.toText();
+    const previousCells = this._linkGraph.cellCount;
+    const { graph } = LinkGraph.parse(`${before}\n${text}`);
+    const added = graph.cellCount - previousCells;
 
-    if (added <= 0) {
-      this.toast(added === 0 ? t('Nothing new in that text.') : t('No usable links in that text.'), 'error');
+    // Upgrading a v1 cell to confirmed v2 must persist even with no new cells.
+    if (graph.toText() === before) {
+      this.toast(t('Nothing new in that text.'), 'error');
       return false;
     }
     this._linkGraph = graph;
     saveGraph(graph.toText());
     this._refresh();
-    this.toast(added === 1
-      ? t('Added one warp cell.')
-      : t('Added {count} warp cells.', { count: added }), 'ok');
+    this.toast(added <= 0
+      ? t('Updated existing warp observations.')
+      : added === 1
+        ? t('Added one warp cell.')
+        : t('Added {count} warp cells.', { count: added }), 'ok');
     return true;
   }
 
-  /** Save the loaded graph back out as a `link_graph.txt`. */
+  /** Save the loaded graph back out as a `link_graph_v2.txt`. */
   exportLinkGraph() {
     const text = this._linkGraph.toText();
     if (!text) {
       this.toast(t('Nothing to export — no link graph is loaded.'), 'error');
       return;
     }
-    downloadText('link_graph.txt', text);
-    this.toast(t('Saved {name}.', { name: 'link_graph.txt' }), 'ok');
+    downloadText('link_graph_v2.txt', text);
+    this.toast(t('Saved {name}.', { name: 'link_graph_v2.txt' }), 'ok');
   }
 
   /** @returns {LinkGraph} the graph the preview is generated against */

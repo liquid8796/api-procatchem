@@ -145,7 +145,7 @@ function bindFilePicker(buttonSelector, inputSelector, handler) {
   });
 }
 
-// Accept a link_graph.txt or a generated .lua dropped anywhere on the page.
+// Accept a link_graph_v2.txt or a generated .lua dropped anywhere on the page.
 const dropZone = document.body;
 let dragDepth = 0;
 
